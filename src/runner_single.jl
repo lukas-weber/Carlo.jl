@@ -31,7 +31,7 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
     runner.time_start = Dates.now()
     runner.time_last_checkpoint = runner.time_start
 
-    read!(runner)
+    read_progress!(runner)
     runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
 
     while runner.task_id != -1 && !time_is_up(runner)
@@ -40,6 +40,8 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
         init!(runner.mc, runner.mcdata)
 
         rundir = run_dir(runner.job, runner.task_id)
+        
+        
         if read!(runner, rundir)
             @info "read $rundir"
         else

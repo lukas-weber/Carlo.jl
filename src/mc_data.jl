@@ -1,8 +1,6 @@
-import HDF5
+using HDF5
 
-abstract type AbstractRNG end
-
-mutable struct MCData{RNG <: AbstractRNG}
+mutable struct MCData{RNG <: Random.AbstractRNG}
     sweeps::Int64
     thermalization_sweeps::Int64
 
@@ -47,8 +45,8 @@ function write_measurements!(data::MCData, meas_file::HDF5.Group)
 end
 
 function write_checkpoint(data::MCData, check_file::HDF5.Group)
-    write_checkpoint(data.rng, check_file["random_number_generator"])
-    write_checkpoint(data.measure, check_file["measurements"])
+    write_rng_checkpoint!(data.rng, check_file["random_number_generator"])
+    write_checkpoint!(data.measure, check_file["measurements"])
 
     check_file["thermalization_sweeps"] = minimum(data.sweep, data.thermalization)
     check_file["sweeps"] = data.sweep - mininum(data.sweep, data.thermalization)
@@ -56,15 +54,16 @@ function write_checkpoint(data::MCData, check_file::HDF5.Group)
     return nothing
 end
 
-function read_checkpoint!(data::MCData, check_file::HDF5.Group)
-    read_checkpoint!(data.rng, check_file["random_number_generator"])
-    read_checkpoint!(data.measure, check_file["measurements"])
-
+function read_checkpoint(::Type{MCData{RNG}}, check_file::HDF5.Group) where {RNG}
     therm_sweeps = check_file["thermalization_sweeps"]
     sweeps = check_file["sweeps"]
-
-    data.sweeps = sweeps + thermalization
-
+    
+    return MCData(
+        rng = read_checkpoint(RNG, check_file["random_number_generator"]),
+        sweeps = sweeps + therm_sweeps,
+        measure = read_check
+    )
+    
     return nothing
 end
 
@@ -93,18 +92,18 @@ function write_finalize(file_prefix::AbstractString)
     return nothing
 end
 
-function read!(data::MCData, mc::AbstractMC, file_prefix::AbstractString)::Bool
+function read_checkpoint(::Type{MCData}, ::Type{MC}, file_prefix::AbstractString)::Union{Nothing, Pair{MCData, MC}} where {MC <: AbstractMC}
     if isfile(file_prefix * ".dump.h5")
-        return false
+        return nothing
     end
 
     checkpoint_read_time = @elapsed begin
         h5open(file_prefix * ".meas.h5.tmp", "r") do file
-            read_checkpoint!(data, file)
-            read_checkpoint!(mc, file["simulation"])
+            data = read_checkpoint(MCData, file)
+            mc = read_checkpoint(MC, file["simulation"])
         end
     end
 
     add_sample!(data.measure, "__ll_checkpoint_read_time", checkpoint_read_time)
-    return true
+    return (data, mc)
 end
