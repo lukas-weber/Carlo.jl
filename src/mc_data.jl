@@ -1,4 +1,5 @@
 using HDF5
+using Random
 
 mutable struct MCData{RNG <: Random.AbstractRNG}
     sweeps::Int64
@@ -6,35 +7,30 @@ mutable struct MCData{RNG <: Random.AbstractRNG}
 
     rng::RNG
     measure::Measurements
-    
-    function MCData(parameters::Dict)
-        measure = Measurements(parameters["binsize"])
-        register_observable!(measure, "_ll_checkpoint_read_time", 1, 1)
-        register_observable!(measure, "_ll_checkpoint_write_time", 1, 1)
-
-        if haskey(parameters, "seed")
-            rng = RNG(data.parameters["seed"])
-        else
-            rng = RNG()
-        end
-        
-        return new{typeof(rng)}(0, parameters["thermalization"], rng, measure)
-    end
 end
 
 rand!(data::MCData, X) = rand!(rng = data.rng, X)
 
 is_thermalized(data::MCData) = data.sweeps >= data.thermalization_sweeps
 
-function init!(data::MCData)
+function MCData{RNG}(parameters::Dict) where {RNG}
+    measure = Measurements(parameters["binsize"])
     register_observable!(data.measure, "_ll_checkpoint_read_time", 1, 1)
     register_observable!(data.measure, "_ll_checkpoint_write_time", 1, 1)
+    
 
-    if haskey(data.parameters, "seed")
-        seed!(data.rng, data.parameters["seed"])
+    if haskey(parameters, "seed")
+        rng = RNG(parameters["seed"])
+    else
+        rng = RNG()
     end
 
-    return nothing
+    return MCData(
+        sweeps = 0,
+        thermalization_sweeps = parameters["thermalization"],
+        rng = rng,
+        measure = measure
+    )
 end
 
 function write_measurements!(data::MCData, meas_file::HDF5.Group)

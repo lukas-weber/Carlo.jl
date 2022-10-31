@@ -1,5 +1,6 @@
 module LoadLeveller
 
+include("random_wrap.jl")
 include("abstract_mc.jl")
 include("jobinfo.jl")
 include("observable.jl")

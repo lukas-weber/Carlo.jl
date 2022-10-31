@@ -35,20 +35,20 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
     runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
 
     while runner.task_id != -1 && !time_is_up(runner)
-        runner.mcdata = MCData(runner.job.tasks[runner.task_id].params)
-        runner.mc = MC(runner.job.tasks[runner.task_id].params)
-        init!(runner.mc, runner.mcdata)
-
+        params = runner.job.tasks[runner.task_id].params
         rundir = run_dir(runner.job, runner.task_id)
         
-        
-        if read!(runner, rundir)
+        mcpair = init_from_checkpoint(rundir, params)
+        if mcpair
+            runner.mcdata, runner.mc = mcpair
             @info "read $rundir"
-        else
-            init!(runner.sys)
+        else 
+            runner.mcdata = MCData(params)
+            runner.mc = MC(params)
+            init!(runner.mc, params)
             @info "initialized $rundir"
         end
-
+            
         while !is_done(runner.tasks[runner.task_id]) && !time_is_up(runner)
             sweep!(runner.sys)
             if is_thermalized(sys)
