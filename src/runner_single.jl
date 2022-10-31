@@ -78,7 +78,7 @@ function get_new_task_id(tasks::AbstractVector{RunnerTask}, old_id::Integer)
     return findfirst(x->!is_done(x), circshift(tasks, -old_id))
 end
 
-function read!(runner::SingleRunner)
+function read_progress!(runner::SingleRunner)
     runner.tasks = map(enumerate(runner.job.tasks)) do (task_id, task)
         target_sweeps = task.params["sweeps"]
         sweeps = read_dump_progress(runner.job, task_id)

@@ -1,3 +1,5 @@
+using HDF5
+
 mutable struct Observable
     name::String
 
@@ -49,7 +51,7 @@ function read_checkpoint(::Type{Observable}, check_file::HDF5.Group)
     return Observable(
         check_file["name"],
         check_file["bin_length"],
-        check_file["current_bin_filling"]
+        check_file["current_bin_filling"],
         check_file["samples"]
     )
 end

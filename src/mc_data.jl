@@ -44,8 +44,8 @@ function write_checkpoint(data::MCData, check_file::HDF5.Group)
     write_rng_checkpoint!(data.rng, check_file["random_number_generator"])
     write_checkpoint!(data.measure, check_file["measurements"])
 
-    check_file["thermalization_sweeps"] = minimum(data.sweep, data.thermalization)
-    check_file["sweeps"] = data.sweep - mininum(data.sweep, data.thermalization)
+    check_file["thermalization_sweeps"] = min(data.sweep, data.thermalization)
+    check_file["sweeps"] = data.sweep - min(data.sweep, data.thermalization)
 
     return nothing
 end
@@ -88,15 +88,17 @@ function write_finalize(file_prefix::AbstractString)
     return nothing
 end
 
-function read_checkpoint(::Type{MCData}, ::Type{MC}, file_prefix::AbstractString)::Union{Nothing, Pair{MCData, MC}} where {MC <: AbstractMC}
-    if isfile(file_prefix * ".dump.h5")
+function init_from_checkpoint(file_prefix::AbstractString, parameters::Dict)::Union{Nothing, Pair{MCData, MC}} where {MC <: AbstractMC}
+    if !isfile(file_prefix * ".dump.h5")
         return nothing
     end
 
     checkpoint_read_time = @elapsed begin
         h5open(file_prefix * ".meas.h5.tmp", "r") do file
             data = read_checkpoint(MCData, file)
-            mc = read_checkpoint(MC, file["simulation"])
+            
+            mc = MC(parameters)
+            read_checkpoint!(mc, file["simulation"])
         end
     end
 
