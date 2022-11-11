@@ -1,56 +1,58 @@
-mutable struct Measurements
+mutable struct Measurements{T<:AbstractFloat}
     default_bin_size::Int64
-    observables::Dict{String,Observable}
+    observables::Dict{Symbol,Observable{T}}
 end
 
-Measurements(default_bin_size::Integer) = Measurements(default_bin_size, Dict())
+Measurements{T}(default_bin_size::Integer) where {T} =
+    Measurements{T}(default_bin_size, Dict())
 
-function add_sample!(meas::Measurements, obsname::AbstractString, value)
+function add_sample!(meas::Measurements, obsname::Symbol, value)
     if !haskey(meas.observables, obsname)
-        register_observable!(meas, obsname, default_bin_size, length(value))
+        register_observable!(meas, obsname, meas.default_bin_size, length(value))
     end
 
     add_sample!(meas.observables[obsname], value)
     return nothing
 end
 
-function _is_legal_observable_name(obsname::AbstractString)
-    return !occursin("/", obsname) && !occursin(".", obsname)
-end
-
 function register_observable!(
-    meas::Measurements,
-    obsname::AbstractString,
+    meas::Measurements{T},
+    obsname::Symbol,
     bin_length::Integer,
     vector_length::Integer,
-)
-    if !_is_legal_observable_name(obsname)
-        error("Illegal observable name '$(obsname)': names must not contain / or .")
-    end
-
+) where {T}
     if haskey(meas.observables, obsname)
         error("Observable '$(obsname)' already exists.")
     end
 
-    meas.observables[obsname] = Observable(obsname, bin_length, vector_length)
+    meas.observables[obsname] = Observable{T}(bin_length, vector_length)
     return nothing
 end
 
-function write_checkpoint!(meas::Measurements, check_file::HDF5.Group)
-    check_file["default_bin_size"] = meas.default_bin_size
-    
+function write_measurements!(meas::Measurements, out::HDF5.Group)
     for (name, obs) in meas.observables
-        write_checkpoint!(obs, check_file["observables/$(name)"])
+        write_measurements!(obs, create_absent_group(out, String(name)))
     end
+    return nothing
 end
 
-function read_checkpoint(::Type{Measurements}, check_file::HDF5.Group)
-    default_bin_size = check_file["default_bin_size"]
-    
-    observables = Dict()
-    for obsname in check_file["observables"]
-        observables[obsname] = read_checkpoint(Observable, check_file["observable/$(obsname)"])
+function write_checkpoint!(meas::Measurements, out::HDF5.Group)
+    out["default_bin_size"] = meas.default_bin_size
+
+    for (name, obs) in meas.observables
+        write_checkpoint!(obs, create_group(out, "observables/$(name)"))
     end
-    
-    return Measurements(default_bin_size, observables)
+    return nothing
+end
+
+function read_checkpoint(::Type{Measurements{T}}, in::HDF5.Group) where {T}
+    default_bin_size = read(in, "default_bin_size")
+
+    observables = Dict{Symbol,Observable}()
+    for obsname in keys(in["observables"])
+        observables[Symbol(obsname)] =
+            read_checkpoint(Observable, in["observables/$(obsname)"])
+    end
+
+    return Measurements{T}(default_bin_size, observables)
 end

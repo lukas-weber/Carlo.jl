@@ -3,27 +3,20 @@ using Logging
 
 abstract type AbstractRunner end
 
+const DefaultRNG = Random.Xoshiro
+
 mutable struct SingleRunner{MC<:AbstractMC} <: AbstractRunner
     job::JobInfo
-    mc::Union{MC,Nothing}
-    mcdata::Union{MCData,Nothing}
+    walker::Union{Walker{MC,DefaultRNG},Nothing}
 
     time_start::Dates.DateTime
     time_last_checkpoint::Dates.DateTime
 
-    task_id::Integer
+    task_id::Union{Int32,Nothing}
     tasks::Vector{RunnerTask}
 
     function SingleRunner(job::JobInfo, ::Type{MC}) where {MC<:AbstractMC}
-        return new{MC}(
-            job,
-            nothing,
-            nothing,
-            Dates.now(),
-            Dates.now(),
-            -1,
-            Vector{RunnerTask}(),
-        )
+        return new{MC}(job, nothing, Dates.now(), Dates.now(), 1, Vector{RunnerTask}())
     end
 end
 
@@ -34,27 +27,20 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
     read_progress!(runner)
     runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
 
-    while runner.task_id != -1 && !time_is_up(runner)
-        params = runner.job.tasks[runner.task_id].params
-        rundir = run_dir(runner.job, runner.task_id)
-        
-        mcpair = init_from_checkpoint(rundir, params)
-        if mcpair
-            runner.mcdata, runner.mc = mcpair
-            @info "read $rundir"
-        else 
-            runner.mcdata = MCData(params)
-            runner.mc = MC(params)
-            init!(runner.mc, params)
-            @info "initialized $rundir"
+    while runner.task_id != nothing && !time_is_up(runner)
+        task = runner.job.tasks[runner.task_id]
+        walkerdir = walker_dir(task, 1)
+
+        runner.walker = read_checkpoint(Walker{MC,DefaultRNG}, walkerdir, task.params)
+        if runner.walker != nothing
+            @info "read $walkerdir"
+        else
+            runner.walker = Walker{MC,DefaultRNG}(task.params)
+            @info "initialized $walkerdir"
         end
-            
+
         while !is_done(runner.tasks[runner.task_id]) && !time_is_up(runner)
-            sweep!(runner.sys)
-            if is_thermalized(sys)
-                measure!(runner.sys)
-                runner.tasks[runner.task_id].sweeps += 1
-            end
+            runner.tasks[runner.task_id].sweeps += step!(runner.walker)
 
             if is_checkpoint_time(runner)
                 write_checkpoint(runner)
@@ -63,25 +49,31 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
 
         write_checkpoint(runner)
 
-        taskdir = task_dir(runner.job, runner.task_id)
-        write_output(runner.sys, taskdir)
+        taskdir = runner.job.tasks[runner.task_id].dir
+        write_output(runner.walker.impl, taskdir)
         @info "merging $(taskdir)"
-        merge_task(runner.job, runner.task_id)
+        merge_results(MC, runner.job.tasks[runner.task_id])
 
         runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
     end
 
+    concatenate_results(runner.job)
+    @info "Job complete."
+
     return nothing
 end
 
-function get_new_task_id(tasks::AbstractVector{RunnerTask}, old_id::Integer)
-    return findfirst(x->!is_done(x), circshift(tasks, -old_id))
+function get_new_task_id(
+    tasks::AbstractVector{RunnerTask},
+    old_id::Integer,
+)::Union{Integer,Nothing}
+    return findfirst(x -> !is_done(x), tasks)
 end
 
 function read_progress!(runner::SingleRunner)
-    runner.tasks = map(enumerate(runner.job.tasks)) do (task_id, task)
+    runner.tasks = map(runner.job.tasks) do task
         target_sweeps = task.params["sweeps"]
-        sweeps = read_dump_progress(runner.job, task_id)
+        sweeps = read_dump_progress(task)
         return RunnerTask(target_sweeps, sweeps, 0)
     end |> collect
 
@@ -90,10 +82,10 @@ end
 
 function write_checkpoint(runner::SingleRunner)
     runner.time_last_checkpoint = Dates.now()
-    rundir = run_dir(runner.job, runner.task_id, 1)
-    write_checkpoint(runner.sys, rundir)
-    write_finalize(runner.sys, rundir)
-    @info "checkpointing $(rundir)"
+    walkerdir = walker_dir(runner.job.tasks[runner.task_id], 1)
+    write_checkpoint(runner.walker, walkerdir)
+    write_checkpoint_finalize(walkerdir)
+    @info "checkpointing $walkerdir"
 
     return nothing
 end

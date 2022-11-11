@@ -1,5 +1,5 @@
 function run(
-    mc::Type{MC},
+    ::Type{MC},
     parameter_file::AbstractString,
     runner::Type{R},
 ) where {MC<:AbstractMC,R<:AbstractRunner}

@@ -1,14 +1,24 @@
 "Your Monte Carlo algorithm type should inherit from this and provide the methods below"
 abstract type AbstractMC end
 
-#"Perform one Monte Carlo sweep"
-#function sweep!(mc::AbstractMC, data::MCData) end
+macro stub(func::Expr)
+    return :(
+        $func = error("AbstractMC interface not implemented for MC type $(typeof(mc))")
+    )
+end
 
-#"Perform a Monte Carlo measurement"
-#function measure!(mc::AbstractMC, data::MCData) end
+@stub init!(mc::AbstractMC, ctx::MCContext, params::Dict)
 
-#function write_checkpoint(mc::AbstractMC, dump_file::HDF5.Group) end
-#function read_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group) end
+"Perform one Monte Carlo sweep"
+@stub sweep!(mc::AbstractMC, ctx::MCContext)
+
+"Perform a Monte Carlo measurement"
+@stub measure!(mc::AbstractMC, ctx::MCContext)
+
+@stub write_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group)
+@stub read_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group)
+
+@stub register_evaluables(mc::Type{AbstractMC}, eval::Evaluator, params::Dict)
 
 """ This optional function allows you to write custom data to the file system. It provides a `unique_filename` that will not be overwritten by other runs in the simulation."""
 function write_output(mc::AbstractMC, unique_filename::AbstractString) end
