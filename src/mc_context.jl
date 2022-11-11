@@ -13,7 +13,7 @@ measure!(ctx::MCContext, name::Symbol, x) = add_sample!(ctx.measure, name, x)
 
 is_thermalized(ctx::MCContext) = ctx.sweeps > ctx.thermalization_sweeps
 
-function MCContext{RNG}(parameters::Dict) where {RNG}
+function MCContext{RNG}(parameters::AbstractDict) where {RNG}
     measure = Measurements{Float64}(parameters["binsize"])
     register_observable!(measure, :_ll_checkpoint_read_time, 1, 1)
     register_observable!(measure, :_ll_checkpoint_write_time, 1, 1)
