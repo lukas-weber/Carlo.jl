@@ -55,18 +55,6 @@ function merge_results(
     return nothing
 end
 
-function concatenate_results(job::JobInfo)
-    open("$(job.jobdir)/../$(job.jobname).results.json", "w") do out
-        results = map(job.tasks) do task
-            open(task.dir * "/results.json", "r") do in
-                return JSON.parse(in)
-            end
-        end
-        JSON.print(out, results, 1)
-    end
-    return nothing
-end
-
 struct JobInfo
     jobname::String
     jobdir::String
@@ -107,6 +95,19 @@ struct JobInfo
         )
     end
 end
+
+function concatenate_results(job::JobInfo)
+    open("$(job.jobdir)/../$(job.jobname).results.json", "w") do out
+        results = map(job.tasks) do task
+            open(task.dir * "/results.json", "r") do in
+                return JSON.parse(in)
+            end
+        end
+        JSON.print(out, results, 1)
+    end
+    return nothing
+end
+
 
 function create_job_directory(job::JobInfo)
     for task in job.tasks
