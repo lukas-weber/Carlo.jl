@@ -1,12 +1,6 @@
-
 @testset "Task Selection" begin
-    tasks = [
-        LoadLeveller.RunnerTask(100, 100, 0)
-        LoadLeveller.RunnerTask(100, 10, 0)
-        LoadLeveller.RunnerTask(100, 10, 0)
-        LoadLeveller.RunnerTask(100, 101, 0)
-        LoadLeveller.RunnerTask(100, 10, 0)
-    ]
+    sweeps = [100, 10, 10, 101, 10]
+    tasks = map(s->LoadLeveller.RunnerTask(100, s, "", 0), sweeps)
 
     @test LoadLeveller.get_new_task_id(tasks, 1) == 2
     @test LoadLeveller.get_new_task_id(tasks, 2) == 3

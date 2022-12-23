@@ -1,7 +1,10 @@
 using Test
+using LoadLeveller
+
 include("test_utils.jl")
 
 tests = [
+    "test_jobinfo.jl"
     "test_mc.jl"
     "test_walker.jl"
     "test_observable.jl"
@@ -12,6 +15,7 @@ tests = [
     "test_mccontext.jl"
     "test_merge.jl"
     "test_runner.jl"
+    "test_taskmaker.jl"
 ]
 
 for test in tests

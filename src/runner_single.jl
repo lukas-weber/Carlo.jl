@@ -16,7 +16,7 @@ mutable struct SingleRunner{MC<:AbstractMC} <: AbstractRunner
     tasks::Vector{RunnerTask}
 
     function SingleRunner(job::JobInfo, ::Type{MC}) where {MC<:AbstractMC}
-        return new{MC}(job, nothing, Dates.now(), Dates.now(), 1, Vector{RunnerTask}())
+        return new{MC}(job, nothing, Dates.now(), Dates.now(), 1, RunnerTask[]
     end
 end
 
@@ -29,7 +29,8 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
 
     while runner.task_id != nothing && !time_is_up(runner)
         task = runner.job.tasks[runner.task_id]
-        walkerdir = walker_dir(task, 1)
+        runner_task = runner.tasks[runner.task_id]
+        walkerdir = walker_dir(runner_task, 1)
 
         runner.walker = read_checkpoint(Walker{MC,DefaultRNG}, walkerdir, task.params)
         if runner.walker != nothing
@@ -39,8 +40,8 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
             @info "initialized $walkerdir"
         end
 
-        while !is_done(runner.tasks[runner.task_id]) && !time_is_up(runner)
-            runner.tasks[runner.task_id].sweeps += step!(runner.walker)
+        while !is_done(runner_task) && !time_is_up(runner)
+            runner_task.sweeps += step!(runner.walker)
 
             if is_checkpoint_time(runner)
                 write_checkpoint(runner)
@@ -49,10 +50,10 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
 
         write_checkpoint(runner)
 
-        taskdir = runner.job.tasks[runner.task_id].dir
+        taskdir = runner_task.dir
         write_output(runner.walker.impl, taskdir)
         @info "merging $(taskdir)"
-        merge_results(MC, runner.job.tasks[runner.task_id])
+        merge_results(MC, runner_task)
 
         runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
     end
@@ -75,7 +76,7 @@ function read_progress!(runner::SingleRunner)
     runner.tasks = map(runner.job.tasks) do task
         target_sweeps = task.params["sweeps"]
         sweeps = read_dump_progress(task)
-        return RunnerTask(target_sweeps, sweeps, 0)
+        return RunnerTask(target_sweeps, sweeps, task_dir(job, task), 0)
     end |> collect
 
     return nothing
@@ -83,7 +84,7 @@ end
 
 function write_checkpoint(runner::SingleRunner)
     runner.time_last_checkpoint = Dates.now()
-    walkerdir = walker_dir(runner.job.tasks[runner.task_id], 1)
+    walkerdir = walker_dir(runner.tasks[runner.task_id], 1)
     write_checkpoint!(runner.walker, walkerdir)
     write_checkpoint_finalize(walkerdir)
     @info "checkpointing $walkerdir"
