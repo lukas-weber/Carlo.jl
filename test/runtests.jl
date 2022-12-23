@@ -4,6 +4,7 @@ using LoadLeveller
 include("test_utils.jl")
 
 tests = [
+    "test_runnertask.jl"
     "test_jobinfo.jl"
     "test_mc.jl"
     "test_walker.jl"

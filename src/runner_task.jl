@@ -8,18 +8,11 @@ end
 
 is_done(task::RunnerTask) = task.sweeps >= task.target_sweeps
 
-function create_job_directory(job::JobInfo)
-    for task in job.tasks
-        mkpath(task.dir)
-    end
-    return nothing
-end
-
 function walker_dir(task::RunnerTask, walker_id::Integer)
     return format("{}/walker{:04d}", task.dir, walker_id)
 end
 
-function list_walker_files(task_dir::AbstractString, ending::AbstractString)
+function list_walker_files(task::RunnerTask, ending::AbstractString)
     return map(
         x -> task.dir * "/" * x,
         filter(x -> occursin(Regex("^walker\\d{4,}\\.$ending\$"), x), readdir(task.dir)),

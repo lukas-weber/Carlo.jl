@@ -16,7 +16,7 @@ mutable struct SingleRunner{MC<:AbstractMC} <: AbstractRunner
     tasks::Vector{RunnerTask}
 
     function SingleRunner(job::JobInfo, ::Type{MC}) where {MC<:AbstractMC}
-        return new{MC}(job, nothing, Dates.now(), Dates.now(), 1, RunnerTask[]
+        return new{MC}(job, nothing, Dates.now(), Dates.now(), 1, RunnerTask[])
     end
 end
 
