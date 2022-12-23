@@ -2,31 +2,31 @@ using Random
 
 struct Walker{MC<:AbstractMC,RNG<:Random.AbstractRNG}
     context::MCContext{RNG}
-    impl::MC
+    implementation::MC
 end
 
 function Walker{MC,RNG}(params::Dict) where {MC,RNG}
     context = MCContext{RNG}(params)
-    impl = MC(params)
-    init!(impl, context, params)
+    implementation = MC(params)
+    init!(implementation, context, params)
 
-    return Walker(context, impl)
+    return Walker(context, implementation)
 end
 
 
 """Perform one MC step. This will return the number of thermalized sweeps performed"""
 function step!(w::Walker)
-    sweep!(w.impl, w.context)
+    sweep!(w.implementation, w.context)
     w.context.sweeps += 1
     if is_thermalized(w.context)
-        measure!(w.impl, w.context)
+        measure!(w.implementation, w.context)
         return 1
     end
     return 0
 end
 
 
-function write_checkpoint(w::Walker, file_prefix::AbstractString)
+function write_checkpoint!(w::Walker, file_prefix::AbstractString)
     checkpoint_write_time = @elapsed begin
         try
             cp(file_prefix * ".meas.h5", file_prefix * ".meas.h5.tmp", force = true)
@@ -41,8 +41,8 @@ function write_checkpoint(w::Walker, file_prefix::AbstractString)
         end
 
         h5open(file_prefix * ".dump.h5.tmp", "w") do file
-            write_checkpoint!(w.context, create_group(file, "context"))
-            write_checkpoint!(w.impl, create_group(file, "simulation"))
+            write_checkpoint(w.context, create_group(file, "context"))
+            write_checkpoint(w.implementation, create_group(file, "simulation"))
         end
     end
 
@@ -79,6 +79,6 @@ function read_checkpoint(
         end
     end
 
-    add_sample!(context.measure, "__ll_checkpoint_read_time", checkpoint_read_time)
+    add_sample!(context.measure, :_ll_checkpoint_read_time, checkpoint_read_time)
     return Walker(context, mc)
 end

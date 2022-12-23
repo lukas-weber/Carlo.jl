@@ -36,11 +36,11 @@ function write_measurements!(meas::Measurements, out::HDF5.Group)
     return nothing
 end
 
-function write_checkpoint!(meas::Measurements, out::HDF5.Group)
+function write_checkpoint(meas::Measurements, out::HDF5.Group)
     out["default_bin_size"] = meas.default_bin_size
 
     for (name, obs) in meas.observables
-        write_checkpoint!(obs, create_group(out, "observables/$(name)"))
+        write_checkpoint(obs, create_group(out, "observables/$(name)"))
     end
     return nothing
 end
@@ -48,10 +48,10 @@ end
 function read_checkpoint(::Type{Measurements{T}}, in::HDF5.Group) where {T}
     default_bin_size = read(in, "default_bin_size")
 
-    observables = Dict{Symbol,Observable}()
+    observables = Dict{Symbol,Observable{T}}()
     for obsname in keys(in["observables"])
         observables[Symbol(obsname)] =
-            read_checkpoint(Observable, in["observables/$(obsname)"])
+            read_checkpoint(Observable{T}, in["observables/$(obsname)"])
     end
 
     return Measurements{T}(default_bin_size, observables)

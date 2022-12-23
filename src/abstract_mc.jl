@@ -15,7 +15,7 @@ end
 "Perform a Monte Carlo measurement"
 @stub measure!(mc::AbstractMC, ctx::MCContext)
 
-@stub write_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group)
+@stub write_checkpoint(mc::AbstractMC, dump_file::HDF5.Group)
 @stub read_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group)
 
 @stub register_evaluables(mc::Type{AbstractMC}, eval::Evaluator, params::AbstractDict)

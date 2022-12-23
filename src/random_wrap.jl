@@ -1,7 +1,7 @@
 using Random
 using HDF5
 
-function write_rng_checkpoint!(rng::Random.Xoshiro, out::HDF5.Group)
+function write_checkpoint(rng::Random.Xoshiro, out::HDF5.Group)
     out["type"] = "xoroshiro256++"
     out["state"] = [rng.s0, rng.s1, rng.s2, rng.s3]
     out["rng_version"] = 1

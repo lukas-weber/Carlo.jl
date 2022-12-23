@@ -37,9 +37,9 @@ function write_measurements!(ctx::MCContext, meas_file::HDF5.Group)
     return nothing
 end
 
-function write_checkpoint!(ctx::MCContext, out::HDF5.Group)
-    write_rng_checkpoint!(ctx.rng, create_group(out, "random_number_generator"))
-    write_checkpoint!(ctx.measure, create_group(out, "measurements"))
+function write_checkpoint(ctx::MCContext, out::HDF5.Group)
+    write_checkpoint(ctx.rng, create_group(out, "random_number_generator"))
+    write_checkpoint(ctx.measure, create_group(out, "measurements"))
 
     out["sweeps"] = ctx.sweeps
     out["thermalization_sweeps"] = ctx.thermalization_sweeps
@@ -55,6 +55,6 @@ function read_checkpoint(::Type{MCContext{RNG}}, in::HDF5.Group) where {RNG}
         sweeps,
         therm_sweeps,
         read_checkpoint(RNG, in["random_number_generator"]),
-        read_checkpoint(Measurements, in["measurements"]),
+        read_checkpoint(Measurements{Float64}, in["measurements"]),
     )
 end

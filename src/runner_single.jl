@@ -67,7 +67,8 @@ function get_new_task_id(
     tasks::AbstractVector{RunnerTask},
     old_id::Integer,
 )::Union{Integer,Nothing}
-    return findfirst(x -> !is_done(x), tasks)
+    return (findfirst(x -> !is_done(x), circshift(tasks, -old_id)) + old_id - 1) %
+           length(tasks) + 1
 end
 
 function read_progress!(runner::SingleRunner)
@@ -83,7 +84,7 @@ end
 function write_checkpoint(runner::SingleRunner)
     runner.time_last_checkpoint = Dates.now()
     walkerdir = walker_dir(runner.job.tasks[runner.task_id], 1)
-    write_checkpoint(runner.walker, walkerdir)
+    write_checkpoint!(runner.walker, walkerdir)
     write_checkpoint_finalize(walkerdir)
     @info "checkpointing $walkerdir"
 

@@ -40,23 +40,21 @@ end
 
 function write_measurements!(obs::Observable{T}, out::HDF5.Group) where {T}
     if size(obs.samples, 2) > 1
-        dcpl = HDF5.DatasetCreateProperties(;
-            chunk = (size(obs.samples, 1), binning_output_chunk_size),
-            layout = :chunked,
-        )
-        saved_samples = create_absent_dataset(
-            out,
-            "samples",
-            eltype(obs.samples),
-            (
-                (size(obs.samples, 1), size(obs.samples, 1)),
-                (size(obs.samples, 2), typemax(Int64)),
-            );
-            chunk = (size(obs.samples, 1), binning_output_chunk_size),
-        )
-        current_bin_vaule = obs.samples[:, end]
 
-        old_bin_count = size(saved_samples, 2)
+        if haskey(out, "samples")
+            saved_samples = out["samples"]
+            old_bin_count = size(saved_samples, 2)
+        else
+            saved_samples = create_dataset(
+                out,
+                "samples",
+                eltype(obs.samples),
+                ((size(obs.samples, 1), size(obs.samples, 1)), (4, typemax(Int64)));
+                chunk = (size(obs.samples, 1), binning_output_chunk_size),
+            )
+            old_bin_count = 0
+        end
+
         HDF5.set_extent_dims(
             saved_samples,
             (size(obs.samples, 1), old_bin_count + size(obs.samples, 2) - 1),
@@ -72,7 +70,7 @@ function write_measurements!(obs::Observable{T}, out::HDF5.Group) where {T}
 
 end
 
-function write_checkpoint!(obs::Observable, out::HDF5.Group)
+function write_checkpoint(obs::Observable, out::HDF5.Group)
     @assert size(obs.samples, 2) <= 1
     out["bin_length"] = obs.bin_length
     out["current_bin_filling"] = obs.current_bin_filling
