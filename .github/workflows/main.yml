@@ -4,6 +4,7 @@ on:
   pull_request:
 jobs:
   test:
+    name: julia ${{ matrix.julia-version }} ${{ matrix.julia-arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
