@@ -3,7 +3,7 @@ using Random
 import LoadLeveller
 
 @testset "Walker" begin
-    params = Dict("thermalization" => 100, "binsize" => 13)
+    params = Dict(:thermalization => 100, :binsize => 13)
     walker = LoadLeveller.Walker{TestMC,Random.Xoshiro}(params)
 
     sweeps = 131

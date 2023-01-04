@@ -59,3 +59,16 @@ function create_job_directory(job::JobInfo)
     end
     return nothing
 end
+
+function read_progress(job::JobInfo)::Vector{RunnerTask}
+    return map(job.tasks) do task
+        target_sweeps = task.params[:sweeps]
+        sweeps = read_dump_progress(task_dir(job, task))
+        return RunnerTask(target_sweeps, sweeps, task_dir(job, task), 0)
+    end |> collect
+end
+
+is_checkpoint_time(job::JobInfo, time_last_checkpoint::Dates.DateTime) =
+    Dates.now() >= time_last_checkpoint + job.checkpoint_time
+is_end_time(job::JobInfo, time_start::Dates.DateTime) =
+    Dates.now() >= time_start + job.run_time

@@ -68,19 +68,15 @@ function get_new_task_id(
     tasks::AbstractVector{RunnerTask},
     old_id::Integer,
 )::Union{Integer,Nothing}
-    return (findfirst(x -> !is_done(x), circshift(tasks, -old_id)) + old_id - 1) %
-           length(tasks) + 1
+    next_unshifted = findfirst(x -> !is_done(x), circshift(tasks, -old_id))
+    if next_unshifted === nothing
+        return nothing
+    end
+
+    return (next_unshifted + old_id - 1) % length(tasks) + 1
 end
 
-function read_progress!(runner::SingleRunner)
-    runner.tasks = map(runner.job.tasks) do task
-        target_sweeps = task.params["sweeps"]
-        sweeps = read_dump_progress(task)
-        return RunnerTask(target_sweeps, sweeps, task_dir(job, task), 0)
-    end |> collect
-
-    return nothing
-end
+get_new_task_id(::AbstractVector{RunnerTask}, ::Nothing) = nothing
 
 function write_checkpoint(runner::SingleRunner)
     runner.time_last_checkpoint = Dates.now()

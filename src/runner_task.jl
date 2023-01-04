@@ -12,15 +12,19 @@ function walker_dir(task::RunnerTask, walker_id::Integer)
     return format("{}/walker{:04d}", task.dir, walker_id)
 end
 
-function list_walker_files(task::RunnerTask, ending::AbstractString)
+function list_walker_files(taskdir::AbstractString, ending::AbstractString)
     return map(
-        x -> task.dir * "/" * x,
-        filter(x -> occursin(Regex("^walker\\d{4,}\\.$ending\$"), x), readdir(task.dir)),
+        x -> taskdir * "/" * x,
+        filter(x -> occursin(Regex("^walker\\d{4,}\\.$ending\$"), x), readdir(taskdir)),
     )
 end
 
-function read_dump_progress(task::RunnerTask)
-    return mapreduce(+, list_walker_files(task, "dump\\.h5"), init = Int64(0)) do dumpname
+function read_dump_progress(taskdir::AbstractString)
+    return mapreduce(
+        +,
+        list_walker_files(taskdir, "dump\\.h5"),
+        init = Int64(0),
+    ) do dumpname
         sweeps = 0
         h5open(dumpname, "r") do f
             sweeps =
@@ -39,7 +43,7 @@ function merge_results(
     sample_skip::Integer = 0,
 ) where {MC<:AbstractMC}
     merged_results = merge_results(
-        list_walker_files(task, "meas\\.h5");
+        list_walker_files(task.dir, "meas\\.h5");
         data_type = data_type,
         rebin_length = rebin_length,
         sample_skip = sample_skip,

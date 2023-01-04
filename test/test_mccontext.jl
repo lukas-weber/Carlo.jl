@@ -5,7 +5,7 @@ using LoadLeveller
 @testset "MCContext" begin
     thermalization = 10
     ctx = LoadLeveller.MCContext{Random.Xoshiro}(
-        Dict("binsize" => 3, "seed" => 123, "thermalization" => thermalization),
+        Dict(:binsize => 3, :seed => 123, :thermalization => thermalization),
     )
 
     @test ctx.rng == Random.Xoshiro(123)

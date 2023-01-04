@@ -7,11 +7,12 @@
             file["context/sweeps"] = 4362
         end
     end
-    open("$tmpdir/walker0001.dump.h", "w") do file 
+    open("$tmpdir/walker0001.dump.h", "w") do file
     end
     open("$tmpdir/walke0001.dump.h5", "w") do file
     end
-    task = LoadLeveller.RunnerTask(100,10,tmpdir, 0)
-    
-    @test LoadLeveller.list_walker_files(task, "dump\\.h5") == map(x->"$tmpdir/walker$x.dump.h5", files)
+    task = LoadLeveller.RunnerTask(100, 10, tmpdir, 0)
+
+    @test LoadLeveller.list_walker_files(task.dir, "dump\\.h5") ==
+          map(x -> "$tmpdir/walker$x.dump.h5", files)
 end
