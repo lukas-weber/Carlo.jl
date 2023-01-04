@@ -40,13 +40,7 @@ end
 
         num_ranks = 3
         mpiexec() do exe
-            run(
-                pipeline(
-                    `$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job.dir)`,
-                    stdout = devnull,
-                    stderr = devnull,
-                ),
-            )
+            run(`$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job.dir)`)
         end
         tasks = LoadLeveller.read_progress(job)
         for task in tasks
