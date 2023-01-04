@@ -30,4 +30,3 @@ function read_dump_progress(taskdir::AbstractString)
         return sweeps
     end
 end
-

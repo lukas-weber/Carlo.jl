@@ -80,7 +80,11 @@ function read_progress(job::JobInfo)
     return map(job.tasks) do task
         target_sweeps = task.params[:sweeps]
         sweeps = read_dump_progress(task_dir(job, task))
-        return (target_sweeps=target_sweeps, sweeps=sweeps, dir=task_dir(job, task))
+        return (
+            target_sweeps = target_sweeps,
+            sweeps = sweeps,
+            dir = task_dir(job, task),
+        )
     end |> collect
 end
 

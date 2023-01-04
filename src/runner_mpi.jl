@@ -46,7 +46,14 @@ mutable struct MPIRunnerMaster <: AbstractRunner
     tasks::Vector{RunnerTask}
 
     function MPIRunnerMaster(job::JobInfo, active_ranks::Integer)
-        return new(active_ranks, 1, map(x->RunnerTask(x[:target_sweeps], x[:sweeps], x[:dir], 0), JobTools.read_progress(job)))
+        return new(
+            active_ranks,
+            1,
+            map(
+                x -> RunnerTask(x[:target_sweeps], x[:sweeps], x[:dir], 0),
+                JobTools.read_progress(job),
+            ),
+        )
     end
 end
 
@@ -166,7 +173,8 @@ function start(::Type{MPIRunnerSlave{MC}}, job::JobInfo) where {MC}
             end
 
             task = job.tasks[msg.task_id]
-            runner_task = RunnerTask(msg.sweeps_until_comm, 0, JobTools.task_dir(job, task), 0)
+            runner_task =
+                RunnerTask(msg.sweeps_until_comm, 0, JobTools.task_dir(job, task), 0)
             walkerdir = walker_dir(runner_task, msg.run_id)
 
             walker = read_checkpoint(Walker{MC,DefaultRNG}, walkerdir, task.params)
@@ -182,7 +190,8 @@ function start(::Type{MPIRunnerSlave{MC}}, job::JobInfo) where {MC}
         while !is_done(slave.task)
             slave.task.sweeps += step!(slave.walker)
 
-            if JobTools.is_checkpoint_time(job, time_last_checkpoint) || JobTools.is_end_time(job, time_start)
+            if JobTools.is_checkpoint_time(job, time_last_checkpoint) ||
+               JobTools.is_end_time(job, time_start)
                 break
             end
         end
