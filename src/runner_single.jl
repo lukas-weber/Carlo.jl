@@ -68,12 +68,13 @@ function get_new_task_id(
     tasks::AbstractVector{RunnerTask},
     old_id::Integer,
 )::Union{Integer,Nothing}
-    next_unshifted = findfirst(x -> !is_done(x), circshift(tasks, -old_id))
+    next_unshifted = findfirst(x -> !is_done(x), circshift(tasks, -old_id)) 
     if next_unshifted === nothing
         return nothing
     end
 
-    return (next_unshifted + old_id - 1) % length(tasks) + 1
+    return (next_unshifted + old_id - 1) %
+           length(tasks) + 1
 end
 
 get_new_task_id(::AbstractVector{RunnerTask}, ::Nothing) = nothing
