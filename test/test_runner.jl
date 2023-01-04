@@ -7,4 +7,47 @@
     @test LoadLeveller.get_new_task_id(tasks, 3) == 5
     @test LoadLeveller.get_new_task_id(tasks, 4) == 5
     @test LoadLeveller.get_new_task_id(tasks, 5) == 2
+
+    tasks = map(s -> LoadLeveller.RunnerTask(100, s, "", 0), [100, 100, 100])
+    for i = 1:length(tasks)
+        @test LoadLeveller.get_new_task_id(tasks, i) === nothing
+    end
+
+    @test LoadLeveller.get_new_task_id(tasks, nothing) === nothing
+end
+
+@testset "Task Scheduling" begin
+    tm = LoadLeveller.TaskMaker()
+    tm.sweeps = 100
+    tm.thermalization = 14
+    tm.binsize = 4
+
+    for i = 1:3
+        LoadLeveller.task(tm; i = i)
+    end
+
+    tmpdir = mktempdir()
+    job = LoadLeveller.JobInfo(
+        tmpdir * "/test";
+        tasks = LoadLeveller.generate_tasks(tm),
+        checkpoint_time = "1:00",
+        run_time = "10:00",
+    )
+
+    LoadLeveller.create_job_directory(job)
+
+    num_ranks = 3
+    mpiexec() do exe
+        run(
+            pipeline(
+                `$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job.dir)`,
+                stdout = devnull,
+                stderr = devnull,
+            ),
+        )
+    end
+    tasks = LoadLeveller.read_progress(job)
+    for task in tasks
+        @test task.sweeps >= task.target_sweeps
+    end
 end

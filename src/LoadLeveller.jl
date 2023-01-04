@@ -16,6 +16,7 @@ include("jobinfo.jl")
 include("taskmaker.jl")
 include("runner_task.jl")
 include("runner_single.jl")
+include("runner_mpi.jl")
 include("start.jl")
 
 end

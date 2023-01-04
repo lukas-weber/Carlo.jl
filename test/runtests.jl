@@ -1,12 +1,14 @@
 using Test
 using LoadLeveller
+using MPI
 
 include("test_utils.jl")
+include("test_mc.jl")
 
 tests = [
     "test_runnertask.jl"
+    "test_runner.jl"
     "test_jobinfo.jl"
-    "test_mc.jl"
     "test_walker.jl"
     "test_observable.jl"
     "test_random_wrap.jl"
@@ -15,7 +17,6 @@ tests = [
     "test_measurements.jl"
     "test_mccontext.jl"
     "test_merge.jl"
-    "test_runner.jl"
     "test_taskmaker.jl"
 ]
 

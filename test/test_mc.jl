@@ -15,7 +15,7 @@ LoadLeveller.write_checkpoint(mc::TestMC, out::HDF5.Group) = nothing
 LoadLeveller.read_checkpoint!(mc::TestMC, in::HDF5.Group) = nothing
 
 LoadLeveller.register_evaluables(
-    mc::TestMC,
+    ::Type{TestMC},
     eval::LoadLeveller.Evaluator,
     params::AbstractDict,
 ) = nothing
