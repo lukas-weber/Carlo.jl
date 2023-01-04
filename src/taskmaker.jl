@@ -14,12 +14,17 @@ function Base.getproperty(tm::TaskMaker, symbol::Symbol)
 end
 
 function task(tm::TaskMaker; kwargs...)
-    taskname = task_name(length(Base.getfield(tm, :tasks))+1)
-    
-    append!(Base.getfield(tm, :tasks), [TaskInfo(
-        taskname,
-        merge(Base.getfield(tm, :current_task_params), Dict{Symbol,Any}(kwargs))
-    )])
+    taskname = task_name(length(Base.getfield(tm, :tasks)) + 1)
+
+    append!(
+        Base.getfield(tm, :tasks),
+        [
+            TaskInfo(
+                taskname,
+                merge(Base.getfield(tm, :current_task_params), Dict{Symbol,Any}(kwargs)),
+            ),
+        ],
+    )
 
     return nothing
 end
