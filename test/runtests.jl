@@ -7,8 +7,8 @@ include("test_mc.jl")
 
 tests = [
     "test_runnertask.jl"
-    "test_runner.jl"
     "test_jobinfo.jl"
+    "test_runner.jl"
     "test_walker.jl"
     "test_observable.jl"
     "test_random_wrap.jl"

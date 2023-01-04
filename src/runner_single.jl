@@ -15,7 +15,7 @@ mutable struct SingleRunner{MC<:AbstractMC} <: AbstractRunner
     task_id::Union{Int32,Nothing}
     tasks::Vector{RunnerTask}
 
-    function SingleRunner(job::JobInfo, ::Type{MC}) where {MC<:AbstractMC}
+    function SingleRunner{MC}(job::JobInfo) where {MC<:AbstractMC}
         return new{MC}(job, nothing, Dates.now(), Dates.now(), 1, RunnerTask[])
     end
 end
@@ -40,7 +40,7 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
             @info "initialized $walkerdir"
         end
 
-        while !is_done(runner_task) && !time_is_up(runner)
+        while !is_done(runner_task) && !is_end_time(runner.job, runner.time_start)
             runner_task.sweeps += step!(runner.walker)
 
             if is_checkpoint_time(runner.job, runner.time_last_checkpoint)
@@ -51,9 +51,8 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
         write_checkpoint(runner)
 
         taskdir = runner_task.dir
-        write_output(runner.walker.impl, taskdir)
         @info "merging $(taskdir)"
-        merge_results(MC, runner_task)
+        merge_results(MC, runner_task; parameters = task.params)
 
         runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
     end
@@ -68,13 +67,12 @@ function get_new_task_id(
     tasks::AbstractVector{RunnerTask},
     old_id::Integer,
 )::Union{Integer,Nothing}
-    next_unshifted = findfirst(x -> !is_done(x), circshift(tasks, -old_id)) 
+    next_unshifted = findfirst(x -> !is_done(x), circshift(tasks, -old_id))
     if next_unshifted === nothing
         return nothing
     end
 
-    return (next_unshifted + old_id - 1) %
-           length(tasks) + 1
+    return (next_unshifted + old_id - 1) % length(tasks) + 1
 end
 
 get_new_task_id(::AbstractVector{RunnerTask}, ::Nothing) = nothing

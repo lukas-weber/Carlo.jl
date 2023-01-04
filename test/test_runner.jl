@@ -27,27 +27,47 @@ end
     end
 
     tmpdir = mktempdir()
-    job = LoadLeveller.JobInfo(
-        tmpdir * "/test";
-        tasks = LoadLeveller.generate_tasks(tm),
-        checkpoint_time = "1:00",
-        run_time = "10:00",
-    )
 
-    LoadLeveller.create_job_directory(job)
-
-    num_ranks = 3
-    mpiexec() do exe
-        run(
-            pipeline(
-                `$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job.dir)`,
-                stdout = devnull,
-                stderr = devnull,
-            ),
+    @testset "MPI" begin
+        job = LoadLeveller.JobInfo(
+            tmpdir * "/test";
+            tasks = LoadLeveller.generate_tasks(tm),
+            checkpoint_time = "1:00",
+            run_time = "10:00",
         )
+
+        LoadLeveller.create_job_directory(job)
+
+        num_ranks = 3
+        mpiexec() do exe
+            run(
+                pipeline(
+                    `$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job.dir)`,
+                    stdout = devnull,
+                    stderr = devnull,
+                ),
+            )
+        end
+        tasks = LoadLeveller.read_progress(job)
+        for task in tasks
+            @test task.sweeps >= task.target_sweeps
+        end
     end
-    tasks = LoadLeveller.read_progress(job)
-    for task in tasks
-        @test task.sweeps >= task.target_sweeps
+    @testset "Single" begin
+        job2 = LoadLeveller.JobInfo(
+            tmpdir * "/test2";
+            tasks = LoadLeveller.generate_tasks(tm),
+            checkpoint_time = "1:00",
+            run_time = "10:00",
+        )
+
+        LoadLeveller.create_job_directory(job2)
+
+        LoadLeveller.start!(LoadLeveller.SingleRunner{TestMC}(job2))
+
+        tasks = LoadLeveller.read_progress(job2)
+        for task in tasks
+            @test task.sweeps >= task.target_sweeps
+        end
     end
 end
