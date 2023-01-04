@@ -24,16 +24,16 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
     runner.time_start = Dates.now()
     runner.time_last_checkpoint = runner.time_start
 
-    read_progress!(runner)
+    runner.tasks = read_progress(runner.job)
     runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
 
-    while runner.task_id != nothing && !time_is_up(runner)
+    while runner.task_id !== nothing && !is_end_time(runner.job, runner.time_start)
         task = runner.job.tasks[runner.task_id]
         runner_task = runner.tasks[runner.task_id]
         walkerdir = walker_dir(runner_task, 1)
 
         runner.walker = read_checkpoint(Walker{MC,DefaultRNG}, walkerdir, task.params)
-        if runner.walker != nothing
+        if runner.walker !== nothing
             @info "read $walkerdir"
         else
             runner.walker = Walker{MC,DefaultRNG}(task.params)
@@ -43,7 +43,7 @@ function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
         while !is_done(runner_task) && !time_is_up(runner)
             runner_task.sweeps += step!(runner.walker)
 
-            if is_checkpoint_time(runner)
+            if is_checkpoint_time(runner.job, runner.time_last_checkpoint)
                 write_checkpoint(runner)
             end
         end
@@ -87,7 +87,3 @@ function write_checkpoint(runner::SingleRunner)
 
     return nothing
 end
-
-time_is_up(runner::SingleRunner) = Dates.now() - runner.time_start > runner.job.run_time
-is_checkpoint_time(runner::SingleRunner) =
-    Dates.now() - runner.time_last_checkpoint > runner.job.checkpoint_time
