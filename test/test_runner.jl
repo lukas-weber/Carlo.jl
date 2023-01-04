@@ -63,7 +63,7 @@ end
 
         LoadLeveller.create_job_directory(job2)
 
-        LoadLeveller.start!(LoadLeveller.SingleRunner{TestMC}(job2))
+        LoadLeveller.start(LoadLeveller.SingleRunner{TestMC}, job2)
 
         tasks = LoadLeveller.read_progress(job2)
         for task in tasks

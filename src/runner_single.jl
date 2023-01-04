@@ -20,7 +20,8 @@ mutable struct SingleRunner{MC<:AbstractMC} <: AbstractRunner
     end
 end
 
-function start!(runner::SingleRunner{MC}) where {MC<:AbstractMC}
+function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
+    runner = SingleRunner{MC}(job)
     runner.time_start = Dates.now()
     runner.time_last_checkpoint = runner.time_start
 
