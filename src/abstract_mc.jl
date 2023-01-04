@@ -19,6 +19,3 @@ end
 @stub read_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group)
 
 @stub register_evaluables(mc::Type{AbstractMC}, eval::Evaluator, params::AbstractDict)
-
-""" This optional function allows you to write custom data to the file system. It provides a `unique_filename` that will not be overwritten by other runs in the simulation."""
-function write_output(mc::AbstractMC, unique_filename::AbstractString) end
