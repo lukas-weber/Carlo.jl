@@ -32,9 +32,9 @@ function parse_duration(duration::AbstractString)::Dates.CompoundPeriod
     m = match(r"((?<hours>\d+):)?((?<minutes>\d+):).(?<seconds>\d+)", duration)
 
     conv(x) = x == nothing ? 0 : parse(Int32, x)
-    return Dates.Hour(conv(m[:hours])) +
-           Dates.Minute(conv(m[:minutes])) +
+    return convert(Dates.Second, Dates.Hour(conv(m[:hours]))) +
+           convert(Dates.Second, Dates.Minute(conv(m[:minutes]))) +
            Dates.Second(conv(m[:seconds]))
 end
 
-parse_duration(duration::Dates.CompoundPeriod) = duration
+parse_duration(duration::Dates.Period) = duration
