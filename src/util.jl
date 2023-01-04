@@ -14,7 +14,7 @@ function create_absent_group(
 end
 
 """Parse a duration of the format `[[hours:]minutes]:seconds`."""
-function parse_duration(duration::AbstractString)::Dates.CompoundPeriod
+function parse_duration(duration::AbstractString)::Dates.Period
     m = match(r"^(((?<hours>\d+):)?(?<minutes>\d+):)?(?<seconds>\d+)$", duration)
     if isnothing(m)
         error("$duration does not match [[HH:]MM:]SS")
