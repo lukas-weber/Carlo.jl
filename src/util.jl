@@ -29,12 +29,16 @@ end
 
 """Parse a duration of the format `[[hours:]minutes]:seconds`."""
 function parse_duration(duration::AbstractString)::Dates.CompoundPeriod
-    m = match(r"((?<hours>\d+):)?((?<minutes>\d+):).(?<seconds>\d+)", duration)
+    m = match(r"^(((?<hours>\d+):)?(?<minutes>\d+):)?(?<seconds>\d+)$", duration)
+    if isnothing(m)
+        error("$duration does not match [[HH:]MM:]SS")
+    end
 
-    conv(x) = x == nothing ? 0 : parse(Int32, x)
-    return convert(Dates.Second, Dates.Hour(conv(m[:hours]))) +
-           convert(Dates.Second, Dates.Minute(conv(m[:minutes]))) +
-           Dates.Second(conv(m[:seconds]))
+    conv(period, x) =
+        isnothing(x) ? Dates.Second(0) : convert(Dates.Second, period(parse(Int32, x)))
+    return conv(Dates.Hour, m[:hours]) +
+           conv(Dates.Minute, m[:minutes]) +
+           conv(Dates.Second, m[:seconds])
 end
 
 parse_duration(duration::Dates.Period) = duration

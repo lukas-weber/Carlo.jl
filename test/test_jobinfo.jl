@@ -1,4 +1,5 @@
 using JSON
+using Dates
 
 @testset "JobInfo" begin
     tm = LoadLeveller.TaskMaker()
@@ -29,4 +30,13 @@ using JSON
 
     @test results == [Dict(), Dict(), Dict()]
 
+end
+
+@testset "Parse Duration" begin
+    @test_throws ErrorException LoadLeveller.parse_duration("10:")
+    @test_throws ErrorException LoadLeveller.parse_duration("10::00")
+    @test_throws ErrorException LoadLeveller.parse_duration("a:2:00")
+    @test LoadLeveller.parse_duration("10:00") == Dates.Second(60 * 10)
+    @test LoadLeveller.parse_duration("100") == Dates.Second(100)
+    @test LoadLeveller.parse_duration("5:32:10") == Dates.Second(5 * 60 * 60 + 32 * 60 + 10)
 end
