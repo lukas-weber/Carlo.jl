@@ -17,13 +17,13 @@
 end
 
 @testset "Task Scheduling" begin
-    tm = LoadLeveller.TaskMaker()
+    tm = JT.TaskMaker()
     tm.sweeps = 100
     tm.thermalization = 14
     tm.binsize = 4
 
     for i = 1:3
-        LoadLeveller.task(tm; i = i)
+        task(tm; i = i)
     end
 
     tmpdir = mktempdir()
@@ -31,37 +31,37 @@ end
     @testset "MPI" begin
         job = LoadLeveller.JobInfo(
             tmpdir * "/test";
-            tasks = LoadLeveller.generate_tasks(tm),
+            tasks = make_tasks(tm),
             checkpoint_time = "1:00",
             run_time = "10:00",
         )
 
-        LoadLeveller.create_job_directory(job)
+        JT.create_job_directory(job)
 
         num_ranks = 3
         mpiexec() do exe
             run(`$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job.dir)`)
         end
-        tasks = LoadLeveller.read_progress(job)
+        tasks = JT.read_progress(job)
         for task in tasks
-            @test task.sweeps >= task.target_sweeps
+            @test task[:sweeps] >= task[:target_sweeps]
         end
     end
     @testset "Single" begin
         job2 = LoadLeveller.JobInfo(
             tmpdir * "/test2";
-            tasks = LoadLeveller.generate_tasks(tm),
+            tasks = JT.make_tasks(tm),
             checkpoint_time = "1:00",
             run_time = "10:00",
         )
 
-        LoadLeveller.create_job_directory(job2)
+        JT.create_job_directory(job2)
 
         LoadLeveller.start(LoadLeveller.SingleRunner{TestMC}, job2)
 
-        tasks = LoadLeveller.read_progress(job2)
+        tasks = JT.read_progress(job2)
         for task in tasks
-            @test task.sweeps >= task.target_sweeps
+            @test task[:sweeps] >= task[:target_sweeps]
         end
     end
 end

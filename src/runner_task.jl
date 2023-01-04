@@ -1,3 +1,5 @@
+using Formatting
+
 mutable struct RunnerTask
     target_sweeps::Int64
     sweeps::Int64
@@ -12,28 +14,6 @@ function walker_dir(task::RunnerTask, walker_id::Integer)
     return format("{}/walker{:04d}", task.dir, walker_id)
 end
 
-function list_walker_files(taskdir::AbstractString, ending::AbstractString)
-    return map(
-        x -> taskdir * "/" * x,
-        filter(x -> occursin(Regex("^walker\\d{4,}\\.$ending\$"), x), readdir(taskdir)),
-    )
-end
-
-function read_dump_progress(taskdir::AbstractString)
-    return mapreduce(
-        +,
-        list_walker_files(taskdir, "dump\\.h5"),
-        init = Int64(0),
-    ) do dumpname
-        sweeps = 0
-        h5open(dumpname, "r") do f
-            sweeps =
-                max(0, read(f["context/sweeps"]) - read(f["context/thermalization_sweeps"]))
-        end
-        return sweeps
-    end
-end
-
 function merge_results(
     ::Type{MC},
     task::RunnerTask;
@@ -43,7 +23,7 @@ function merge_results(
     sample_skip::Integer = 0,
 ) where {MC<:AbstractMC}
     merged_results = merge_results(
-        list_walker_files(task.dir, "meas\\.h5");
+        JobTools.list_walker_files(task.dir, "meas\\.h5");
         data_type = data_type,
         rebin_length = rebin_length,
         sample_skip = sample_skip,

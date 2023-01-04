@@ -1,12 +1,13 @@
 using Test
 using LoadLeveller
+import LoadLeveller.JobTools as JT
 using MPI
 
 include("test_utils.jl")
 include("test_mc.jl")
 
 tests = [
-    "test_runnertask.jl"
+    "test_taskinfo.jl"
     "test_jobinfo.jl"
     "test_runner.jl"
     "test_walker.jl"

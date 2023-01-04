@@ -81,7 +81,7 @@ function merge_results(
     end
 
     for (obs_name, obs) in observables
-        if rebin_length != nothing
+        if rebin_length !== nothing
             obs.rebin_length = rebin_length
             obs.rebin_count = obs.total_sample_count ÷ obs.rebin_length
         else

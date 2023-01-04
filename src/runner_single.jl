@@ -1,5 +1,6 @@
 using Dates
 using Logging
+using .JobTools: JobInfo
 
 abstract type AbstractRunner end
 
@@ -25,10 +26,10 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
     runner.time_start = Dates.now()
     runner.time_last_checkpoint = runner.time_start
 
-    runner.tasks = read_progress(runner.job)
+    runner.tasks = map(x->RunnerTask(x[:target_sweeps], x[:sweeps], x[:dir], 0), JobTools.read_progress(runner.job))
     runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
 
-    while runner.task_id !== nothing && !is_end_time(runner.job, runner.time_start)
+    while runner.task_id !== nothing && !JobTools.is_end_time(runner.job, runner.time_start)
         task = runner.job.tasks[runner.task_id]
         runner_task = runner.tasks[runner.task_id]
         walkerdir = walker_dir(runner_task, 1)
@@ -41,10 +42,10 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
             @info "initialized $walkerdir"
         end
 
-        while !is_done(runner_task) && !is_end_time(runner.job, runner.time_start)
+        while !is_done(runner_task) && !JobTools.is_end_time(runner.job, runner.time_start)
             runner_task.sweeps += step!(runner.walker)
 
-            if is_checkpoint_time(runner.job, runner.time_last_checkpoint)
+            if JobTools.is_checkpoint_time(runner.job, runner.time_last_checkpoint)
                 write_checkpoint(runner)
             end
         end
@@ -58,7 +59,7 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
         runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
     end
 
-    concatenate_results(runner.job)
+    JobTools.concatenate_results(runner.job)
     @info "Job complete."
 
     return nothing

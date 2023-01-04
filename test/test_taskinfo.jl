@@ -11,8 +11,7 @@
     end
     open("$tmpdir/walke0001.dump.h5", "w") do file
     end
-    task = LoadLeveller.RunnerTask(100, 10, tmpdir, 0)
 
-    @test LoadLeveller.list_walker_files(task.dir, "dump\\.h5") ==
+    @test JT.list_walker_files(tmpdir, "dump\\.h5") ==
           map(x -> "$tmpdir/walker$x.dump.h5", files)
 end

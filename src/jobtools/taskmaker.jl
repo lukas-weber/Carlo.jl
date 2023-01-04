@@ -29,6 +29,6 @@ function task(tm::TaskMaker; kwargs...)
     return nothing
 end
 
-function generate_tasks(tm::TaskMaker)
+function make_tasks(tm::TaskMaker)
     return Base.getfield(tm, :tasks)
 end

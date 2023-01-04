@@ -3,6 +3,22 @@ using Unmarshal
 using Dates
 using Formatting
 
+"""Parse a duration of the format `[[hours:]minutes]:seconds`."""
+function parse_duration(duration::AbstractString)::Dates.Period
+    m = match(r"^(((?<hours>\d+):)?(?<minutes>\d+):)?(?<seconds>\d+)$", duration)
+    if isnothing(m)
+        error("$duration does not match [[HH:]MM:]SS")
+    end
+
+    conv(period, x) =
+        isnothing(x) ? Dates.Second(0) : convert(Dates.Second, period(parse(Int32, x)))
+    return conv(Dates.Hour, m[:hours]) +
+           conv(Dates.Minute, m[:minutes]) +
+           conv(Dates.Second, m[:seconds])
+end
+
+parse_duration(duration::Dates.Period) = duration
+
 struct JobInfo
     name::String
     dir::String
@@ -60,11 +76,11 @@ function create_job_directory(job::JobInfo)
     return nothing
 end
 
-function read_progress(job::JobInfo)::Vector{RunnerTask}
+function read_progress(job::JobInfo)
     return map(job.tasks) do task
         target_sweeps = task.params[:sweeps]
         sweeps = read_dump_progress(task_dir(job, task))
-        return RunnerTask(target_sweeps, sweeps, task_dir(job, task), 0)
+        return (target_sweeps=target_sweeps, sweeps=sweeps, dir=task_dir(job, task))
     end |> collect
 end
 
