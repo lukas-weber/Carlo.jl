@@ -19,6 +19,20 @@ end
 
 parse_duration(duration::Dates.Period) = duration
 
+"""
+    JobInfo(
+        job_directory_prefix::AbstractString;
+        checkpoint_time::Union{AbstractString, Dates.Second},
+        run_time::Union{AbstractString, Dates.Second}
+        tasks::Vector{TaskInfo}
+    )
+
+Holds all information required for a Monte Carlo calculation. The data of the calculation (parameters, results, and checkpoints) will be saved under `job_directory_prefix`.
+
+`checkpoint_time` and `run_time` specify the interval between checkpoints and the total desired run_time of the simulation. Both may be specified as a string of format `[[hours:]minutes:]seconds`
+
+Each job contains a set of `tasks`, corresponding
+to different sets of simulation parameters that should be run in parallel. The [`TaskMaker`](@ref) type can be used to conveniently generate them."""
 struct JobInfo
     name::String
     dir::String
@@ -33,7 +47,7 @@ function JobInfo(
     job_file_name::AbstractString;
     checkpoint_time::Union{AbstractString,Dates.Second},
     run_time::Union{AbstractString,Dates.Second},
-    tasks = Vector{TaskInfo},
+    tasks::Vector{TaskInfo},
 )
     return JobInfo(
         basename(job_file_name),
@@ -44,7 +58,13 @@ function JobInfo(
     )
 end
 
-function read_jobinfo_file(jobdir::AbstractString)
+"""
+    read_jobinfo(jobdir::AbstractString)::JobInfo
+
+Instead of constructing the [`JobInfo`](@ref) struct from scratch, read one from an existing job directory, where it is stored in
+`\$(jobdir).data/parameters.json`.
+"""
+function read_jobinfo(jobdir::AbstractString)::JobInfo
     return Unmarshal.unmarshal(JobInfo, JSON.parsefile(jobdir * "/parameters.json"))
 end
 

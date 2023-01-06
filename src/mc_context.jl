@@ -1,6 +1,13 @@
 using HDF5
 using Random
 
+"""
+Holds the LoadLeveller-internal state of the simulation and provides an interface to
+
+- **Random numbers**: the public member `MCContext.rng` is a random number generator (see [rng](@ref))
+- **Measurements**: see [`measure!(::MCContext, ::Any, ::Any)`](@ref)
+- **Simulation state**: see [`is_thermalized`](@ref)
+"""
 mutable struct MCContext{RNG<:Random.AbstractRNG}
     sweeps::Int64
     thermalization_sweeps::Int64
@@ -9,8 +16,18 @@ mutable struct MCContext{RNG<:Random.AbstractRNG}
     measure::Measurements{Float64}
 end
 
-measure!(ctx::MCContext, name::Symbol, x) = add_sample!(ctx.measure, name, x)
+"""
+    measure!(ctx::MCContext, name::Symbol, value)
 
+Measure a sample for the observable named `name`. The sample `value` may be either a scalar or vector of a float type. 
+"""
+measure!(ctx::MCContext, name::Symbol, value) = add_sample!(ctx.measure, name, value)
+
+"""
+    is_thermalized(ctx::MCContext)::Bool
+
+Returns true if the simulation is thermalized.
+"""
 is_thermalized(ctx::MCContext) = ctx.sweeps > ctx.thermalization_sweeps
 
 function MCContext{RNG}(parameters::AbstractDict) where {RNG}
