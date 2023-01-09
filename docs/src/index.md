@@ -39,8 +39,7 @@ for T in Ts
     task(tm; T=T)
 end
 
-job = JobInfo(@__FILE__;
-    mc=Ising,
+job = JobInfo(@__FILE__, Ising;
     checkpoint_time="30:00",
     run_time="15:00",
     tasks=make_tasks(tm)
