@@ -16,6 +16,6 @@ include("walker.jl")
 include("runner_task.jl")
 include("runner_single.jl")
 include("runner_mpi.jl")
-include("start.jl")
+include("cli.jl")
 
 end
