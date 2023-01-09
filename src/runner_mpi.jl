@@ -210,7 +210,7 @@ function start(::Type{MPIRunnerSlave{MC}}, job::JobInfo) where {MC}
         slave.task.sweeps = 0
 
         if action == A_PROCESS_DATA_NEW_TASK
-            merge_results(MC, slave.task; parameters = job.tasks[slave.task_id].params)
+            merge_results(MC, slave.task.dir; parameters = job.tasks[slave.task_id].params)
             slave = nothing
         elseif action == A_NEW_TASK
             slave = nothing

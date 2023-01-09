@@ -24,5 +24,4 @@
         @test JT.list_walker_files(tmpdir, "dump\\.h5") ==
               map(x -> "$tmpdir/walker$x.dump.h5", files)
     end
-
 end

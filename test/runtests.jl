@@ -1,5 +1,6 @@
 using Test
 using LoadLeveller
+using LoadLeveller.JobTools
 import LoadLeveller.JobTools as JT
 using MPI
 

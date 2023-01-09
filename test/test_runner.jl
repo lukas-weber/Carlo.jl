@@ -1,3 +1,5 @@
+using Serialization
+
 @testset "Task Selection" begin
     sweeps = [100, 10, 10, 101, 10]
     tasks = map(s -> LoadLeveller.RunnerTask(100, s, "", 0), sweeps)
@@ -37,10 +39,12 @@ end
         )
 
         JT.create_job_directory(job)
+        job_path = tmpdir * "/jobfile"
+        serialize(job_path, job)
 
         num_ranks = 3
         mpiexec() do exe
-            run(`$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job.dir)`)
+            run(`$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job_path)`)
         end
         tasks = JT.read_progress(job)
         for task in tasks

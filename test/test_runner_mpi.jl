@@ -2,8 +2,9 @@ using HDF5
 using LoadLeveller
 import LoadLeveller.JobTools as JT
 using MPI
+using Serialization
 
 include("test_mc.jl")
 
-job = JT.read_jobinfo_file(ARGS[1])
+job = deserialize(ARGS[1])
 LoadLeveller.start(LoadLeveller.MPIRunner{TestMC}, job)

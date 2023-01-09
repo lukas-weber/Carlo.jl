@@ -57,7 +57,7 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
 
         taskdir = runner_task.dir
         @info "merging $(taskdir)"
-        merge_results(MC, runner_task; parameters = task.params)
+        merge_results(MC, runner_task.dir; parameters = task.params)
 
         runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
     end

@@ -1,5 +1,4 @@
 using JSON
-using Unmarshal
 using Dates
 using Formatting
 
@@ -52,20 +51,11 @@ function JobInfo(
     return JobInfo(
         basename(job_file_name),
         job_file_name * ".data",
+        mc,
         tasks,
         parse_duration(checkpoint_time),
         parse_duration(run_time),
     )
-end
-
-"""
-    read_jobinfo(jobdir::AbstractString)::JobInfo
-
-Instead of constructing the [`JobInfo`](@ref) struct from scratch, read one from an existing job directory, where it is stored in
-`\$(jobdir).data/parameters.json`.
-"""
-function read_jobinfo(jobdir::AbstractString)::JobInfo
-    return Unmarshal.unmarshal(JobInfo, JSON.parsefile(jobdir * "/parameters.json"))
 end
 
 function task_dir(job::JobInfo, task::TaskInfo)
@@ -90,9 +80,6 @@ function create_job_directory(job::JobInfo)
         mkpath(task_dir(job, task))
     end
 
-    open(job.dir * "/parameters.json", "w") do file
-        JSON.print(file, job)
-    end
     return nothing
 end
 
