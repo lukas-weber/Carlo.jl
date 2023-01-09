@@ -32,7 +32,8 @@ end
 
     @testset "MPI" begin
         job = LoadLeveller.JobInfo(
-            tmpdir * "/test";
+            tmpdir * "/test",
+            TestMC;
             tasks = make_tasks(tm),
             checkpoint_time = "1:00",
             run_time = "10:00",
@@ -53,7 +54,8 @@ end
     end
     @testset "Single" begin
         job2 = LoadLeveller.JobInfo(
-            tmpdir * "/test2";
+            tmpdir * "/test2",
+            TestMC;
             tasks = JT.make_tasks(tm),
             checkpoint_time = "1:00",
             run_time = "10:00",

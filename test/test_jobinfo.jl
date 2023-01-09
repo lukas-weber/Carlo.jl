@@ -12,7 +12,8 @@ import LoadLeveller.JobTools as JT
     tmpdir = mktempdir()
 
     job = JT.JobInfo(
-        tmpdir * "/test";
+        tmpdir * "/test",
+        TestMC;
         tasks = make_tasks(tm),
         checkpoint_time = "15:00",
         run_time = "30:00",

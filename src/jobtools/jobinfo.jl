@@ -20,13 +20,16 @@ parse_duration(duration::Dates.Period) = duration
 
 """
     JobInfo(
-        job_directory_prefix::AbstractString;
+        job_directory_prefix::AbstractString,
+        mc::Type;
         checkpoint_time::Union{AbstractString, Dates.Second},
         run_time::Union{AbstractString, Dates.Second}
         tasks::Vector{TaskInfo}
     )
 
 Holds all information required for a Monte Carlo calculation. The data of the calculation (parameters, results, and checkpoints) will be saved under `job_directory_prefix`.
+
+`mc` is the the type of the algorithm to use, implementing the [`AbstractMC`](@ref) interface.
 
 `checkpoint_time` and `run_time` specify the interval between checkpoints and the total desired run_time of the simulation. Both may be specified as a string of format `[[hours:]minutes:]seconds`
 
@@ -36,6 +39,8 @@ struct JobInfo
     name::String
     dir::String
 
+    mc::Type
+
     tasks::Vector{TaskInfo}
 
     checkpoint_time::Dates.Second
@@ -43,7 +48,8 @@ struct JobInfo
 end
 
 function JobInfo(
-    job_file_name::AbstractString;
+    job_file_name::AbstractString,
+    mc::Type;
     checkpoint_time::Union{AbstractString,Dates.Second},
     run_time::Union{AbstractString,Dates.Second},
     tasks::Vector{TaskInfo},
