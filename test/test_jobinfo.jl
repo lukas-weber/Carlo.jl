@@ -5,6 +5,9 @@ import LoadLeveller.JobTools as JT
 
 @testset "JobInfo" begin
     tm = JT.TaskMaker()
+    tm.thermalization = 100
+    tm.sweeps = 7
+    tm.binsize = 10
     task(tm; test = 1)
     task(tm; test = 2)
     task(tm; test = 3)

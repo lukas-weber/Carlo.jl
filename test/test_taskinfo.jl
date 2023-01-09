@@ -2,9 +2,9 @@
     @testset "required parameters" begin
         @test_throws ErrorException TaskInfo(
             "test",
-            Dict(:thermalization = 100, :binsize = 10),
+            Dict(:thermalization => 100, :binsize => 10),
         )
-        TaskInfo("test2", Dict(:thermalization = 100, :sweeps = 100, :binsize = 10))
+        TaskInfo("test2", Dict(:thermalization => 100, :sweeps => 100, :binsize => 10))
     end
 
     @testset "list_walker_files" begin
@@ -24,4 +24,5 @@
         @test JT.list_walker_files(tmpdir, "dump\\.h5") ==
               map(x -> "$tmpdir/walker$x.dump.h5", files)
     end
+
 end
