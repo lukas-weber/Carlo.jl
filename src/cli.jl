@@ -2,7 +2,7 @@ using ArgParse
 
 function start(job::JobInfo, args::AbstractVector{String})
     s = ArgParseSettings()
-    @add_arg_table s begin
+    @add_arg_table! s begin
         "run", "r"
         help = "Starts a simulation"
         action = :command
@@ -17,7 +17,7 @@ function start(job::JobInfo, args::AbstractVector{String})
         action = :command
     end
 
-    @add_arg_table s["run"] begin
+    @add_arg_table! s["run"] begin
         "--single", "-s"
         help = "run in single core mode"
         action = :store_true
