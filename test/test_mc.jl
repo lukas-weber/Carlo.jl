@@ -1,4 +1,5 @@
 import LoadLeveller
+using HDF5
 
 struct TestMC <: LoadLeveller.AbstractMC end
 

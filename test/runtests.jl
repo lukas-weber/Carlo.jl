@@ -8,6 +8,7 @@ include("test_utils.jl")
 include("test_mc.jl")
 
 tests = [
+    "test_cli.jl"
     "test_taskinfo.jl"
     "test_jobinfo.jl"
     "test_runner.jl"
