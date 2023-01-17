@@ -1,4 +1,5 @@
 using ArgParse
+using PrettyTables
 
 function start(job::JobInfo, args::AbstractVector{String})
     s = ArgParseSettings()
@@ -33,7 +34,7 @@ function start(job::JobInfo, args::AbstractVector{String})
         "run" => cli_run,
         "merge" => cli_merge,
         "status" => cli_status,
-        "delete" => cli_delete,
+        "delete" => cli_delete
     )
 
     return cmd_funcs[cmd](job, parsed_args[cmd])
@@ -46,31 +47,35 @@ function cli_run(job::JobInfo, args::AbstractDict)
 
     JobTools.create_job_directory(job)
     runner = args["single"] ? SingleRunner : MPIRunner
-    return start(job, runner{job.mc})
+    return start(runner{job.mc}, job)
 end
 
 function cli_status(job::JobInfo, ::AbstractDict)
-    tasks = JobTools.read_progress(job)
+    @time try
+        tasks = JobTools.read_progress(job)
 
-    println(tasks)
-
-    return all(map(x -> x[:sweeps] >= x[:target_sweeps], tasks))
+        data = mapreduce(permutedims, vcat, map(x->[basename(x[:dir]), x[:sweeps], x[:target_sweeps]], tasks))
+        pretty_table(stdout, data; header = ["task", "sweeps", "target sweeps"], body_hlines=Int64[])
+        return all(map(x -> x[:sweeps] >= x[:target_sweeps], tasks))
+    catch err
+        if isa(err, Base.IOError)
+            @error "Could not read job progress. Not run yet?"            
+            exit(1)
+        else
+            rethrow(err)
+        end
+    end
 end
 
 function cli_delete(job::JobInfo, ::AbstractDict)
-    rm("$(job.dir)/../$(job.name).results.json"; force = true)
-    rm(job.dir; recursive = true, force = true)
+    rm("$(job.dir)/../$(job.name).results.json"; force=true)
+    rm(job.dir; recursive=true, force=true)
 
     return nothing
 end
 
 function cli_merge(job::JobInfo, ::AbstractDict)
     for task in job.tasks
-        merge_results(
-            job.mc,
-            task_dir(job, task);
-            parameters = task.params,
-            datatype = Float64,
-        )
+        merge_results(job.mc, JobTools.task_dir(job, task); parameters=task.params, data_type=Float64)
     end
 end
