@@ -102,7 +102,7 @@ end
             ar1_sigma = 0.54
 
             ar1_y = 0
-            rng = Xoshiro()
+            rng = Xoshiro(520)
 
             filenames, _ = create_mock_data(;
                 walkers = walkers,
