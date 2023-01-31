@@ -19,7 +19,7 @@ function create_mock_data(
     idx = 1
     for walker = 1:walkers
         nsamples = samples_per_walker + extra_samples * (walker == 1)
-        start_sample = length(samples)+1
+        start_sample = length(samples) + 1
         h5open(filenames[walker], "w") do file
             meas = LoadLeveller.Measurements{Float64}(internal_binsize)
             for i = 1:nsamples
@@ -33,7 +33,10 @@ function create_mock_data(
             LoadLeveller.write_measurements!(meas, create_group(file, "observables"))
         end
         h5open(filenames[walker], "r") do file
-            @test read(file, "observables/$obsname/samples") == mean(reshape(copy(samples[start_sample:end]), internal_binsize, :); dims=1)
+            @test read(file, "observables/$obsname/samples") == mean(
+                reshape(copy(samples[start_sample:end]), internal_binsize, :);
+                dims = 1,
+            )
         end
     end
 
@@ -69,9 +72,11 @@ end
                         )
                         count_obs = results[:count_test]
 
-                        rebinned_samples = samples[1:internal_binsize*count_obs.rebin_length*count_obs.rebin_count]
+                        rebinned_samples =
+                            samples[1:internal_binsize*count_obs.rebin_length*count_obs.rebin_count]
 
-                        @test count_obs.total_sample_count == length(samples) ÷ internal_binsize
+                        @test count_obs.total_sample_count ==
+                              length(samples) ÷ internal_binsize
                         @test count_obs.mean[1] ≈ mean(rebinned_samples)
                         if rebin_length !== nothing
                             @test count_obs.rebin_length == rebin_length
@@ -92,14 +97,14 @@ end
 
     # parameters for an AR(1) random walk y_{t+1} = α y_{t} + N(μ=0, σ)
     # autocorrelation time and error of this are known analytically
-    for ar1_alpha in [0.5,0.7,0.8,0.9]
+    for ar1_alpha in [0.5, 0.7, 0.8, 0.9]
         @testset "α = $ar1_alpha" begin
             ar1_sigma = 0.54
 
             ar1_y = 0
             rng = Xoshiro()
 
-            filenames, _ =create_mock_data(;
+            filenames, _ = create_mock_data(;
                 walkers = walkers,
                 obsname = :ar1_test,
                 samples_per_walker = 200000,
@@ -112,7 +117,7 @@ end
             results = LoadLeveller.merge_results(
                 filenames,
                 data_type = Float64,
-                rebin_length = 100
+                rebin_length = 100,
             )
 
             # AR(1)
@@ -121,11 +126,14 @@ end
             expected_mean = 0.0
             expected_std = ar1_sigma / sqrt(1 - ar1_alpha^2)
             expected_autocorrtime = -1 / log(ar1_alpha)
-            expected_autocorrtime = 0.5*(1+2*ar1_alpha/(1-ar1_alpha))
-            println("$(ar1_obs.rebin_count), $(ar1_obs.rebin_length)")
+            expected_autocorrtime = 0.5 * (1 + 2 * ar1_alpha / (1 - ar1_alpha))
 
             @test abs(ar1_obs.mean[1] - expected_mean) < 4 * ar1_obs.error[1]
-            @test isapprox(ar1_obs.autocorrelation_time[1], expected_autocorrtime, rtol = 0.1)
+            @test isapprox(
+                ar1_obs.autocorrelation_time[1],
+                expected_autocorrtime,
+                rtol = 0.1,
+            )
         end
     end
 end

@@ -165,9 +165,9 @@ function merge_results(
 
         used_samples = obs.rebin_count * obs.rebin_length
         no_rebinning_error =
-            map(sqrt, obs.autocorrelation_time ./ ((used_samples - 1) * used_samples))
+            sqrt.(obs.autocorrelation_time ./ ((used_samples - 1) * used_samples))
 
-        obs.error = map(sqrt, obs.error ./ ((obs.rebin_count - 1) * obs.rebin_count))
+        obs.error = sqrt.(obs.error ./ ((obs.rebin_count - 1) * obs.rebin_count))
         obs.autocorrelation_time = 0.5 * (obs.error ./ no_rebinning_error) .^ 2
     end
 
