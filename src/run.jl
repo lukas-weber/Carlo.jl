@@ -1,32 +1,32 @@
 using Random
 
-struct Walker{MC<:AbstractMC,RNG<:Random.AbstractRNG}
+struct Run{MC<:AbstractMC,RNG<:Random.AbstractRNG}
     context::MCContext{RNG}
     implementation::MC
 end
 
-function Walker{MC,RNG}(params::Dict) where {MC,RNG}
+function Run{MC,RNG}(params::Dict) where {MC,RNG}
     context = MCContext{RNG}(params)
     implementation = MC(params)
     init!(implementation, context, params)
 
-    return Walker(context, implementation)
+    return Run(context, implementation)
 end
 
 
 """Perform one MC step. This will return the number of thermalized sweeps performed"""
-function step!(w::Walker)
-    sweep!(w.implementation, w.context)
-    w.context.sweeps += 1
-    if is_thermalized(w.context)
-        measure!(w.implementation, w.context)
+function step!(run::Run)
+    sweep!(run.implementation, run.context)
+    run.context.sweeps += 1
+    if is_thermalized(run.context)
+        measure!(run.implementation, run.context)
         return 1
     end
     return 0
 end
 
 
-function write_checkpoint!(w::Walker, file_prefix::AbstractString)
+function write_checkpoint!(run::Run, file_prefix::AbstractString)
     checkpoint_write_time = @elapsed begin
         try
             cp(file_prefix * ".meas.h5", file_prefix * ".meas.h5.tmp", force = true)
@@ -37,16 +37,16 @@ function write_checkpoint!(w::Walker, file_prefix::AbstractString)
         end
 
         h5open(file_prefix * ".meas.h5.tmp", "cw") do file
-            write_measurements!(w.context, file["/"])
+            write_measurements!(run.context, file["/"])
         end
 
         h5open(file_prefix * ".dump.h5.tmp", "w") do file
-            write_checkpoint(w.context, create_group(file, "context"))
-            write_checkpoint(w.implementation, create_group(file, "simulation"))
+            write_checkpoint(run.context, create_group(file, "context"))
+            write_checkpoint(run.implementation, create_group(file, "simulation"))
         end
     end
 
-    add_sample!(w.context.measure, :_ll_checkpoint_write_time, checkpoint_write_time)
+    add_sample!(run.context.measure, :_ll_checkpoint_write_time, checkpoint_write_time)
 
     return nothing
 end
@@ -59,10 +59,10 @@ function write_checkpoint_finalize(file_prefix::AbstractString)
 end
 
 function read_checkpoint(
-    ::Type{Walker{MC,RNG}},
+    ::Type{Run{MC,RNG}},
     file_prefix::AbstractString,
     parameters::Dict,
-)::Union{Walker{MC,RNG},Nothing} where {MC,RNG}
+)::Union{Run{MC,RNG},Nothing} where {MC,RNG}
     if !isfile(file_prefix * ".dump.h5")
         return nothing
     end
@@ -80,5 +80,5 @@ function read_checkpoint(
     end
 
     add_sample!(context.measure, :_ll_checkpoint_read_time, checkpoint_read_time)
-    return Walker(context, mc)
+    return Run(context, mc)
 end

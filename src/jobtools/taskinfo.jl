@@ -40,19 +40,15 @@ function task_name(task_id::Integer)
     return format("task{:04d}", task_id)
 end
 
-function list_walker_files(taskdir::AbstractString, ending::AbstractString)
+function list_run_files(taskdir::AbstractString, ending::AbstractString)
     return map(
         x -> taskdir * "/" * x,
-        filter(x -> occursin(Regex("^walker\\d{4,}\\.$ending\$"), x), readdir(taskdir)),
+        filter(x -> occursin(Regex("^run\\d{4,}\\.$ending\$"), x), readdir(taskdir)),
     )
 end
 
 function read_dump_progress(taskdir::AbstractString)
-    return mapreduce(
-        +,
-        list_walker_files(taskdir, "dump\\.h5"),
-        init = Int64(0),
-    ) do dumpname
+    return mapreduce(+, list_run_files(taskdir, "dump\\.h5"), init = Int64(0)) do dumpname
         sweeps = 0
         h5open(dumpname, "r") do f
             sweeps =

@@ -10,8 +10,8 @@ end
 
 is_done(task::RunnerTask) = task.sweeps >= task.target_sweeps
 
-function walker_dir(task::RunnerTask, walker_id::Integer)
-    return format("{}/walker{:04d}", task.dir, walker_id)
+function run_dir(task::RunnerTask, run_id::Integer)
+    return format("{}/run{:04d}", task.dir, run_id)
 end
 
 function merge_results(
@@ -23,7 +23,7 @@ function merge_results(
     sample_skip::Integer = 0,
 ) where {MC<:AbstractMC}
     merged_results = merge_results(
-        JobTools.list_walker_files(taskdir, "meas\\.h5");
+        JobTools.list_run_files(taskdir, "meas\\.h5");
         data_type = data_type,
         rebin_length = rebin_length,
         sample_skip = sample_skip,

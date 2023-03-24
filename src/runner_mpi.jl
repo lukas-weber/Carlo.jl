@@ -39,13 +39,13 @@ end
 
 struct MPIRunner{MC<:AbstractMC} <: AbstractRunner end
 
-mutable struct MPIRunnerMaster <: AbstractRunner
+mutable struct MPIRunnerController <: AbstractRunner
     num_active_ranks::Int32
 
     task_id::Union{Int32,Nothing}
     tasks::Vector{RunnerTask}
 
-    function MPIRunnerMaster(job::JobInfo, active_ranks::Integer)
+    function MPIRunnerController(job::JobInfo, active_ranks::Integer)
         return new(
             active_ranks,
             1,
@@ -57,12 +57,12 @@ mutable struct MPIRunnerMaster <: AbstractRunner
     end
 end
 
-mutable struct MPIRunnerSlave{MC<:AbstractMC}
+mutable struct MPIRunnerWorker{MC<:AbstractMC}
     task_id::Int32
     run_id::Int32
 
     task::RunnerTask
-    walker::Union{Walker{MC,DefaultRNG},Nothing}
+    run::Union{Run{MC,DefaultRNG},Nothing}
 end
 
 function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
@@ -72,9 +72,9 @@ function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
     rank = MPI.Comm_rank(comm)
 
     if rank == 0
-        start(MPIRunnerMaster, job)
+        start(MPIRunnerController, job)
     else
-        start(MPIRunnerSlave{MC}, job)
+        start(MPIRunnerWorker{MC}, job)
     end
 
     MPI.Barrier(comm)
@@ -83,20 +83,20 @@ function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
     return nothing
 end
 
-function start(::Type{MPIRunnerMaster}, job::JobInfo)
-    master = MPIRunnerMaster(job, MPI.Comm_size(MPI.COMM_WORLD))
+function start(::Type{MPIRunnerController}, job::JobInfo)
+    controller = MPIRunnerController(job, MPI.Comm_size(MPI.COMM_WORLD))
 
-    while master.num_active_ranks > 1
-        react!(master)
+    while controller.num_active_ranks > 1
+        react!(controller)
     end
 
-    all_done = master.task_id === nothing
-    @info "master: stopping due to $(all_done ? "completion" : "time limit")"
+    all_done = controller.task_id === nothing
+    @info "controller: stopping due to $(all_done ? "completion" : "time limit")"
 
     return !all_done
 end
 
-function react!(master::MPIRunnerMaster)
+function react!(controller::MPIRunnerController)
     rank_status, status = MPI.Recv(
         MPIRunnerStatus,
         MPI.COMM_WORLD,
@@ -107,18 +107,18 @@ function react!(master::MPIRunnerMaster)
     rank = status.source
 
     if rank_status == S_IDLE
-        master.task_id = get_new_task_id(master.tasks, master.task_id)
-        if master.task_id === nothing
+        controller.task_id = get_new_task_id(controller.tasks, controller.task_id)
+        if controller.task_id === nothing
             send_action(A_EXIT, rank)
-            master.num_active_ranks -= 1
+            controller.num_active_ranks -= 1
         else
             send_action(A_NEW_TASK, rank)
-            task = master.tasks[master.task_id]
+            task = controller.tasks[controller.task_id]
             task.scheduled_runs += 1
 
             sweeps_until_comm = 1 + max(0, task.target_sweeps - task.sweeps)
             msg = MPIRunnerNewJobResponse(
-                master.task_id,
+                controller.task_id,
                 task.scheduled_runs,
                 sweeps_until_comm,
             )
@@ -133,7 +133,7 @@ function react!(master::MPIRunnerMaster)
             tag = T_BUSY_STATUS,
         )
 
-        task = master.tasks[msg.task_id]
+        task = controller.tasks[msg.task_id]
         task.sweeps += msg.sweeps_since_last_query
         if is_done(task)
             task.scheduled_runs -= 1
@@ -148,7 +148,7 @@ function react!(master::MPIRunnerMaster)
             send_action(A_CONTINUE, rank)
         end
     elseif rank_status == S_TIMEUP
-        master.num_active_ranks -= 1
+        controller.num_active_ranks -= 1
     else
         error("Invalid rank status $(rank_status)")
     end
@@ -156,9 +156,9 @@ function react!(master::MPIRunnerMaster)
     return nothing
 end
 
-function start(::Type{MPIRunnerSlave{MC}}, job::JobInfo) where {MC}
+function start(::Type{MPIRunnerWorker{MC}}, job::JobInfo) where {MC}
     rank = MPI.Comm_rank(MPI.COMM_WORLD)
-    slave::Union{MPIRunnerSlave{MC},Nothing} = nothing
+    worker::Union{MPIRunnerWorker{MC},Nothing} = nothing
 
     runner_task::Union{RunnerTask,Nothing} = nothing
 
@@ -166,8 +166,8 @@ function start(::Type{MPIRunnerSlave{MC}}, job::JobInfo) where {MC}
     time_last_checkpoint = Dates.now()
 
     while true
-        if slave === nothing
-            action, msg = slave_signal_idle()
+        if worker === nothing
+            action, msg = worker_signal_idle()
             if action == A_EXIT
                 break
             end
@@ -175,20 +175,20 @@ function start(::Type{MPIRunnerSlave{MC}}, job::JobInfo) where {MC}
             task = job.tasks[msg.task_id]
             runner_task =
                 RunnerTask(msg.sweeps_until_comm, 0, JobTools.task_dir(job, task), 0)
-            walkerdir = walker_dir(runner_task, msg.run_id)
+            rundir = run_dir(runner_task, msg.run_id)
 
-            walker = read_checkpoint(Walker{MC,DefaultRNG}, walkerdir, task.params)
-            if walker !== nothing
-                @info "read $walkerdir"
+            run = read_checkpoint(Run{MC,DefaultRNG}, rundir, task.params)
+            if run !== nothing
+                @info "read $rundir"
             else
-                walker = Walker{MC,DefaultRNG}(task.params)
-                @info "initialized $walkerdir"
+                run = Run{MC,DefaultRNG}(task.params)
+                @info "initialized $rundir"
             end
-            slave = MPIRunnerSlave{MC}(msg.task_id, msg.run_id, runner_task, walker)
+            worker = MPIRunnerWorker{MC}(msg.task_id, msg.run_id, runner_task, run)
         end
 
-        while !is_done(slave.task)
-            slave.task.sweeps += step!(slave.walker)
+        while !is_done(worker.task)
+            worker.task.sweeps += step!(worker.run)
 
             if JobTools.is_checkpoint_time(job, time_last_checkpoint) ||
                JobTools.is_end_time(job, time_start)
@@ -196,33 +196,37 @@ function start(::Type{MPIRunnerSlave{MC}}, job::JobInfo) where {MC}
             end
         end
 
-        write_checkpoint(slave)
+        write_checkpoint(worker)
         time_last_checkpoint = Dates.now()
 
         if JobTools.is_end_time(job, time_start)
-            slave_signal_timeup()
+            worker_signal_timeup()
             @info "rank $rank exits: time up"
             break
         end
 
-        action = slave_signal_busy(slave.task_id, slave.task.sweeps)
-        slave.task.target_sweeps -= slave.task.sweeps
-        slave.task.sweeps = 0
+        action = worker_signal_busy(worker.task_id, worker.task.sweeps)
+        worker.task.target_sweeps -= worker.task.sweeps
+        worker.task.sweeps = 0
 
         if action == A_PROCESS_DATA_NEW_TASK
-            merge_results(MC, slave.task.dir; parameters = job.tasks[slave.task_id].params)
-            slave = nothing
+            merge_results(
+                MC,
+                worker.task.dir;
+                parameters = job.tasks[worker.task_id].params,
+            )
+            worker = nothing
         elseif action == A_NEW_TASK
-            slave = nothing
+            worker = nothing
         else
             @assert action == A_CONTINUE
         end
     end
 end
 
-slave_signal_timeup() = MPI.Send(S_TIMEUP, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
+worker_signal_timeup() = MPI.Send(S_TIMEUP, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
 
-function slave_signal_idle()
+function worker_signal_idle()
     MPI.Send(S_IDLE, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
     new_action = recv_action()
     if new_action == A_EXIT
@@ -233,7 +237,7 @@ function slave_signal_idle()
     return (A_NEW_TASK, msg)
 end
 
-function slave_signal_busy(task_id::Integer, sweeps_since_last_query::Integer)
+function worker_signal_busy(task_id::Integer, sweeps_since_last_query::Integer)
     MPI.Send(S_BUSY, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
     msg = MPIRunnerBusyResponse(task_id, sweeps_since_last_query)
     MPI.Send(msg, MPI.COMM_WORLD; dest = 0, tag = T_BUSY_STATUS)
@@ -242,11 +246,11 @@ function slave_signal_busy(task_id::Integer, sweeps_since_last_query::Integer)
     return new_action
 end
 
-function write_checkpoint(runner::MPIRunnerSlave)
-    walkerdir = walker_dir(runner.task, runner.run_id)
-    write_checkpoint!(runner.walker, walkerdir)
-    write_checkpoint_finalize(walkerdir)
-    @info "rank $(MPI.Comm_rank(MPI.COMM_WORLD)): checkpointing $walkerdir"
+function write_checkpoint(runner::MPIRunnerWorker)
+    rundir = run_dir(runner.task, runner.run_id)
+    write_checkpoint!(runner.run, rundir)
+    write_checkpoint_finalize(rundir)
+    @info "rank $(MPI.Comm_rank(MPI.COMM_WORLD)): checkpointing $rundir"
 
     return nothing
 end

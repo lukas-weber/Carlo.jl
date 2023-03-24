@@ -8,7 +8,7 @@ const DefaultRNG = Random.Xoshiro
 
 mutable struct SingleRunner{MC<:AbstractMC} <: AbstractRunner
     job::JobInfo
-    walker::Union{Walker{MC,DefaultRNG},Nothing}
+    run::Union{Run{MC,DefaultRNG},Nothing}
 
     time_start::Dates.DateTime
     time_last_checkpoint::Dates.DateTime
@@ -35,18 +35,18 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
     while runner.task_id !== nothing && !JobTools.is_end_time(runner.job, runner.time_start)
         task = runner.job.tasks[runner.task_id]
         runner_task = runner.tasks[runner.task_id]
-        walkerdir = walker_dir(runner_task, 1)
+        rundir = run_dir(runner_task, 1)
 
-        runner.walker = read_checkpoint(Walker{MC,DefaultRNG}, walkerdir, task.params)
-        if runner.walker !== nothing
-            @info "read $walkerdir"
+        runner.run = read_checkpoint(Run{MC,DefaultRNG}, rundir, task.params)
+        if runner.run !== nothing
+            @info "read $rundir"
         else
-            runner.walker = Walker{MC,DefaultRNG}(task.params)
-            @info "initialized $walkerdir"
+            runner.run = Run{MC,DefaultRNG}(task.params)
+            @info "initialized $rundir"
         end
 
         while !is_done(runner_task) && !JobTools.is_end_time(runner.job, runner.time_start)
-            runner_task.sweeps += step!(runner.walker)
+            runner_task.sweeps += step!(runner.run)
 
             if JobTools.is_checkpoint_time(runner.job, runner.time_last_checkpoint)
                 write_checkpoint(runner)
@@ -84,10 +84,10 @@ get_new_task_id(::AbstractVector{RunnerTask}, ::Nothing) = nothing
 
 function write_checkpoint(runner::SingleRunner)
     runner.time_last_checkpoint = Dates.now()
-    walkerdir = walker_dir(runner.tasks[runner.task_id], 1)
-    write_checkpoint!(runner.walker, walkerdir)
-    write_checkpoint_finalize(walkerdir)
-    @info "checkpointing $walkerdir"
+    rundir = run_dir(runner.tasks[runner.task_id], 1)
+    write_checkpoint!(runner.run, rundir)
+    write_checkpoint_finalize(rundir)
+    @info "checkpointing $rundir"
 
     return nothing
 end

@@ -12,7 +12,7 @@ tests = [
     "test_taskinfo.jl"
     "test_jobinfo.jl"
     "test_runner.jl"
-    "test_walker.jl"
+    "test_run.jl"
     "test_observable.jl"
     "test_random_wrap.jl"
     "test_results.jl"

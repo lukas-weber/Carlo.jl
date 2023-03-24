@@ -5,22 +5,22 @@ using Statistics
 
 function create_mock_data(
     generator;
-    walkers::Integer,
+    runs::Integer,
     internal_binsize::Integer,
-    samples_per_walker::Integer,
+    samples_per_run::Integer,
     extra_samples::Integer = 0,
     obsname::Symbol,
 )::Tuple{Vector{String},Vector{Float64}}
     tmpdir = mktempdir()
     samples = zeros(0)
 
-    filenames = map(x -> format("{}/walker{}.h5", tmpdir, x), 1:walkers)
+    filenames = map(x -> format("{}/run{}.h5", tmpdir, x), 1:runs)
 
     idx = 1
-    for walker = 1:walkers
-        nsamples = samples_per_walker + extra_samples * (walker == 1)
+    for run = 1:runs
+        nsamples = samples_per_run + extra_samples * (run == 1)
         start_sample = length(samples) + 1
-        h5open(filenames[walker], "w") do file
+        h5open(filenames[run], "w") do file
             meas = LoadLeveller.Measurements{Float64}(internal_binsize)
             for i = 1:nsamples
                 value = generator(idx)
@@ -32,7 +32,7 @@ function create_mock_data(
             end
             LoadLeveller.write_measurements!(meas, create_group(file, "observables"))
         end
-        h5open(filenames[walker], "r") do file
+        h5open(filenames[run], "r") do file
             @test read(file, "observables/$obsname/samples") == mean(
                 reshape(copy(samples[start_sample:end]), internal_binsize, :);
                 dims = 1,
@@ -45,19 +45,19 @@ end
 
 @testset "Merge counter" begin
     tmpdir = mktempdir()
-    walkers = 4
+    runs = 4
 
     for internal_binsize in [1, 3, 4]
-        for samples_per_walker in [5, 7]
+        for samples_per_run in [5, 7]
             extra_samples = 100
-            total_samples = walkers * samples_per_walker + extra_samples
+            total_samples = runs * samples_per_run + extra_samples
 
             @testset "samples = $(total_samples), binsize = $(internal_binsize)" begin
                 filenames, samples = create_mock_data(;
-                    walkers = walkers,
+                    runs = runs,
                     obsname = :count_test,
                     internal_binsize = internal_binsize,
-                    samples_per_walker = samples_per_walker,
+                    samples_per_run = samples_per_run,
                     extra_samples = extra_samples,
                 ) do idx
                     return idx
@@ -93,7 +93,7 @@ end
 end
 
 @testset "Merge AR(1)" begin
-    walkers = 2
+    runs = 2
 
     # parameters for an AR(1) random walk y_{t+1} = α y_{t} + N(μ=0, σ)
     # autocorrelation time and error of this are known analytically
@@ -105,9 +105,9 @@ end
             rng = Xoshiro(520)
 
             filenames, _ = create_mock_data(;
-                walkers = walkers,
+                runs = runs,
                 obsname = :ar1_test,
-                samples_per_walker = 200000,
+                samples_per_run = 200000,
                 internal_binsize = 1,
             ) do idx
                 ar1_y = ar1_alpha * ar1_y + ar1_sigma * randn(rng)
