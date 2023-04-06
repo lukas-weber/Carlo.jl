@@ -27,7 +27,7 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
     runner.time_last_checkpoint = runner.time_start
 
     runner.tasks = map(
-        x -> RunnerTask(x[:target_sweeps], x[:sweeps], x[:dir], 0),
+        x -> RunnerTask(x.target_sweeps, x.sweeps, x.dir, 0),
         JobTools.read_progress(runner.job),
     )
     runner.task_id = get_new_task_id(runner.tasks, runner.task_id)

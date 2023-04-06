@@ -1,5 +1,4 @@
 using ArgParse
-using PrettyTables
 
 function start(job::JobInfo, args::AbstractVector{String})
     s = ArgParseSettings()
@@ -51,21 +50,19 @@ function cli_run(job::JobInfo, args::AbstractDict)
 end
 
 function cli_status(job::JobInfo, ::AbstractDict)
-    @time try
+    try
         tasks = JobTools.read_progress(job)
 
         data = mapreduce(
             permutedims,
             vcat,
-            map(x -> [basename(x[:dir]), x[:sweeps], x[:target_sweeps]], tasks),
+            map(x -> [basename(x.dir), x.sweeps, x.target_sweeps], tasks),
         )
-        pretty_table(
-            stdout,
-            data;
-            header = ["task", "sweeps", "target sweeps"],
-            body_hlines = Int64[],
-        )
-        return all(map(x -> x[:sweeps] >= x[:target_sweeps], tasks))
+        println("task, sweeps, target sweeps")
+        for task in tasks
+            println("$(basename(task.dir)), $(task.sweeps), $(task.target_sweeps)")
+        end
+        return all(map(x -> x.sweeps >= x.target_sweeps, tasks))
     catch err
         if isa(err, Base.IOError)
             @error "Could not read job progress. Not run yet?"
@@ -93,3 +90,7 @@ function cli_merge(job::JobInfo, ::AbstractDict)
         )
     end
 end
+
+precompile(start, (Vector{String},))
+precompile(cli_status, (JobInfo, Dict))
+precompile(cli_merge, (JobInfo, Dict))

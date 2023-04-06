@@ -48,12 +48,21 @@ function list_run_files(taskdir::AbstractString, ending::AbstractString)
 end
 
 function read_dump_progress(taskdir::AbstractString)
-    return mapreduce(+, list_run_files(taskdir, "dump\\.h5"), init = Int64(0)) do dumpname
-        sweeps = 0
+    sweeps = 0
+    for dumpname in list_run_files(taskdir, "dump\\.h5")
         h5open(dumpname, "r") do f
-            sweeps =
-                max(0, read(f["context/sweeps"]) - read(f["context/thermalization_sweeps"]))
+            sweeps += max(
+                0,
+                read(f["context/sweeps"], Int64) -
+                read(f["context/thermalization_sweeps"], Int64),
+            )
         end
-        return sweeps
     end
+    return sweeps
+end
+
+struct TaskProgress
+    target_sweeps::Int64
+    sweeps::Int64
+    dir::String
 end

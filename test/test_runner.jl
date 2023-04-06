@@ -49,7 +49,7 @@ end
         end
         tasks = JT.read_progress(job)
         for task in tasks
-            @test task[:sweeps] >= task[:target_sweeps]
+            @test task.sweeps >= task.target_sweeps
         end
     end
     @testset "Single" begin
@@ -67,7 +67,7 @@ end
 
         tasks = JT.read_progress(job2)
         for task in tasks
-            @test task[:sweeps] >= task[:target_sweeps]
+            @test task.sweeps >= task.target_sweeps
         end
     end
 end

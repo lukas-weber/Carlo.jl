@@ -50,7 +50,7 @@ mutable struct MPIRunnerController <: AbstractRunner
             active_ranks,
             1,
             map(
-                x -> RunnerTask(x[:target_sweeps], x[:sweeps], x[:dir], 0),
+                x -> RunnerTask(x.target_sweeps, x.sweeps, x.dir, 0),
                 JobTools.read_progress(job),
             ),
         )
