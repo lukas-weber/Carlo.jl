@@ -49,7 +49,7 @@ function write_measurements!(obs::Observable{T}, out::HDF5.Group) where {T}
                 out,
                 "samples",
                 eltype(obs.samples),
-                ((size(obs.samples, 1), size(obs.samples, 1)), (4, typemax(Int64)));
+                ((size(obs.samples, 1), size(obs.samples, 2)), (size(obs.samples, 1), -1));
                 chunk = (size(obs.samples, 1), binning_output_chunk_size),
             )
             old_bin_count = 0
