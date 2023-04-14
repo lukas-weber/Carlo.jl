@@ -2,6 +2,7 @@ module LoadLeveller
 export AbstractMC, MCContext, measure!, is_thermalized, evaluate!, start
 
 include("jobtools/JobTools.jl")
+include("resulttools/ResultTools.jl")
 
 include("util.jl")
 include("random_wrap.jl")
