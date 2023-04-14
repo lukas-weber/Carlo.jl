@@ -66,6 +66,7 @@ mutable struct MPIRunnerWorker{MC<:AbstractMC}
 end
 
 function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
+    JobTools.create_job_directory(job)
     MPI.Init()
     comm = MPI.COMM_WORLD
 

@@ -44,7 +44,6 @@ function cli_run(job::JobInfo, args::AbstractDict)
         cli_delete(job, Dict())
     end
 
-    JobTools.create_job_directory(job)
     runner = args["single"] ? SingleRunner : MPIRunner
     return start(runner{job.mc}, job)
 end
