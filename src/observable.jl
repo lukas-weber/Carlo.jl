@@ -16,22 +16,6 @@ function Observable{T}(bin_length::Integer, vector_length::Integer) where {T}
     return Observable(bin_length, 0, samples)
 end
 
-
-function accumulate_sample!(samples::AbstractMatrix, value::Number)
-    for i = 1:size(samples, 1)
-        samples[i, end] += float(value)
-    end
-    return nothing
-end
-
-function accumulate_sample!(samples::AbstractMatrix, value::AbstractVector)
-    for i = 1:size(samples, 1)
-        samples[i, end] += float(value[i])
-    end
-    return nothing
-end
-
-
 function add_sample!(obs::Observable, value::Union{Number,AbstractVector{<:Number}})
     if length(value) != size(obs.samples, 1)
         error(
@@ -39,7 +23,7 @@ function add_sample!(obs::Observable, value::Union{Number,AbstractVector{<:Numbe
         )
     end
 
-    accumulate_sample!(obs.samples, value)
+    obs.samples .+= value
     obs.current_bin_filling += 1
 
     if obs.current_bin_filling == obs.bin_length
