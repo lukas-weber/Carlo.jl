@@ -7,7 +7,7 @@ mutable struct Observable{T<:AbstractFloat}
     bin_length::Int64
     current_bin_filling::Int64
 
-    samples::ElasticArray{T,2}
+    samples::ElasticArray{T,2,1,Vector{Float64}}
 end
 
 function Observable{T}(bin_length::Integer, vector_length::Integer) where {T}
@@ -16,14 +16,30 @@ function Observable{T}(bin_length::Integer, vector_length::Integer) where {T}
     return Observable(bin_length, 0, samples)
 end
 
-function add_sample!(obs::Observable, value)
+
+function accumulate_sample!(samples::AbstractMatrix, value::Number)
+    for i = 1:size(samples, 1)
+        samples[i, end] += float(value)
+    end
+    return nothing
+end
+
+function accumulate_sample!(samples::AbstractMatrix, value::AbstractVector)
+    for i = 1:size(samples, 1)
+        samples[i, end] += float(value[i])
+    end
+    return nothing
+end
+
+
+function add_sample!(obs::Observable, value::Union{Number,AbstractVector{<:Number}})
     if length(value) != size(obs.samples, 1)
         error(
             "length of added value ($(length(value))) does not fit length of observable ($(size(obs.samples,1)))",
         )
     end
 
-    obs.samples[:, end] .+= value
+    accumulate_sample!(obs.samples, value)
     obs.current_bin_filling += 1
 
     if obs.current_bin_filling == obs.bin_length
