@@ -1,7 +1,7 @@
 using LoadLeveller
 
 @testset "Evaluable" begin
-    func = (x, y) -> x ./ y
+    func = (x::Real, y::Real) -> x / y
 
     means = map(transpose, [[2, 3, 4], [5, 4, 3]])
 
