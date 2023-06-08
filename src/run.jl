@@ -25,7 +25,6 @@ function step!(run::Run)
     return 0
 end
 
-
 function write_checkpoint!(run::Run, file_prefix::AbstractString)
     checkpoint_write_time = @elapsed begin
         try
@@ -38,11 +37,13 @@ function write_checkpoint!(run::Run, file_prefix::AbstractString)
 
         h5open(file_prefix * ".meas.h5.tmp", "cw") do file
             write_measurements!(run.context, file["/"])
+            write_hdf5(Version(typeof(run.implementation)), create_group(file, "version"))
         end
 
         h5open(file_prefix * ".dump.h5.tmp", "w") do file
             write_checkpoint(run.context, create_group(file, "context"))
             write_checkpoint(run.implementation, create_group(file, "simulation"))
+            write_hdf5(Version(typeof(run.implementation)), create_group(file, "version"))
         end
     end
 

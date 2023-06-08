@@ -49,7 +49,6 @@ end
 function write_measurements!(ctx::MCContext, meas_file::HDF5.Group)
 
     write_measurements!(ctx.measure, create_absent_group(meas_file, "observables"))
-    # TODO: write version    
 
     return nothing
 end

@@ -36,6 +36,12 @@ function merge_results(
         name => ResultObservable(obs) for
         (name, obs) in merge(merged_results, evaluator.evaluables)
     )
-    write_results(merge(results), taskdir * "/results.json", taskdir, parameters)
+    write_results(
+        merge(results),
+        taskdir * "/results.json",
+        taskdir,
+        parameters,
+        Version(MC),
+    )
     return nothing
 end

@@ -42,11 +42,17 @@ function write_results(
     filename::AbstractString,
     taskdir::AbstractString,
     parameters::Dict,
+    version::Version,
 ) where {T}
     open(filename, "w") do file
         JSON.print(
             file,
-            Dict("task" => taskdir, "parameters" => parameters, "results" => observables),
+            Dict(
+                "task" => taskdir,
+                "parameters" => parameters,
+                "results" => observables,
+                "version" => to_dict(version),
+            ),
             1,
         )
     end
