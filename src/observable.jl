@@ -16,6 +16,7 @@ function Observable{T}(bin_length::Integer, vector_length::Integer) where {T}
     return Observable(bin_length, 0, samples)
 end
 
+has_complete_bins(obs::Observable) = size(obs.samples, 2) > 1
 
 function accumulate_sample!(samples::AbstractMatrix, value::Number)
     for i = 1:size(samples, 1)
@@ -55,8 +56,7 @@ function add_sample!(obs::Observable, value::Union{Number,AbstractVector{<:Numbe
 end
 
 function write_measurements!(obs::Observable{T}, out::HDF5.Group) where {T}
-    if size(obs.samples, 2) > 1
-
+    if has_complete_bins(obs)
         if haskey(out, "samples")
             saved_samples = out["samples"]
             old_bin_count = size(saved_samples, 2)
@@ -83,7 +83,6 @@ function write_measurements!(obs::Observable{T}, out::HDF5.Group) where {T}
             out["bin_length"] = obs.bin_length
         end
     end
-
 end
 
 function write_checkpoint(obs::Observable, out::HDF5.Group)

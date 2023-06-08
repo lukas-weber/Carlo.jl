@@ -31,7 +31,9 @@ end
 
 function write_measurements!(meas::Measurements, out::HDF5.Group)
     for (name, obs) in meas.observables
-        write_measurements!(obs, create_absent_group(out, String(name)))
+        if has_complete_bins(obs)
+            write_measurements!(obs, create_absent_group(out, String(name)))
+        end
     end
     return nothing
 end

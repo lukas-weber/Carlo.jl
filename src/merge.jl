@@ -71,7 +71,7 @@ function merge_results(
                     obs.total_sample_count += sample_size - min(sample_size, sample_skip)
                 catch err
                     if isa(err, KeyError)
-                        @info "$(obs_name): $(err). Skipping..."
+                        @warn "$(obs_name): $(err). Skipping..."
                     else
                         throw(err)
                     end
