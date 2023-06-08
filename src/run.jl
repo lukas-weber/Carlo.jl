@@ -37,7 +37,10 @@ function write_checkpoint!(run::Run, file_prefix::AbstractString)
 
         h5open(file_prefix * ".meas.h5.tmp", "cw") do file
             write_measurements!(run.context, file["/"])
-            write_hdf5(Version(typeof(run.implementation)), create_group(file, "version"))
+            write_hdf5(
+                Version(typeof(run.implementation)),
+                create_absent_group(file, "version"),
+            )
         end
 
         h5open(file_prefix * ".dump.h5.tmp", "w") do file

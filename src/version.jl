@@ -4,10 +4,11 @@ function get_hash_or_missing(mod)
     try
         hash = PackageStates.state(mod).directory_tree_hash
     catch e
-        if e isa LoadError
+        if e isa ErrorException
             hash = missing
+        else
+            throw(e)
         end
-        throw(e)
     end
     return hash
 end
@@ -37,7 +38,9 @@ end
 
 function write_hdf5(version::Version, group::HDF5.Group)
     for (field, value) in to_dict(version)
-        group[field] = string(value)
+        if !haskey(group, field)
+            group[field] = string(value)
+        end
     end
 end
 

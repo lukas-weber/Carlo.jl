@@ -45,8 +45,8 @@ end
 
 function evaluate(
     evaluation::Function,
-    used_observables::MergedObservable{T}...,
-)::Union{Evaluable,Nothing} where {T}
+    used_observables::MergedObservable...,
+)::Union{Evaluable,Nothing}
     bin_count = minimum(map(obs -> obs.rebin_count, used_observables))
 
     if bin_count == 0
