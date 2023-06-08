@@ -4,7 +4,7 @@ function get_hash_or_missing(mod)
     try
         hash = PackageStates.state(mod).directory_tree_hash
     catch e
-        if e isa ErrorException
+        if e isa LoadError
             hash = missing
         end
         throw(e)
