@@ -1,6 +1,6 @@
 name = "LoadLeveller"
 uuid = "780c37f4-4e5a-43de-9e79-65c261e525a4"
-authors = ["lukas"]
+authors = ["Lukas Weber"]
 version = "0.1.0"
 
 [deps]
@@ -16,10 +16,24 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
 PackageStates = "412cc100-f440-45a8-9ec7-153ed5111422"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[compat]
+ArgParse = "1.1.4"
+ElasticArrays = "1.2.11"
+Formatting = "0.4.2"
+HDF5 = "0.16.15"
+JSON = "0.21.4"
+MPI = "0.20.10"
+MPIPreferences = "0.1.8"
+Measurements = "2.9.0"
+PackageStates = "0.2.0"
+julia = "1.8"
+
+[extras]
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StructEquality = "6ec83bb0-ed9f-11e9-3b4c-2b04cb4e219c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
-[compat]
-julia = "1.8"
+[targets]
+test = ["Test", "Statistics", "StructEquality", "Serialization"]
