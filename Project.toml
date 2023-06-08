@@ -27,7 +27,6 @@ MPI = "0.20.10"
 MPIPreferences = "0.1.8"
 Measurements = "2.9.0"
 PackageStates = "0.2.0"
-julia = "1.8"
 
 [extras]
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"

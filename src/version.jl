@@ -13,24 +13,31 @@ function get_hash_or_missing(mod)
     return hash
 end
 
+function pkgversion_or_missing(mod)
+    if isdefined(Base, :pkgversion)
+        return string(pkgversion)
+    end
+    return missing
+end
+
 """
     Version
 
 The version information for both `LoadLeveller` and the parent module of the `AbstractMC` implementation that is currently used. It contains both the version of the Julia packages and their directory tree hashes. The hashes are content hashes of the package directories, as provided by the `PackageStates` package, at the time of execution.
 """
 struct Version
-    loadleveller_version::String
+    loadleveller_version::Union{Missing,String}
     loadleveller_hash::Union{Missing,String}
     mc_package::String
-    mc_version::String
+    mc_version::Union{Missing,String}
     mc_hash::Union{Missing,String}
 
     function Version(mc::Type{<:AbstractMC})
         return new(
-            string(pkgversion(@__MODULE__)),
+            pkgversion_or_missing(@__MODULE__),
             get_hash_or_missing(@__MODULE__),
             string(parentmodule(mc)),
-            string(pkgversion(parentmodule(mc))),
+            pkgversion_or_missing(parentmodule(mc)),
             get_hash_or_missing(parentmodule(mc)),
         )
     end
