@@ -42,8 +42,8 @@ end
 
 
 function merge_results(
-    filenames::AbstractArray{<:AbstractString};
-    data_type::Type{T},
+    filenames::AbstractArray{<:AbstractString},
+    ::Type{T};
     rebin_length::Union{Integer,Nothing},
     sample_skip::Integer = 0,
 ) where {T<:AbstractFloat}

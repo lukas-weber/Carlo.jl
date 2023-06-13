@@ -44,9 +44,9 @@ function jackknife(func::Function, sample_set)
 end
 
 function evaluate(
-    evaluation::Function,
-    used_observables::MergedObservable...,
-)::Union{Evaluable,Nothing}
+    evaluation::Func,
+    used_observables::NTuple{N,MergedObservable},
+)::Union{Evaluable,Nothing} where {Func,N}
     bin_count = minimum(map(obs -> obs.rebin_count, used_observables))
 
     if bin_count == 0
@@ -70,12 +70,12 @@ Evaluator(observables::Dict{Symbol,MergedObservable{T}}) where {T} =
     Evaluator(observables, Dict{Symbol,Evaluable{T}}())
 
 function evaluate!(
-    evaluation::Function,
+    evaluation::Func,
     eval::Evaluator,
     name::Symbol,
-    ingredients::AbstractArray{Symbol},
-)
+    ingredients::NTuple{N,Symbol},
+) where {Func,N}
     eval.evaluables[name] =
-        evaluate(evaluation, map(x -> eval.observables[x], ingredients)...)
+        evaluate(evaluation, tuple((eval.observables[i] for i in ingredients)...))
     return nothing
 end
