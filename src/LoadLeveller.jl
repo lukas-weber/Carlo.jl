@@ -1,5 +1,4 @@
 module LoadLeveller
-import PackageStates
 export AbstractMC, MCContext, measure!, is_thermalized, evaluate!, start
 
 include("jobtools/JobTools.jl")
