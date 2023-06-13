@@ -93,7 +93,22 @@ function read_progress(job::JobInfo)
     return map(job.tasks) do task
         target_sweeps = task.params[:sweeps]
         sweeps = read_dump_progress(task_dir(job, task))
-        return TaskProgress(target_sweeps, sweeps, task_dir(job, task))
+        num_runs = length(sweeps)
+
+        thermalized_sweeps = sum(
+            max(0, total_sweeps - therm_sweeps) for (total_sweeps, therm_sweeps) in sweeps;
+            init = 0,
+        )
+
+        thermalization_fraction =
+            sum(s[2] for s in sweeps; init = 0) / task.params[:thermalization] / num_runs
+        return TaskProgress(
+            target_sweeps,
+            thermalized_sweeps,
+            num_runs,
+            thermalization_fraction,
+            task_dir(job, task),
+        )
     end |> collect
 end
 

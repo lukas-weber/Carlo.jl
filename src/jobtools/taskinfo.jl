@@ -48,13 +48,15 @@ function list_run_files(taskdir::AbstractString, ending::AbstractString)
 end
 
 function read_dump_progress(taskdir::AbstractString)
-    sweeps = 0
+    sweeps = Tuple{Int64,Int64}[]
     for dumpname in list_run_files(taskdir, "dump\\.h5")
         h5open(dumpname, "r") do f
-            sweeps += max(
-                0,
-                read(f["context/sweeps"], Int64) -
-                read(f["context/thermalization_sweeps"], Int64),
+            push!(
+                sweeps,
+                (
+                    read(f["context/sweeps"], Int64),
+                    read(f["context/thermalization_sweeps"], Int64),
+                ),
             )
         end
     end
@@ -64,5 +66,7 @@ end
 struct TaskProgress
     target_sweeps::Int64
     sweeps::Int64
+    num_runs::Int64
+    thermalization_fraction::Float64
     dir::String
 end

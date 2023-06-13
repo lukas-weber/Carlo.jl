@@ -1,5 +1,6 @@
 using ArgParse
 using PrecompileTools
+using PrettyTables
 
 function start(job::JobInfo, args::AbstractVector{String})
     s = ArgParseSettings()
@@ -55,15 +56,21 @@ function cli_status(job::JobInfo, ::AbstractDict)
     try
         tasks = JobTools.read_progress(job)
 
-        data = mapreduce(
-            permutedims,
-            vcat,
-            map(x -> [basename(x.dir), x.sweeps, x.target_sweeps], tasks),
+        data = permutedims(
+            hcat(
+                (
+                    [
+                        basename(x.dir),
+                        x.sweeps,
+                        x.target_sweeps,
+                        x.num_runs,
+                        "$(round(Int,100*x.thermalization_fraction))%",
+                    ] for x in tasks
+                )...,
+            ),
         )
-        println("task, sweeps, target sweeps")
-        for task in tasks
-            println("$(basename(task.dir)), $(task.sweeps), $(task.target_sweeps)")
-        end
+        header = ["task", "sweeps", "target", "runs", "thermalized"]
+        pretty_table(data, vlines = :none, header = header)
         return all(map(x -> x.sweeps >= x.target_sweeps, tasks))
     catch err
         if isa(err, Base.IOError)
