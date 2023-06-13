@@ -42,7 +42,9 @@ end
 
 function cli_run(job::JobInfo, args::AbstractDict)
     if args["restart"]
-        cli_delete(job, Dict())
+        if args["single"] || (MPI.Init(); MPI.Comm_rank(MPI.COMM_WORLD)) == 0
+            cli_delete(job, Dict())
+        end
     end
 
     runner = args["single"] ? SingleRunner : MPIRunner
