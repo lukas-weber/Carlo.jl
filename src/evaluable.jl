@@ -14,7 +14,7 @@ function jackknife(func::Function, sample_set)
     complete_eval = func(sums ./ sample_count...)
 
     # evaluation on the jacked datasets    
-    jacked_eval_mean = zero(complete_eval)
+    jacked_eval_mean = zeros(eltype(complete_eval), length(complete_eval))
     for k = 1:sample_count
         jacked_means = (
             (sum .- samples[:, k]) ./ (sample_count - 1) for
@@ -30,7 +30,7 @@ function jackknife(func::Function, sample_set)
     bias_corrected_mean =
         sample_count * complete_eval .- (sample_count - 1) * jacked_eval_mean
 
-    error = zero(complete_eval)
+    error = zeros(eltype(complete_eval), length(complete_eval))
     for k = 1:sample_count
         jacked_means = (
             (sum .- samples[:, k]) ./ (sample_count - 1) for
