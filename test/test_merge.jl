@@ -66,8 +66,7 @@ end
                 for rebin_length in [nothing, 1, 2]
                     @testset "rebin_length = $(rebin_length)" begin
                         results = LoadLeveller.merge_results(
-                            filenames,
-                            data_type = Float64,
+                            filenames;
                             rebin_length = rebin_length,
                         )
                         count_obs = results[:count_test]
@@ -114,11 +113,7 @@ end
                 return ar1_y
             end
 
-            results = LoadLeveller.merge_results(
-                filenames,
-                data_type = Float64,
-                rebin_length = 100,
-            )
+            results = LoadLeveller.merge_results(filenames; rebin_length = 100)
 
             # AR(1)
             ar1_obs = results[:ar1_test]

@@ -2,7 +2,8 @@
     tmpdir = mktempdir()
     dummy_jobfile = "dummy_jobfile.jl"
 
-    run_cmd(cmd) = run(`$(Base.julia_cmd()) $dummy_jobfile $tmpdir $cmd`)
+    run_cmd(cmd) =
+        run(pipeline(`$(Base.julia_cmd()) $dummy_jobfile $tmpdir $cmd`, stderr = devnull))
 
     @test_throws ProcessFailedException run_cmd("status")
     @test_throws ProcessFailedException run_cmd("merge")

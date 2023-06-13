@@ -43,7 +43,7 @@ end
 
 function merge_results(
     filenames::AbstractArray{<:AbstractString},
-    ::Type{T};
+    ::Type{T} = Float64;
     rebin_length::Union{Integer,Nothing},
     sample_skip::Integer = 0,
 ) where {T<:AbstractFloat}

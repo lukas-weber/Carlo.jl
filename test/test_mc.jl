@@ -23,8 +23,8 @@ function LoadLeveller.register_evaluables(
     eval::LoadLeveller.Evaluator,
     params::AbstractDict,
 )
-    evaluate!((x, y) -> y - x^2, eval, :test4, [:test, :test2])
-    evaluate!(x -> x^2, eval, :test5, [:test])
+    evaluate!((x, y) -> y - x^2, eval, :test4, (:test, :test2))
+    evaluate!(x -> x^2, eval, :test5, (:test,))
 
     return nothing
 end
