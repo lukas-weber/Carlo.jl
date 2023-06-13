@@ -31,7 +31,7 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
         x -> RunnerTask(x.target_sweeps, x.sweeps, x.dir, 0),
         JobTools.read_progress(runner.job),
     )
-    runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
+    runner.task_id = get_new_task_id(runner.tasks, length(runner.tasks))
 
     while runner.task_id !== nothing && !JobTools.is_end_time(runner.job, runner.time_start)
         task = runner.job.tasks[runner.task_id]
