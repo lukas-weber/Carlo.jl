@@ -8,10 +8,10 @@ end
 
 function jackknife(func::Function, sample_set)
     sample_count = minimum(map(x -> size(x, 2), sample_set))
-    sums = map(samples -> sum(samples, dims = 2), sample_set)
+    sums = sum.(sample_set; dims = 2)
 
     # evaluation based on complete dataset (truncated to the lowest sample_count)
-    complete_eval = func.(sums ./ sample_count...)
+    complete_eval = func(sums ./ sample_count...)
 
     # evaluation on the jacked datasets    
     jacked_eval_mean = zero(complete_eval)
@@ -20,7 +20,7 @@ function jackknife(func::Function, sample_set)
             (sum .- samples[:, k]) ./ (sample_count - 1) for
             (sum, samples) in zip(sums, sample_set)
         )
-        jacked_eval_mean .+= func.(jacked_means...)
+        jacked_eval_mean .+= func(jacked_means...)
     end
     jacked_eval_mean ./= sample_count
 
@@ -36,7 +36,7 @@ function jackknife(func::Function, sample_set)
             (sum .- samples[:, k]) ./ (sample_count - 1) for
             (sum, samples) in zip(sums, sample_set)
         )
-        error .+= (func.(jacked_means...) .- jacked_eval_mean) .^ 2
+        error .+= (func(jacked_means...) .- jacked_eval_mean) .^ 2
     end
     error .= sqrt.((sample_count - 1) * error / sample_count)
 

@@ -11,6 +11,7 @@ LoadLeveller.sweep!(mc::TestMC, ctx::LoadLeveller.MCContext) = nothing
 function LoadLeveller.measure!(mc::TestMC, ctx::LoadLeveller.MCContext)
     LoadLeveller.measure!(ctx, :test, ctx.sweeps)
     LoadLeveller.measure!(ctx, :test2, ctx.sweeps^2)
+    LoadLeveller.measure!(ctx, :test_vec, [ctx.sweeps, sin(ctx.sweeps)])
 
     return nothing
 end
@@ -25,6 +26,11 @@ function LoadLeveller.register_evaluables(
 )
     evaluate!((x, y) -> y - x^2, eval, :test4, (:test, :test2))
     evaluate!(x -> x^2, eval, :test5, (:test,))
+    evaluate!(eval, :test6, (:test_vec,)) do x
+        r = zero(x)
+        r[1] = x[1]
+        return r
+    end
 
     return nothing
 end

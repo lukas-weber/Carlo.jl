@@ -2,11 +2,15 @@
     tmpdir = mktempdir()
     dummy_jobfile = "dummy_jobfile.jl"
 
-    run_cmd(cmd) =
-        run(pipeline(`$(Base.julia_cmd()) $dummy_jobfile $tmpdir $cmd`, stderr = devnull))
+    run_cmd(cmd; quiet = false) = run(
+        pipeline(
+            `$(Base.julia_cmd()) $dummy_jobfile $tmpdir $cmd`,
+            stderr = quiet ? devnull : stderr,
+        ),
+    )
 
-    @test_throws ProcessFailedException run_cmd("status")
-    @test_throws ProcessFailedException run_cmd("merge")
+    @test_throws ProcessFailedException run_cmd("status"; quiet = true)
+    @test_throws ProcessFailedException run_cmd("merge"; quiet = true)
     run_cmd("delete")
     @test !isfile(tmpdir * "/test.results.json")
 
