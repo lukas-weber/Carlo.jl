@@ -19,5 +19,6 @@ include("runner_task.jl")
 include("runner_single.jl")
 include("runner_mpi.jl")
 include("cli.jl")
+include("precompile.jl")
 
 end

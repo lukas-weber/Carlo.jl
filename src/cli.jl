@@ -1,4 +1,5 @@
 using ArgParse
+using PrecompileTools
 
 function start(job::JobInfo, args::AbstractVector{String})
     s = ArgParseSettings()
@@ -89,7 +90,3 @@ function cli_merge(job::JobInfo, ::AbstractDict)
         )
     end
 end
-
-precompile(start, (Vector{String},))
-precompile(cli_status, (JobInfo, Dict))
-precompile(cli_merge, (JobInfo, Dict))
