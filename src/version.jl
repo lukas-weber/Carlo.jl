@@ -1,6 +1,6 @@
 function pkgversion_or_missing(mod)
     if isdefined(Base, :pkgversion)
-        return string(pkgversion)
+        return string(pkgversion(mod))
     end
     return missing
 end
