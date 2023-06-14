@@ -4,16 +4,54 @@ using HDF5
 using .JobTools: JobInfo
 
 @enum MPIRunnerAction begin
-    A_EXIT
-    A_CONTINUE
-    A_NEW_TASK
-    A_PROCESS_DATA_NEW_TASK
+    A_EXIT = 1
+    A_CONTINUE = 2
+    A_NEW_TASK = 3
+    A_PROCESS_DATA_NEW_TASK = 4
 end
 
 send_action(action::MPIRunnerAction, dest::Integer) =
-    MPI.Send(action, MPI.COMM_WORLD; dest = dest, tag = T_ACTION)
-recv_action() = MPI.Recv(MPIRunnerAction, MPI.COMM_WORLD; source = 0, tag = T_ACTION)
+    send(action, MPI.COMM_WORLD; dest = dest, tag = T_ACTION)
+recv_action() = recv(MPIRunnerAction, MPI.COMM_WORLD; source = 0, tag = T_ACTION)[1]
 
+function send(data, comm; dest, tag)
+    req = MPI.Isend(data, comm; dest, tag)
+    while !MPI.Test(req)
+        yield()
+    end
+    return nothing
+end
+
+function recv(::Type{T}, comm; source, tag) where {T}
+    data = Ref{T}()
+    req = MPI.Irecv!(data, comm; source = source, tag = tag)
+    status = MPI.Status(0, 0, 0, 0, 0)
+
+    while ((flag, status) = MPI.Test(req, MPI.Status); !flag)
+        yield()
+    end
+    return data[], status
+end
+
+# Base.@sync only propagates errors once all tasks are done. We want
+# to fail everything as soon as one task is broken. Possibly this is
+# not completely bullet-proof, but good enough for now.
+function sync_or_error(tasks::AbstractArray{Task})
+    c = Channel(Inf)
+    for t in tasks
+        @async begin
+            Base._wait(t)
+            put!(c, t)
+        end
+    end
+    for _ in eachindex(tasks)
+        t = take!(c)
+        if istaskfailed(t)
+            throw(TaskFailedException(t))
+        end
+    end
+    close(c)
+end
 
 struct MPIRunnerNewJobResponse
     task_id::Int32
@@ -26,15 +64,15 @@ struct MPIRunnerBusyResponse
     sweeps_since_last_query::UInt64
 end
 
-const T_STATUS = 1
-const T_BUSY_STATUS = 2
-const T_ACTION = 3
-const T_NEW_TASK = 4
+const T_STATUS = 5
+const T_BUSY_STATUS = 6
+const T_ACTION = 7
+const T_NEW_TASK = 8
 
 @enum MPIRunnerStatus begin
-    S_IDLE
-    S_BUSY
-    S_TIMEUP
+    S_IDLE = 9
+    S_BUSY = 10
+    S_TIMEUP = 11
 end
 
 struct MPIRunner{MC<:AbstractMC} <: AbstractRunner end
@@ -73,7 +111,9 @@ function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
     rank = MPI.Comm_rank(comm)
 
     if rank == 0
-        start(MPIRunnerController, job)
+        t_work = @async start(MPIRunnerWorker{MC}, $job)
+        t_ctrl = @async start(MPIRunnerController, $job)
+        sync_or_error([t_work, t_ctrl])
     else
         start(MPIRunnerWorker{MC}, job)
     end
@@ -87,7 +127,7 @@ end
 function start(::Type{MPIRunnerController}, job::JobInfo)
     controller = MPIRunnerController(job, MPI.Comm_size(MPI.COMM_WORLD))
 
-    while controller.num_active_ranks > 1
+    while controller.num_active_ranks > 0
         react!(controller)
     end
 
@@ -98,13 +138,8 @@ function start(::Type{MPIRunnerController}, job::JobInfo)
 end
 
 function react!(controller::MPIRunnerController)
-    rank_status, status = MPI.Recv(
-        MPIRunnerStatus,
-        MPI.COMM_WORLD,
-        MPI.Status;
-        source = MPI.ANY_SOURCE,
-        tag = T_STATUS,
-    )
+    rank_status, status =
+        recv(MPIRunnerStatus, MPI.COMM_WORLD; source = MPI.ANY_SOURCE, tag = T_STATUS)
     rank = status.source
 
     if rank_status == S_IDLE
@@ -124,15 +159,11 @@ function react!(controller::MPIRunnerController)
                 sweeps_until_comm,
             )
 
-            MPI.Send(msg, MPI.COMM_WORLD; dest = rank, tag = T_NEW_TASK)
+            send(msg, MPI.COMM_WORLD; dest = rank, tag = T_NEW_TASK)
         end
     elseif rank_status == S_BUSY
-        msg = MPI.Recv(
-            MPIRunnerBusyResponse,
-            MPI.COMM_WORLD;
-            source = rank,
-            tag = T_BUSY_STATUS,
-        )
+        msg, _ =
+            recv(MPIRunnerBusyResponse, MPI.COMM_WORLD; source = rank, tag = T_BUSY_STATUS)
 
         task = controller.tasks[msg.task_id]
         task.sweeps += msg.sweeps_since_last_query
@@ -225,23 +256,23 @@ function start(::Type{MPIRunnerWorker{MC}}, job::JobInfo) where {MC}
     end
 end
 
-worker_signal_timeup() = MPI.Send(S_TIMEUP, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
+worker_signal_timeup() = send(S_TIMEUP, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
 
 function worker_signal_idle()
-    MPI.Send(S_IDLE, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
+    send(S_IDLE, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
     new_action = recv_action()
     if new_action == A_EXIT
         return (A_EXIT, nothing)
     end
 
-    msg = MPI.Recv(MPIRunnerNewJobResponse, MPI.COMM_WORLD; source = 0, tag = T_NEW_TASK)
+    msg, _ = recv(MPIRunnerNewJobResponse, MPI.COMM_WORLD; source = 0, tag = T_NEW_TASK)
     return (A_NEW_TASK, msg)
 end
 
 function worker_signal_busy(task_id::Integer, sweeps_since_last_query::Integer)
-    MPI.Send(S_BUSY, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
+    send(S_BUSY, MPI.COMM_WORLD; dest = 0, tag = T_STATUS)
     msg = MPIRunnerBusyResponse(task_id, sweeps_since_last_query)
-    MPI.Send(msg, MPI.COMM_WORLD; dest = 0, tag = T_BUSY_STATUS)
+    send(msg, MPI.COMM_WORLD; dest = 0, tag = T_BUSY_STATUS)
     new_action = recv_action()
 
     return new_action
