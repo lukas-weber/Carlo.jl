@@ -6,14 +6,14 @@ using ..JobTools
     @compile_workload begin
 
         tm = TaskMaker()
-        tm.thermalization = 10000
-        tm.sweeps = 10000
+        tm.thermalization = 10
+        tm.sweeps = 10
         tm.binsize = 1
 
         Lxs = [10, 20]
         Ts = range(1, 4, length = 10)
 
-        tm.test = [1, 2, 3, 4]
+        tm.test = [1]
 
         for Lx in Lxs
             for T in Ts
@@ -30,7 +30,7 @@ using ..JobTools
                 run_time = "24:00:00",
             )
 
-            redirect_stderr(devnull) do
+            redirect_stdio(stdout = devnull, stderr = devnull) do
                 start(job, ["run", "-s"])
                 start(job, ["run"])
                 start(job, ["status"])
