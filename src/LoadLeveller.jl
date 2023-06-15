@@ -4,6 +4,7 @@ export AbstractMC, MCContext, measure!, is_thermalized, evaluate!, start
 include("jobtools/JobTools.jl")
 include("resulttools/ResultTools.jl")
 
+include("log.jl")
 include("util.jl")
 include("random_wrap.jl")
 include("observable.jl")
