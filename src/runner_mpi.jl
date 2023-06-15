@@ -86,7 +86,7 @@ mutable struct MPIRunnerController <: AbstractRunner
     function MPIRunnerController(job::JobInfo, active_ranks::Integer)
         return new(
             active_ranks,
-            1,
+            length(job.tasks),
             map(
                 x -> RunnerTask(x.target_sweeps, x.sweeps, x.dir, 0),
                 JobTools.read_progress(job),
