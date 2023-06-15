@@ -22,7 +22,7 @@ using ..JobTools
             )
 
             redirect_stdio(stdout = devnull) do
-                with_logger(Logging.NullLogger) do
+                with_logger(Logging.NullLogger()) do
                     start(job, ["run", "-s"])
                     start(job, ["run"])
                     start(job, ["status"])
