@@ -4,22 +4,13 @@ using ..JobTools
 @setup_workload begin
     include("../test/test_mc.jl")
     @compile_workload begin
-
         tm = TaskMaker()
         tm.thermalization = 10
         tm.sweeps = 10
         tm.binsize = 1
-
-        Lxs = [10, 20]
-        Ts = range(1, 4, length = 10)
-
         tm.test = [1]
 
-        for Lx in Lxs
-            for T in Ts
-                task(tm, Lx = Lx, T = T)
-            end
-        end
+        task(tm, Lx = 2, T = 1)
         mktempdir() do dir
 
             job = JobInfo(
