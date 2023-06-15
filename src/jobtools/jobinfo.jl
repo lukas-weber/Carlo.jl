@@ -29,7 +29,7 @@ parse_duration(duration::Dates.Period) = duration
 
 Holds all information required for a Monte Carlo calculation. The data of the calculation (parameters, results, and checkpoints) will be saved under `job_directory_prefix`.
 
-`mc` is the the type of the algorithm to use, implementing the [`AbstractMC`](@ref) interface.
+`mc` is the the type of the algorithm to use, implementing the [abstract_mc](@ref) interface.
 
 `checkpoint_time` and `run_time` specify the interval between checkpoints and the total desired run_time of the simulation. Both may be specified as a string of format `[[hours:]minutes:]seconds`
 

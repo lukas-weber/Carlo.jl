@@ -49,7 +49,8 @@ Read the state of the simulation from `in`.
 """
     register_evaluables(mc::Type{YourMC}, eval::Evaluator, params::AbstractDict)
 
-This function is used to calculate postprocessed quantities from quantities that were measured during the simulation.
-Common examples are variances or ratios of observables. 
+This function is used to calculate postprocessed quantities from quantities that were measured during the simulation. Common examples are variances or ratios of observables.
+
+See [evaluables](@ref) for more details.
 """
 @stub register_evaluables(mc::Type{AbstractMC}, eval::Evaluator, params::AbstractDict)

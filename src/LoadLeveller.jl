@@ -1,5 +1,6 @@
 module LoadLeveller
-export AbstractMC, MCContext, measure!, is_thermalized, evaluate!, start
+export AbstractMC, MCContext, measure!, is_thermalized
+export Evaluator, evaluate!, start
 
 include("jobtools/JobTools.jl")
 include("resulttools/ResultTools.jl")

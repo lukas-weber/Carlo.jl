@@ -5,7 +5,7 @@ using Random
 Holds the LoadLeveller-internal state of the simulation and provides an interface to
 
 - **Random numbers**: the public member `MCContext.rng` is a random number generator (see [rng](@ref))
-- **Measurements**: see [`measure!(::MCContext, ::Any, ::Any)`](@ref)
+- **Measurements**: see [`measure!(::MCContext, ::Symbol, ::Any)`](@ref)
 - **Simulation state**: see [`is_thermalized`](@ref)
 """
 mutable struct MCContext{RNG<:Random.AbstractRNG}

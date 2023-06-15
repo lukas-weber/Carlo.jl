@@ -8,7 +8,6 @@ CurrentModule = LoadLeveller.JobTools
 
 ```@docs
 JobInfo
-read_jobinfo
 TaskInfo
 ```
 ## TaskMaker

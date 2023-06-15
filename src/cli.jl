@@ -2,7 +2,16 @@ using ArgParse
 using PrecompileTools
 using PrettyTables
 
-function start(job::JobInfo, args::AbstractVector{String})
+"""
+    start(job::JobInfo, ARGS)
+
+Call this from your job script to start the LoadLeveller command line interface.
+
+If for any reason you do not want to use job scripts, you can directly schedule a job using
+
+    start(LoadLeveller.MPIRunner{job.mc}, job)
+"""
+function start(job::JobInfo, args::AbstractVector{<:AbstractString})
     s = ArgParseSettings()
     @add_arg_table! s begin
         "run", "r"

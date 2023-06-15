@@ -6,9 +6,11 @@ Tool for generating a list of tasks, i.e. parameter sets, to be simulated in a M
 The fields of `TaskMaker` can be freely assigned and each time [`task`](@ref) is called, their current state will be copied into a new task.
 Finally the list of tasks can be generated using [`make_tasks`](@ref)
 
+In most cases the resulting tasks will be used in the constructor of [`JobInfo`](@ref), the basic description for jobs in LoadLeveller.
+
 # Example
-The following example creates a list of 11 tasks for different parameters "`T`". The first task will be run with more sweeps than the rest.
-```julia
+The following example creates a list of 5 tasks for different parameters `T`. This could be a scan of the finite-temperature phase diagram of some model. The first task will be run with more sweeps than the rest.
+```@example
 tm = TaskMaker()
 tm.sweeps = 10000
 tm.thermalization = 2000
@@ -16,7 +18,7 @@ tm.binsize = 500
 
 task(tm; T=0.04)
 tm.sweeps = 5000
-for T in range(0.1, 10, length=10)
+for T in range(0.1, 10, length=5)
     task(tm; T=T)
 end
 

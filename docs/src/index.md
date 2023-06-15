@@ -39,18 +39,19 @@ for T in Ts
     task(tm; T=T)
 end
 
-job = JobInfo(@__FILE__, Ising;
+job = JobInfo(@__FILE__, Ising.MC;
     checkpoint_time="30:00",
     run_time="15:00",
     tasks=make_tasks(tm)
 )
 
+start(dummy, dummy2) = nothing # hide
 start(job, ARGS)
 ```
 
-This example starts a simulation for the Ising model on the 10×10 lattice for 20 different temperatures. Using the function `start(job, ARGS)` enables the [LoadLeveller CLI](@ref cli) (if this is not desired, it is possible to start a [Runner](@ref runner) directly).
+This example starts a simulation for the Ising model on the 10×10 lattice for 20 different temperatures. Using the function [`start(job::JobInfo, ARGS)`](@ref) enables the [LoadLeveller CLI](@ref cli).
 
-The first argument of JobInfo is the prefix for starting the simulation. One possible convention is to use the ``@__FILE__`` macro to automatically start jobs in the same directory as the script file. Alternatively,
+The first argument of JobInfo is the prefix for starting the simulation. One possible convention is to use the `@__FILE__` macro to automatically start jobs in the same directory as the script file. Alternatively,
 the script file could be located in a git repository, while the large simulation directory is located elsewhere.
 
 It should be noted that in contrast to some other packages, the parameter files of LoadLeveller are programs. This is especially handy when a calculation consists of many different tasks.
