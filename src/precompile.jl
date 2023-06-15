@@ -21,12 +21,14 @@ using ..JobTools
                 run_time = "24:00:00",
             )
 
-            redirect_stdio(stdout = devnull, stderr = devnull) do
-                start(job, ["run", "-s"])
-                start(job, ["run"])
-                start(job, ["status"])
-                start(job, ["merge"])
-                start(job, ["delete"])
+            redirect_stdio(stdout = devnull) do
+                with_logger(Logging.NullLogger) do
+                    start(job, ["run", "-s"])
+                    start(job, ["run"])
+                    start(job, ["status"])
+                    start(job, ["merge"])
+                    start(job, ["delete"])
+                end
             end
         end
     end
