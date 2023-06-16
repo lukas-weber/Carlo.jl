@@ -33,6 +33,8 @@ function recv(::Type{T}, comm; source, tag) where {T}
     return data[], status
 end
 
+struct TaskInterruptedException <: Exception end
+
 # Base.@sync only propagates errors once all tasks are done. We want
 # to fail everything as soon as one task is broken. Possibly this is
 # not completely bullet-proof, but good enough for now.
@@ -47,6 +49,11 @@ function sync_or_error(tasks::AbstractArray{Task})
     for _ in eachindex(tasks)
         t = take!(c)
         if istaskfailed(t)
+            for tother in tasks
+                if tother != t
+                    schedule(tother, TaskInterruptedException(); error = true)
+                end
+            end
             throw(TaskFailedException(t))
         end
     end
