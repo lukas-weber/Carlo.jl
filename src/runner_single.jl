@@ -64,9 +64,11 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
     end
 
     JobTools.concatenate_results(runner.job)
-    @info "Job complete."
 
-    return nothing
+    all_done = runner.task_id === nothing
+    @info "Stopping due to $(all_done ? "completion" : "time limit")"
+
+    return !all_done
 end
 
 function get_new_task_id(

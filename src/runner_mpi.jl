@@ -116,11 +116,16 @@ function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
     comm = MPI.COMM_WORLD
 
     rank = MPI.Comm_rank(comm)
+    rc = false
+
+    @info "starting job '$(job.name)'"
 
     if rank == 0
         t_work = @async start(MPIRunnerWorker{MC}, $job)
-        t_ctrl = @async start(MPIRunnerController, $job)
+        t_ctrl = @async (rc = start(MPIRunnerController, $job))
         sync_or_error([t_work, t_ctrl])
+        @info "controller: concatenating results"
+        JobTools.concatenate_results(job)
     else
         start(MPIRunnerWorker{MC}, job)
     end
@@ -128,7 +133,7 @@ function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
     MPI.Barrier(comm)
     MPI.Finalize()
 
-    return nothing
+    return rc
 end
 
 function start(::Type{MPIRunnerController}, job::JobInfo)
