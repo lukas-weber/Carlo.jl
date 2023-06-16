@@ -6,23 +6,26 @@ struct Evaluable{T<:AbstractFloat}
     error::Vector{T}
 end
 
+eachcol_or_scalar(M::AbstractMatrix) = size(M, 1) == 1 ? vec(M) : eachcol(M)
+
 function jackknife(func::Function, sample_set)
-    sample_count = minimum(map(x -> size(x, 2), sample_set))
-    sums = sum.(sample_set; dims = 2)
+    sample_count = minimum(map(x -> size(x)[end], sample_set))
+
+    sums = sum.(sample_set)
 
     # evaluation based on complete dataset (truncated to the lowest sample_count)
     complete_eval = func(sums ./ sample_count...)
 
     # evaluation on the jacked datasets    
-    jacked_eval_mean = zeros(eltype(complete_eval), length(complete_eval))
+    jacked_eval_mean = zero(complete_eval)
     for k = 1:sample_count
         jacked_means = (
-            (sum .- samples[:, k]) ./ (sample_count - 1) for
+            (sum - samples[k]) ./ (sample_count - 1) for
             (sum, samples) in zip(sums, sample_set)
         )
-        jacked_eval_mean .+= func(jacked_means...)
+        jacked_eval_mean += func(jacked_means...)
     end
-    jacked_eval_mean ./= sample_count
+    jacked_eval_mean /= sample_count
 
     @assert length(complete_eval) == length(jacked_eval_mean)
 
@@ -30,17 +33,17 @@ function jackknife(func::Function, sample_set)
     bias_corrected_mean =
         sample_count * complete_eval .- (sample_count - 1) * jacked_eval_mean
 
-    error = zeros(eltype(complete_eval), length(complete_eval))
+    error = zero(complete_eval)
     for k = 1:sample_count
         jacked_means = (
-            (sum .- samples[:, k]) ./ (sample_count - 1) for
+            (sum .- samples[k]) ./ (sample_count - 1) for
             (sum, samples) in zip(sums, sample_set)
         )
-        error .+= (func(jacked_means...) .- jacked_eval_mean) .^ 2
+        error += (func(jacked_means...) - jacked_eval_mean) .^ 2
     end
-    error .= sqrt.((sample_count - 1) * error / sample_count)
+    error = sqrt.((sample_count - 1) .* error ./ sample_count)
 
-    return vec(bias_corrected_mean), vec(error)
+    return vec(collect(bias_corrected_mean)), vec(collect(error))
 end
 
 function evaluate(
@@ -56,7 +59,10 @@ function evaluate(
         bin_count,
         jackknife(
             evaluation,
-            map(obs -> obs.rebin_means[:, 1:bin_count], used_observables),
+            map(
+                obs -> eachcol_or_scalar(obs.rebin_means[:, 1:bin_count]),
+                used_observables,
+            ),
         )...,
     )
 end

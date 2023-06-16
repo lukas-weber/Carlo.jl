@@ -16,7 +16,7 @@ using LoadLeveller
     @testset "vector" begin
         func = x -> x[1] / x[2]
 
-        means = ([2 3 4; 5 4 3],)
+        means = ([[2, 5], [3, 4], [4, 3]],)
 
         @test all(
             LoadLeveller.jackknife(func, means) .≈
@@ -24,8 +24,6 @@ using LoadLeveller
         )
 
         func2 = x -> [x[1] / x[2], 2x[1] / x[2]]
-
-        means = ([2 3 4; 5 4 3],)
 
         @test all(
             LoadLeveller.jackknife(func2, means) .≈ (
