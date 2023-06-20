@@ -10,3 +10,5 @@ makedocs(
         "Advanced Topics" => ["evaluables.md", "jobtools.md", "resulttools.md", "rng.md"],
     ],
 )
+
+deploydocs(repo = "github.com/lukas-weber/LoadLeveller.jl.git")
