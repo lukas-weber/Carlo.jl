@@ -4,8 +4,13 @@ using JSON
 using Measurements
 
 
-make_scalar(x) = isa(x, AbstractVector) && size(x) == (1,) ? x[1] : x
+make_scalar(x) = isa(x, AbstractVector) && size(x) == (1,) ? only(x) : x
 
+"""
+    ResultTools.dataframe(result_json::AbstractString)
+
+Helper to import result data from a `*.results.json` file produced after a LoadLeveller calculation. Returns a Tables.jl-compatible dictionary that can be used as is or converted into a DataFrame or other table structure. Observables and their errorbars will be converted to Measurements.jl measurements.
+"""
 function dataframe(result_json::AbstractString)
     json = JSON.parsefile(result_json)
 

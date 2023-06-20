@@ -1,0 +1,670 @@
+[
+ {
+  "task": "/mnt/home/lweber/src/Ising/example/job.data/task0001",
+  "parameters": {
+   "T": 1.0,
+   "test": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "Lx": 10,
+   "sweeps": 10000,
+   "thermalization": 10000,
+   "binsize": 1
+  },
+  "results": {
+   "SpinCorrelation": {
+    "error": [
+     0.0002399534318708582,
+     0.00018089772753232335,
+     0.00017563319329754235,
+     0.00020551953720517402,
+     0.00019425126511997602,
+     0.00017655207156480683,
+     0.0001785932037854005,
+     0.00019600923095332848,
+     0.0001711917327174623,
+     0.00017209671734611326
+    ],
+    "autocorr_time": null,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     1.0,
+     0.9987179487179481,
+     0.9988181089743586,
+     0.9984174679487174,
+     0.9985376602564102,
+     0.9987980769230771,
+     0.9987580128205129,
+     0.9985176282051279,
+     0.9989583333333334,
+     0.9989182692307695
+    ],
+    "rebin_count": 32
+   },
+   "Energy": {
+    "error": [
+     0.00022942969340433483
+    ],
+    "autocorr_time": 1.1007069795980993,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     -1.997155448717949
+    ],
+    "rebin_count": 32
+   },
+   "BinderRatio": {
+    "error": [
+     6.341355825644066e-6
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     0.9999379779604745
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization2": {
+    "error": [
+     0.00011469239691106392
+    ],
+    "autocorr_time": 1.0618259868682205,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9985700721153847
+    ],
+    "rebin_count": 32
+   },
+   "SpinCorrelationK": {
+    "error": [
+     162.66106431173947,
+     17.57351465490992,
+     12.688569598863882,
+     6.723559473726403,
+     1.8947732044001813,
+     0.13042298146994108,
+     1.8947732044001226,
+     6.723559473726357,
+     12.68856959886386,
+     17.57351465491001
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     2805.686558493573,
+     -17.09345344297344,
+     -12.25818378167071,
+     -6.646800964075453,
+     -1.4761211061464223,
+     0.5125600961519154,
+     -1.4761211061490371,
+     -6.646800964075936,
+     -12.258183781669231,
+     -17.09345344297185
+    ],
+    "rebin_count": 32
+   },
+   "Susceptibility": {
+    "error": [
+     0.011469239691110907
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     99.85700721153808
+    ],
+    "rebin_count": 32
+   },
+   "AbsMagnetization": {
+    "error": [
+     5.815530651102809e-5
+    ],
+    "autocorr_time": 1.0641853625604734,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9992768429487179
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization": {
+    "error": [
+     5.815530651102809e-5
+    ],
+    "autocorr_time": 1.0641853625604734,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9992768429487179
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization4": {
+    "error": [
+     0.00022314985361933628
+    ],
+    "autocorr_time": 1.0572487629604597,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9972040257211537
+    ],
+    "rebin_count": 32
+   }
+  },
+  "version": {
+   "mc_package": "Ising",
+   "loadleveller_version": "0.1.0",
+   "mc_version": "0.1.0"
+  }
+ },
+ {
+  "task": "/mnt/home/lweber/src/Ising/example/job.data/task0002",
+  "parameters": {
+   "T": 1.3333333333333333,
+   "test": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "Lx": 10,
+   "sweeps": 10000,
+   "thermalization": 10000,
+   "binsize": 1
+  },
+  "results": {
+   "SpinCorrelation": {
+    "error": [
+     0.002366332598674748,
+     0.0011106619975244795,
+     0.0011115707052425075,
+     0.0011347649579934564,
+     0.0011487947741429321,
+     0.001160571441201601,
+     0.0011211311714558762,
+     0.001120478630793819,
+     0.0011290411639248775,
+     0.0011023090137978538
+    ],
+    "autocorr_time": null,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     1.0,
+     0.9875801282051262,
+     0.9875400641025625,
+     0.9868389423076908,
+     0.9865384615384597,
+     0.986318108974356,
+     0.9871995192307677,
+     0.9872195512820494,
+     0.9869791666666646,
+     0.9884214743589723
+    ],
+    "rebin_count": 32
+   },
+   "Energy": {
+    "error": [
+     0.0008900934701041922
+    ],
+    "autocorr_time": 1.723366782573424,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     -1.9742387820512823
+    ],
+    "rebin_count": 32
+   },
+   "BinderRatio": {
+    "error": [
+     6.220124038092199e-5
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     0.9992231585058988
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization2": {
+    "error": [
+     0.0005311474155738722
+    ],
+    "autocorr_time": 1.8627477969361186,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9862465945512824
+    ],
+    "rebin_count": 32
+   },
+   "SpinCorrelationK": {
+    "error": [
+     160.98345865187932,
+     17.55555846380962,
+     12.725528603852007,
+     6.767856766741987,
+     1.9366913653117226,
+     0.48897306225963755,
+     1.9366913653117477,
+     6.767856766741931,
+     12.725528603852142,
+     17.555558463809675
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     2776.6320913461386,
+     -12.981564134817688,
+     -9.332548861624332,
+     -3.2192371472349066,
+     1.1698485411108237,
+     3.344911858973134,
+     1.1698485411137227,
+     -3.2192371472319934,
+     -9.332548861625071,
+     -12.981564134816438
+    ],
+    "rebin_count": 32
+   },
+   "Susceptibility": {
+    "error": [
+     0.03983605616804127
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     73.96849459134546
+    ],
+    "rebin_count": 32
+   },
+   "AbsMagnetization": {
+    "error": [
+     0.00027429567578496914
+    ],
+    "autocorr_time": 1.877928383703358,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9929987980769233
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization": {
+    "error": [
+     0.00027429567578496914
+    ],
+    "autocorr_time": 1.877928383703358,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     -0.9929987980769233
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization4": {
+    "error": [
+     0.0009997649628852457
+    ],
+    "autocorr_time": 1.8358675489916414,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9734383197916667
+    ],
+    "rebin_count": 32
+   }
+  },
+  "version": {
+   "mc_package": "Ising",
+   "loadleveller_version": "0.1.0",
+   "mc_version": "0.1.0"
+  }
+ },
+ {
+  "task": "/mnt/home/lweber/src/Ising/example/job.data/task0003",
+  "parameters": {
+   "T": 1.6666666666666667,
+   "test": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "Lx": 10,
+   "sweeps": 10000,
+   "thermalization": 10000,
+   "binsize": 1
+  },
+  "results": {
+   "SpinCorrelation": {
+    "error": [
+     0.00793186983479668,
+     0.003371627302212125,
+     0.003680386609303355,
+     0.0035956456543175873,
+     0.003783590063603775,
+     0.0038734546198733242,
+     0.003895247529686227,
+     0.0036452456743997445,
+     0.0035956456543176736,
+     0.0033078194028300593
+    ],
+    "autocorr_time": null,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     1.0,
+     0.9545472756410319,
+     0.9500000000000057,
+     0.9510416666666748,
+     0.9488381410256478,
+     0.9478966346153931,
+     0.9476762820512906,
+     0.9504206730769309,
+     0.9510416666666737,
+     0.9560496794871839
+    ],
+    "rebin_count": 32
+   },
+   "Energy": {
+    "error": [
+     0.0017280650649922889
+    ],
+    "autocorr_time": 1.697360126619878,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     -1.9097596153846166
+    ],
+    "rebin_count": 32
+   },
+   "BinderRatio": {
+    "error": [
+     0.00024972241248693216
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     0.9962050710064219
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization2": {
+    "error": [
+     0.0011459610190906416
+    ],
+    "autocorr_time": 1.909953047855112,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9493056089743594
+    ],
+    "rebin_count": 32
+   },
+   "SpinCorrelationK": {
+    "error": [
+     155.66265761886763,
+     17.162617450983877,
+     12.736700916249523,
+     6.725072600741454,
+     2.408824291489382,
+     1.201925852435928,
+     2.408824291489391,
+     6.72507260074153,
+     12.736700916249442,
+     17.162617450983845
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     2683.47844551281,
+     0.5845200327522662,
+     0.9833196871922532,
+     7.248983573019245,
+     9.845015649345612,
+     10.447876602563895,
+     9.845015649346522,
+     7.248983573017767,
+     0.98331968719258,
+     0.584520032749829
+    ],
+    "rebin_count": 32
+   },
+   "Susceptibility": {
+    "error": [
+     0.06875766114543792
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     56.95833653846148
+    ],
+    "rebin_count": 32
+   },
+   "AbsMagnetization": {
+    "error": [
+     0.0006166627377604659
+    ],
+    "autocorr_time": 1.9602861854677414,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9738261217948722
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization": {
+    "error": [
+     0.0006166627377604659
+    ],
+    "autocorr_time": 1.9602861854677414,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     -0.9738261217948722
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization4": {
+    "error": [
+     0.00200864417683182
+    ],
+    "autocorr_time": 1.8247224400409807,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9046131455128207
+    ],
+    "rebin_count": 32
+   }
+  },
+  "version": {
+   "mc_package": "Ising",
+   "loadleveller_version": "0.1.0",
+   "mc_version": "0.1.0"
+  }
+ },
+ {
+  "task": "/mnt/home/lweber/src/Ising/example/job.data/task0004",
+  "parameters": {
+   "T": 2.0,
+   "test": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "Lx": 10,
+   "sweeps": 10000,
+   "thermalization": 10000,
+   "binsize": 1
+  },
+  "results": {
+   "SpinCorrelation": {
+    "error": [
+     0.027155451013062867,
+     0.012199150929319018,
+     0.01367551160431612,
+     0.014318491685510738,
+     0.014926839719450358,
+     0.01493846221707463,
+     0.014940275507086785,
+     0.014814116982045947,
+     0.013589899728623388,
+     0.01216343583725135
+    ],
+    "autocorr_time": null,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     1.0,
+     0.8596075620064233,
+     0.8300147736378631,
+     0.8227558011003788,
+     0.8166439343332004,
+     0.8165323847690952,
+     0.8165149967181997,
+     0.8177349123606492,
+     0.8310703126521977,
+     0.8643816171443359
+    ],
+    "rebin_count": 32
+   },
+   "Energy": {
+    "error": [
+     0.006234301767020372
+    ],
+    "autocorr_time": 5.9580144729716915,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     -1.7296233974358979
+    ],
+    "rebin_count": 32
+   },
+   "BinderRatio": {
+    "error": [
+     0.005350870255247951
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     0.9668143951481909
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization2": {
+    "error": [
+     0.006421817990921848
+    ],
+    "autocorr_time": 8.834445647898438,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.8240625801282052
+    ],
+    "rebin_count": 32
+   },
+   "SpinCorrelationK": {
+    "error": [
+     138.1825519110113,
+     18.570779883111385,
+     13.239440367599151,
+     7.921454108165193,
+     3.875043918137412,
+     2.4090211829582575,
+     3.8750439181374055,
+     7.921454108165189,
+     13.23944036759909,
+     18.570779883111253
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     2375.3210695960006,
+     57.73063600726891,
+     40.20311243150718,
+     32.781673571086344,
+     31.782601601002852,
+     30.93288318226587,
+     31.782601601001716,
+     32.78167357108532,
+     40.203112431509226,
+     57.730636007268004
+    ],
+    "rebin_count": 32
+   },
+   "Susceptibility": {
+    "error": [
+     0.32109089954608916
+    ],
+    "autocorr_time": null,
+    "rebin_len": null,
+    "internal_bin_len": null,
+    "mean": [
+     41.203129006410336
+    ],
+    "rebin_count": 32
+   },
+   "AbsMagnetization": {
+    "error": [
+     0.005038940686685988
+    ],
+    "autocorr_time": 11.580453020153271,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.9017307692307697
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization": {
+    "error": [
+     0.013368812806887368
+    ],
+    "autocorr_time": 31.723592551793033,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     -0.8921554487179494
+    ],
+    "rebin_count": 32
+   },
+   "Magnetization4": {
+    "error": [
+     0.007537626938204943
+    ],
+    "autocorr_time": 6.4116746676320355,
+    "rebin_len": 312,
+    "internal_bin_len": 1,
+    "mean": [
+     0.70237977099359
+    ],
+    "rebin_count": 32
+   }
+  },
+  "version": {
+   "mc_package": "Ising",
+   "loadleveller_version": "0.1.0",
+   "mc_version": "0.1.0"
+  }
+ }
+]

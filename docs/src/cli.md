@@ -25,7 +25,7 @@ mpirun -n $num_cores ./myjob run
 
 Once the simulation is started, a directory `myjob.data` will be created to store all simulation data. The name of the directory corresponds to the first argument of `JobInfo`. Usually that will be `@__FILE__`, but you could collect your simulation data in a different directory.
 
-The data directory will contain hdf5 files for each task of the job that contain checkpointing snapshots and measurement results. Once the job is done, LoadLeveller will average the measurement data for you and produce the file `myjob.results.json` in the same directory as the `myjob.data` directory. This file contains means and errorbars of all observables.
+The data directory will contain hdf5 files for each task of the job that contain checkpointing snapshots and measurement results. Once the job is done, LoadLeveller will average the measurement data for you and produce the file `myjob.results.json` in the same directory as the `myjob.data` directory. This file contains means and errorbars of all observables. See [ResultTools](@ref result_tools) for some tips on consuming this file back into julia for your plotting or other postprocessing.
 
 ## Job status
 
