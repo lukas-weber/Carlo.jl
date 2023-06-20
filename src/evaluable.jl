@@ -6,7 +6,8 @@ struct Evaluable{T<:AbstractFloat}
     error::Vector{T}
 end
 
-eachcol_or_scalar(M::AbstractMatrix) = size(M, 1) == 1 ? vec(M) : eachcol(M)
+# TODO: remove collect when Julia compatibility rises above ^1.9 
+eachcol_or_scalar(M::AbstractMatrix) = size(M, 1) == 1 ? vec(M) : collect(eachcol(M))
 
 function jackknife(func::Function, sample_set)
     sample_count = minimum(map(x -> size(x)[end], sample_set))
