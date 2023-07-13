@@ -54,8 +54,8 @@ function read_dump_progress(taskdir::AbstractString)
             push!(
                 sweeps,
                 (
-                    read(f["context/sweeps"], Int64),
-                    read(f["context/thermalization_sweeps"], Int64),
+                    read(f["context/0001/sweeps"], Int64),
+                    read(f["context/0001/thermalization_sweeps"], Int64),
                 ),
             )
         end

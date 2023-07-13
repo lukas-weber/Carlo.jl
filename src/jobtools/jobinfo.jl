@@ -23,8 +23,9 @@ parse_duration(duration::Dates.Period) = duration
         job_directory_prefix::AbstractString,
         mc::Type;
         checkpoint_time::Union{AbstractString, Dates.Second},
-        run_time::Union{AbstractString, Dates.Second}
-        tasks::Vector{TaskInfo}
+        run_time::Union{AbstractString, Dates.Second},
+        tasks::Vector{TaskInfo},
+        ranks_per_run::Integer = 1,
     )
 
 Holds all information required for a Monte Carlo calculation. The data of the calculation (parameters, results, and checkpoints) will be saved under `job_directory_prefix`.
@@ -34,7 +35,9 @@ Holds all information required for a Monte Carlo calculation. The data of the ca
 `checkpoint_time` and `run_time` specify the interval between checkpoints and the total desired run_time of the simulation. Both may be specified as a string of format `[[hours:]minutes:]seconds`
 
 Each job contains a set of `tasks`, corresponding
-to different sets of simulation parameters that should be run in parallel. The [`TaskMaker`](@ref) type can be used to conveniently generate them."""
+to different sets of simulation parameters that should be run in parallel. The [`TaskMaker`](@ref) type can be used to conveniently generate them.
+
+Setting the optional parameter `ranks_per_run > 1` enables [Parallel run mode](@ref parallel_run_mode)."""
 struct JobInfo
     name::String
     dir::String
@@ -45,6 +48,8 @@ struct JobInfo
 
     checkpoint_time::Dates.Second
     run_time::Dates.Second
+
+    ranks_per_run::Int
 end
 
 function JobInfo(
@@ -53,6 +58,7 @@ function JobInfo(
     checkpoint_time::Union{AbstractString,Dates.Second},
     run_time::Union{AbstractString,Dates.Second},
     tasks::Vector{TaskInfo},
+    ranks_per_run::Integer = 1,
 )
     return JobInfo(
         basename(job_file_name),
@@ -61,6 +67,7 @@ function JobInfo(
         tasks,
         parse_duration(checkpoint_time),
         parse_duration(run_time),
+        ranks_per_run,
     )
 end
 
