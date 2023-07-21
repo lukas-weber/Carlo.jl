@@ -19,7 +19,7 @@ function dataframe(result_json::AbstractString)
             "task" => basename(t["task"]),
             t["parameters"]...,
             Dict(
-                obsname => make_scalar(obs["mean"] .± obs["error"]) for
+                obsname => make_scalar(obs["mean"] .± something.(obs["error"], 0.0)) for
                 (obsname, obs) in t["results"]
             )...,
         ) for t in json
