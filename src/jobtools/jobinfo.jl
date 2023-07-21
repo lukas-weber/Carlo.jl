@@ -25,7 +25,7 @@ parse_duration(duration::Dates.Period) = duration
         checkpoint_time::Union{AbstractString, Dates.Second},
         run_time::Union{AbstractString, Dates.Second},
         tasks::Vector{TaskInfo},
-        ranks_per_run::Integer = 1,
+        ranks_per_run::Union{Integer, Symbol} = 1,
     )
 
 Holds all information required for a Monte Carlo calculation. The data of the calculation (parameters, results, and checkpoints) will be saved under `job_directory_prefix`.
@@ -37,7 +37,7 @@ Holds all information required for a Monte Carlo calculation. The data of the ca
 Each job contains a set of `tasks`, corresponding
 to different sets of simulation parameters that should be run in parallel. The [`TaskMaker`](@ref) type can be used to conveniently generate them.
 
-Setting the optional parameter `ranks_per_run > 1` enables [Parallel run mode](@ref parallel_run_mode)."""
+Setting the optional parameter `ranks_per_run > 1` enables [Parallel run mode](@ref parallel_run_mode). The special value `ranks_per_run = :all` uses all available ranks for a single run."""
 struct JobInfo
     name::String
     dir::String
@@ -49,7 +49,7 @@ struct JobInfo
     checkpoint_time::Dates.Second
     run_time::Dates.Second
 
-    ranks_per_run::Int
+    ranks_per_run::Union{Int,Symbol}
 end
 
 function JobInfo(
@@ -58,8 +58,18 @@ function JobInfo(
     checkpoint_time::Union{AbstractString,Dates.Second},
     run_time::Union{AbstractString,Dates.Second},
     tasks::Vector{TaskInfo},
-    ranks_per_run::Integer = 1,
+    ranks_per_run::Union{Integer,Symbol} = 1,
 )
+
+    if (ranks_per_run isa Symbol && ranks_per_run != :all) ||
+       (ranks_per_run isa Integer && ranks_per_run < 1)
+        throw(
+            ArgumentError(
+                "ranks_per_run should be positive integer or :all, not $ranks_per_run.",
+            ),
+        )
+    end
+
     return JobInfo(
         basename(job_file_name),
         job_file_name * ".data",
