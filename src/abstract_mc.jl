@@ -36,7 +36,16 @@ sweep!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm) = sweep!(mc, ctx)
 Perform one Monte Carlo measurement.
 """
 @stub measure!(mc::AbstractMC, ctx::MCContext)
-measure!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm) = measure!(mc, ctx)
+function measure!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm)
+    if comm == MPI.COMM_NULL || MPI.Comm_size(comm) == 1
+        measure!(mc, ctx)
+    else
+        error(
+            "running in parallel run mode but measure(::MC, ::MCContext, ::MPI.Comm) not implemented",
+        )
+    end
+    return nothing
+end
 
 """
     write_checkpoint(mc::YourMC, out::HDF5.Group [, comm::MPI.comm])
@@ -44,8 +53,20 @@ measure!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm) = measure!(mc, ctx)
 Save the complete state of the simulation to `out`.
 """
 @stub write_checkpoint(mc::AbstractMC, dump_file::HDF5.Group)
-write_checkpoint(mc::AbstractMC, dump_file::HDF5.Group, comm::MPI.Comm) =
-    write_checkpoint(mc, dump_file)
+function write_checkpoint(
+    mc::AbstractMC,
+    dump_file::Union{HDF5.Group,Nothing},
+    comm::MPI.Comm,
+)
+    if comm == MPI.COMM_NULL || MPI.Comm_size(comm) == 1
+        write_checkpoint(mc, dump_file)
+    else
+        error(
+            "running in parallel run mode but write_checkpoint(::MC, ::Union{HDF5.Group,Nothing}, ::MPI.Comm) not implemented",
+        )
+    end
+    return nothing
+end
 
 """
     read_checkpoint!(mc::YourMC, in::HDF5.Group [, comm::MPI.comm])
@@ -53,8 +74,20 @@ write_checkpoint(mc::AbstractMC, dump_file::HDF5.Group, comm::MPI.Comm) =
 Read the state of the simulation from `in`.
 """
 @stub read_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group)
-read_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group, comm::MPI.Comm) =
-    read_checkpoint!(mc, dump_file)
+function read_checkpoint!(
+    mc::AbstractMC,
+    dump_file::Union{HDF5.Group,Nothing},
+    comm::MPI.Comm,
+)
+    if comm == MPI.COMM_NULL || MPI.Comm_size(comm) == 1
+        read_checkpoint!(mc, dump_file)
+    else
+        error(
+            "running in parallel run mode but read_checkpoint!(::MC, ::Union{HDF5.Group,Nothing}, ::MPI.Comm) not implemented",
+        )
+    end
+    return nothing
+end
 
 """
     register_evaluables(mc::Type{YourMC}, eval::Evaluator, params::AbstractDict)
