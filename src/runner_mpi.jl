@@ -120,21 +120,23 @@ function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
     num_ranks = MPI.Comm_size(comm)
     rc = false
 
-    if job.ranks_per_run != 1
-        @info "running in parallel run mode with $job.ranks_per_run ranks per run"
-    end
+    ranks_per_run = job.ranks_per_run == :all ? num_ranks : job.ranks_per_run
 
-    if num_ranks % job.ranks_per_run != 0
+    if num_ranks % ranks_per_run != 0
         error(
-            "Number of MPI ranks ($num_ranks) is not commensurate with ranks per run ($job.ranks_per_run)!",
+            "Number of MPI ranks ($num_ranks) is not a multiple of ranks per run ($(ranks_per_run))!",
         )
     end
-    run_comm = MPI.Comm_split(comm, rank ÷ job.ranks_per_run, 0)
+    run_comm = MPI.Comm_split(comm, rank ÷ ranks_per_run, 0)
     run_leader_comm = MPI.Comm_split(comm, is_run_leader(run_comm) ? 1 : nothing, 0)
 
-    @info "starting job '$(job.name)'"
 
     if rank == 0
+        @info "starting job '$(job.name)'"
+        if ranks_per_run != 1
+            @info "running in parallel run mode with $(ranks_per_run) ranks per run"
+        end
+
         t_work = @async start(MPIRunnerWorker{MC}, $job, $run_leader_comm, $run_comm)
         t_ctrl = @async (rc = start(MPIRunnerController, $job, $run_leader_comm))
         sync_or_error([t_work, t_ctrl])
@@ -163,50 +165,75 @@ function start(::Type{MPIRunnerController}, job::JobInfo, run_leader_comm::MPI.C
     return !all_done
 end
 
+function controller_react_idle(
+    controller::MPIRunnerController,
+    run_leader_comm::MPI.Comm,
+    rank::Integer,
+)
+    controller.task_id = get_new_task_id(controller.tasks, controller.task_id)
+    if controller.task_id === nothing
+        send_action(run_leader_comm, A_EXIT, rank)
+        controller.num_active_ranks -= 1
+    else
+        send_action(run_leader_comm, A_NEW_TASK, rank)
+        task = controller.tasks[controller.task_id]
+        task.scheduled_runs += 1
+
+        sweeps_until_comm = max(0, task.target_sweeps - task.sweeps)
+        msg = MPIRunnerNewJobResponse(
+            controller.task_id,
+            task.scheduled_runs,
+            sweeps_until_comm,
+        )
+
+        send(msg, run_leader_comm; dest = rank, tag = T_NEW_TASK)
+    end
+
+    return nothing
+end
+
+function controller_react_busy(
+    controller::MPIRunnerController,
+    run_leader_comm::MPI.Comm,
+    rank::Integer,
+)
+    msg, _ =
+        recv(MPIRunnerBusyResponse, run_leader_comm; source = rank, tag = T_BUSY_STATUS)
+
+    task = controller.tasks[msg.task_id]
+    task.sweeps += msg.sweeps_since_last_query
+    if is_done(task)
+        task.scheduled_runs -= 1
+        if task.scheduled_runs > 0
+            @info "$(basename(task.dir)) has enough sweeps. Waiting for $(task.scheduled_runs) busy ranks."
+            send_action(run_leader_comm, A_NEW_TASK, rank)
+        else
+            @info "$(basename(task.dir)) is done. Merging."
+            send_action(run_leader_comm, A_PROCESS_DATA_NEW_TASK, rank)
+        end
+    else
+        send_action(run_leader_comm, A_CONTINUE, rank)
+    end
+    return nothing
+end
+
+function controller_react_timeup(controller::MPIRunnerController)
+    controller.num_active_ranks -= 1
+    return nothing
+end
+
+
 function react!(controller::MPIRunnerController, run_leader_comm::MPI.Comm)
     rank_status, status =
         recv(MPIRunnerStatus, run_leader_comm; source = MPI.ANY_SOURCE, tag = T_STATUS)
     rank = status.source
 
     if rank_status == S_IDLE
-        controller.task_id = get_new_task_id(controller.tasks, controller.task_id)
-        if controller.task_id === nothing
-            send_action(run_leader_comm, A_EXIT, rank)
-            controller.num_active_ranks -= 1
-        else
-            send_action(run_leader_comm, A_NEW_TASK, rank)
-            task = controller.tasks[controller.task_id]
-            task.scheduled_runs += 1
-
-            sweeps_until_comm = 1 + max(0, task.target_sweeps - task.sweeps)
-            msg = MPIRunnerNewJobResponse(
-                controller.task_id,
-                task.scheduled_runs,
-                sweeps_until_comm,
-            )
-
-            send(msg, run_leader_comm; dest = rank, tag = T_NEW_TASK)
-        end
+        controller_react_idle(controller, run_leader_comm, rank)
     elseif rank_status == S_BUSY
-        msg, _ =
-            recv(MPIRunnerBusyResponse, run_leader_comm; source = rank, tag = T_BUSY_STATUS)
-
-        task = controller.tasks[msg.task_id]
-        task.sweeps += msg.sweeps_since_last_query
-        if is_done(task)
-            task.scheduled_runs -= 1
-            if task.scheduled_runs > 0
-                @info "$(basename(task.dir)) has enough sweeps. Waiting for $(task.scheduled_runs) busy ranks."
-                send_action(run_leader_comm, A_NEW_TASK, rank)
-            else
-                @info "$(basename(task.dir)) is done. Merging."
-                send_action(run_leader_comm, A_PROCESS_DATA_NEW_TASK, rank)
-            end
-        else
-            send_action(run_leader_comm, A_CONTINUE, rank)
-        end
+        controller_react_busy(controller, run_leader_comm, rank)
     elseif rank_status == S_TIMEUP
-        controller.num_active_ranks -= 1
+        controller_react_timeup(controller)
     else
         error("Invalid rank status $(rank_status)")
     end
@@ -241,10 +268,10 @@ function start(
 
             run = read_checkpoint(Run{MC,DefaultRNG}, rundir, task.params, run_comm)
             if run !== nothing
-                @info "read $rundir"
+                is_run_leader(run_comm) && @info "read $rundir"
             else
-                run = Run{MC,DefaultRNG}(task.params)
-                @info "initialized $rundir"
+                run = Run{MC,DefaultRNG}(task.params, run_comm)
+                is_run_leader(run_comm) && @info "initialized $rundir"
             end
             worker = MPIRunnerWorker{MC}(msg.task_id, msg.run_id, runner_task, run)
         end
@@ -283,8 +310,8 @@ function start(
                     worker.task.dir;
                     parameters = job.tasks[worker.task_id].params,
                 )
-                worker = nothing
             end
+            worker = nothing
         elseif action == A_NEW_TASK
             worker = nothing
         else
@@ -302,24 +329,26 @@ function worker_signal_timeup(run_leader_comm::MPI.Comm, run_comm::MPI.Comm)
 end
 
 function worker_signal_idle(run_leader_comm::MPI.Comm, run_comm::MPI.Comm)
-    new_action = A_INVALID
+    new_action = Ref{MPIRunnerAction}()
     if is_run_leader(run_comm)
         send(S_IDLE, run_leader_comm; dest = 0, tag = T_STATUS)
-        new_action = recv_action(run_leader_comm)
+        new_action[] = recv_action(run_leader_comm)
     end
-    new_action = MPI.Bcast(new_action, 0, run_comm)
+    MPI.Bcast!(new_action, 0, run_comm)
 
-    if new_action == A_EXIT
+    if new_action[] == A_EXIT
         return (A_EXIT, nothing)
     end
 
-    msg = MPIRunnerNewJobResponse(0, 0, 0)
+    @assert new_action[] == A_NEW_TASK
+
+    msg = Ref{MPIRunnerNewJobResponse}()
     if is_run_leader(run_comm)
-        msg, _ =
+        msg[], _ =
             recv(MPIRunnerNewJobResponse, run_leader_comm; source = 0, tag = T_NEW_TASK)
     end
-    msg = MPI.Bcast(msg, 0, run_comm)
-    return (A_NEW_TASK, msg)
+    MPI.Bcast!(msg, run_comm)
+    return (A_NEW_TASK, msg[])
 end
 
 function worker_signal_busy(
@@ -328,17 +357,17 @@ function worker_signal_busy(
     task_id::Integer,
     sweeps_since_last_query::Integer,
 )
-    new_action = A_INVALID
+    new_action = Ref{MPIRunnerAction}()
     if is_run_leader(run_comm)
         send(S_BUSY, run_leader_comm; dest = 0, tag = T_STATUS)
         msg = MPIRunnerBusyResponse(task_id, sweeps_since_last_query)
         send(msg, run_leader_comm; dest = 0, tag = T_BUSY_STATUS)
-        new_action = recv_action(run_leader_comm)
+        new_action[] = recv_action(run_leader_comm)
     end
 
-    new_action = MPI.Bcast(new_action, 0, run_comm)
+    MPI.Bcast!(new_action, 0, run_comm)
 
-    return new_action
+    return new_action[]
 end
 
 function write_checkpoint(runner::MPIRunnerWorker, run_comm::MPI.Comm)
@@ -346,8 +375,8 @@ function write_checkpoint(runner::MPIRunnerWorker, run_comm::MPI.Comm)
     write_checkpoint!(runner.run, rundir, run_comm)
     if is_run_leader(run_comm)
         write_checkpoint_finalize(rundir)
+        @info "rank $(MPI.Comm_rank(MPI.COMM_WORLD)): checkpointing $rundir"
     end
-    @info "rank $(MPI.Comm_rank(MPI.COMM_WORLD)): checkpointing $rundir"
 
     return nothing
 end

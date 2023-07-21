@@ -15,6 +15,9 @@ function add_sample!(meas::Measurements, obsname::Symbol, value)
     return nothing
 end
 
+Base.isempty(meas::Measurements) = all(isempty.(values(meas.observables)))
+has_complete_bins(meas::Measurements) = any(has_complete_bins.(values(meas.observables)))
+
 function register_observable!(
     meas::Measurements{T},
     obsname::Symbol,

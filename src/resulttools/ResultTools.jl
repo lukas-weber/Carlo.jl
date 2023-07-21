@@ -4,7 +4,7 @@ using JSON
 using Measurements
 
 
-make_scalar(x) = isa(x, AbstractVector) && size(x) == (1,) ? only(x) : x
+make_scalar(x) = x isa AbstractVector && size(x) == (1,) ? only(x) : x
 
 """
     ResultTools.dataframe(result_json::AbstractString)

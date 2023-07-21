@@ -16,6 +16,7 @@ function Observable{T}(bin_length::Integer, vector_length::Integer) where {T}
     return Observable(bin_length, 0, samples)
 end
 
+Base.isempty(obs::Observable) = size(obs.samples, 2) == 1 && obs.current_bin_filling == 0
 has_complete_bins(obs::Observable) = size(obs.samples, 2) > 1
 
 function accumulate_sample!(samples::AbstractMatrix, value::Number)
@@ -86,7 +87,10 @@ function write_measurements!(obs::Observable{T}, out::HDF5.Group) where {T}
 end
 
 function write_checkpoint(obs::Observable, out::HDF5.Group)
-    @assert size(obs.samples, 2) <= 1
+    if has_complete_bins(obs)
+        @show obs
+    end
+    @assert !has_complete_bins(obs)
     out["bin_length"] = obs.bin_length
     out["current_bin_filling"] = obs.current_bin_filling
     out["samples"] = obs.samples

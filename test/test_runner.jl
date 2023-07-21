@@ -1,4 +1,5 @@
 using Serialization
+using LoadLeveller.ResultTools
 
 @testset "Task Selection" begin
     sweeps = [100, 10, 10, 101, 10]
@@ -18,56 +19,111 @@ using Serialization
     @test LoadLeveller.get_new_task_id(tasks, nothing) === nothing
 end
 
-@testset "Task Scheduling" begin
-    tm = JT.TaskMaker()
-    tm.sweeps = 100
+function make_test_job(dir::AbstractString, sweeps::Integer; ranks_per_run = 1, kwargs...)
+    tm = TaskMaker()
+    tm.sweeps = sweeps
     tm.thermalization = 14
     tm.binsize = 4
+    for (k, v) in kwargs
+        setproperty!(tm, k, v)
+    end
 
     for i = 1:3
         task(tm; i = i)
     end
 
-    tmpdir = mktempdir()
+    return JobInfo(
+        dir,
+        ranks_per_run == 1 ? TestMC : TestParallelRunMC;
+        tasks = make_tasks(tm),
+        checkpoint_time = "1:00",
+        run_time = "10:00",
+        ranks_per_run = ranks_per_run,
+    )
+end
 
-    @testset "MPI" begin
-        job = LoadLeveller.JobInfo(
-            tmpdir * "/test",
-            TestMC;
-            tasks = make_tasks(tm),
-            checkpoint_time = "1:00",
-            run_time = "10:00",
-        )
+function run_test_job_mpi(job::JobInfo; num_ranks::Integer)
+    JT.create_job_directory(job)
+    job_path = job.dir * "jobfile"
+    serialize(job_path, job)
 
-        JT.create_job_directory(job)
-        job_path = tmpdir * "/jobfile"
-        serialize(job_path, job)
-
-        num_ranks = 3
-        mpiexec() do exe
-            run(`$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job_path)`)
-        end
-        tasks = JT.read_progress(job)
-        for task in tasks
-            @test task.sweeps >= task.target_sweeps
-        end
+    mpiexec() do exe
+        run(`$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job_path)`)
     end
-    @testset "Single" begin
-        job2 = LoadLeveller.JobInfo(
-            tmpdir * "/test2",
-            TestMC;
-            tasks = JT.make_tasks(tm),
-            checkpoint_time = "1:00",
-            run_time = "10:00",
-        )
 
-        JT.create_job_directory(job2)
+    return nothing
+end
 
-        LoadLeveller.start(LoadLeveller.SingleRunner{TestMC}, job2)
+@testset "Task Scheduling" begin
+    mktempdir() do tmpdir
 
-        tasks = JT.read_progress(job2)
-        for task in tasks
-            @test task.sweeps >= task.target_sweeps
+        @testset "MPI parallel run mode" begin
+            job_2rank = make_test_job("$tmpdir/test2_2rank", 100, ranks_per_run = 2)
+
+            run_test_job_mpi(job_2rank; num_ranks = 4)
+            tasks = JT.read_progress(job_2rank)
+            for task in tasks
+                @test task.sweeps >= task.target_sweeps
+            end
+
+            job_all_full = make_test_job("$tmpdir/test2_full", 200, ranks_per_run = :all)
+            run_test_job_mpi(job_all_full; num_ranks = 4)
+
+            results_full = ResultTools.dataframe(JT.result_filename(job_all_full))
+
+            # test checkpointing by resetting the seed on a finished simulation
+            job_all_half = make_test_job("$tmpdir/test2_half", 100, ranks_per_run = :all)
+            run_test_job_mpi(job_all_half; num_ranks = 4)
+            job_all_half = make_test_job("$tmpdir/test2_half", 200, ranks_per_run = :all)
+            run_test_job_mpi(job_all_half; num_ranks = 4)
+
+            results_halfhalf = ResultTools.dataframe(JT.result_filename(job_all_half))
+
+            for (task_full, task_halfhalf) in zip(results_full, results_halfhalf)
+                for key in keys(task_full)
+                    if !startswith(key, "_ll_")
+                        @test (key, task_full[key]) == (key, task_halfhalf[key])
+                    end
+                end
+            end
+
+            tasks = JT.read_progress(job_all_half)
+            for task in tasks
+                @test task.num_runs == 1
+                @test task.sweeps == task.target_sweeps
+            end
+
+            job_fail = make_test_job(
+                "$tmpdir/test2_fail",
+                100;
+                ranks_per_run = 2,
+                try_measure_on_nonroot = true,
+            )
+            @test_throws ProcessFailedException run_test_job_mpi(job_fail; num_ranks = 4) # only run leader can measure
+            @test_throws ProcessFailedException run_test_job_mpi(job_2rank; num_ranks = 3) # number of ranks needs to be commensurate
+        end
+
+        @testset "MPI" begin
+            job = make_test_job("$tmpdir/test1", 100)
+            run_test_job_mpi(job; num_ranks = 4)
+
+            tasks = JT.read_progress(job)
+            for task in tasks
+                @test task.sweeps >= task.target_sweeps
+            end
+        end
+
+        @testset "Single" begin
+            job3 = make_test_job("$tmpdir/test3", 100)
+
+            JT.create_job_directory(job3)
+
+            LoadLeveller.start(LoadLeveller.SingleRunner{job3.mc}, job3)
+
+            tasks = JT.read_progress(job3)
+            for task in tasks
+                @test task.sweeps >= task.target_sweeps
+            end
         end
     end
 end

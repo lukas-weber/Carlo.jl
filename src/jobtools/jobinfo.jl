@@ -85,8 +85,10 @@ function task_dir(job::JobInfo, task::TaskInfo)
     return format("{}/{}", job.dir, task.name)
 end
 
+result_filename(job::JobInfo) = "$(job.dir)/../$(job.name).results.json"
+
 function concatenate_results(job::JobInfo)
-    open("$(job.dir)/../$(job.name).results.json", "w") do out
+    open(result_filename(job), "w") do out
         results = map(job.tasks) do task
             open(task_dir(job, task) * "/results.json", "r") do in
                 return JSON.parse(in)
