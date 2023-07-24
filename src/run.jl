@@ -43,6 +43,26 @@ function step!(run::Run, comm::MPI.Comm = MPI.COMM_NULL)
     return 0
 end
 
+function write_measurements(run::Run, file_prefix::AbstractString)
+    try
+        cp(file_prefix * ".meas.h5", file_prefix * ".meas.h5.tmp", force = true)
+    catch e
+        if !isa(e, Base.IOError)
+            rethrow()
+        end
+    end
+
+    h5open(file_prefix * ".meas.h5.tmp", "cw") do file
+        write_measurements!(run.context, file["/"])
+        write_hdf5(
+            Version(typeof(run.implementation)),
+            create_absent_group(file, "version"),
+        )
+    end
+
+    @assert !has_complete_bins(run.context.measure)
+end
+
 function write_checkpoint!(
     run::Run,
     file_prefix::AbstractString,
@@ -50,23 +70,7 @@ function write_checkpoint!(
 )
     checkpoint_write_time = @elapsed begin
         if comm == MPI.COMM_NULL || MPI.Comm_rank(comm) == 0
-            try
-                cp(file_prefix * ".meas.h5", file_prefix * ".meas.h5.tmp", force = true)
-            catch e
-                if !isa(e, Base.IOError)
-                    rethrow()
-                end
-            end
-
-            h5open(file_prefix * ".meas.h5.tmp", "cw") do file
-                write_measurements!(run.context, file["/"])
-                write_hdf5(
-                    Version(typeof(run.implementation)),
-                    create_absent_group(file, "version"),
-                )
-            end
-
-            @assert !has_complete_bins(run.context.measure)
+            write_measurements(run, file_prefix)
         end
 
         if comm == MPI.COMM_NULL
