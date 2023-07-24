@@ -7,12 +7,12 @@ mutable struct Observable{T<:AbstractFloat}
     bin_length::Int64
     current_bin_filling::Int64
 
-    samples::ElasticArray{T,2,1,Vector{Float64}}
+    samples::ElasticMatrix{T,Vector{T}}
 end
 
 function Observable{T}(bin_length::Integer, vector_length::Integer) where {T}
-    samples = ElasticArray{T,2}(undef, vector_length, 1)
-    samples[1, 1] = 0
+    samples = ElasticMatrix{T}(undef, vector_length, 1)
+    samples .= 0
     return Observable(bin_length, 0, samples)
 end
 
