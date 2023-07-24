@@ -13,7 +13,7 @@ mutable struct SingleScheduler{MC<:AbstractMC} <: AbstractScheduler
     time_start::Dates.DateTime
     time_last_checkpoint::Dates.DateTime
 
-    task_id::Union{Int32,Nothing}
+    task_id::Union{Int,Nothing}
     tasks::Vector{SchedulerTask}
 
     function SingleScheduler{MC}(job::JobInfo) where {MC<:AbstractMC}

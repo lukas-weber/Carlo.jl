@@ -62,14 +62,14 @@ function sync_or_error(tasks::AbstractArray{Task})
 end
 
 struct MPISchedulerNewJobResponse
-    task_id::Int32
-    run_id::Int32
-    sweeps_until_comm::UInt64
+    task_id::Int
+    run_id::Int
+    sweeps_until_comm::Int64
 end
 
 struct MPISchedulerBusyResponse
-    task_id::Int32
-    sweeps_since_last_query::UInt64
+    task_id::Int
+    sweeps_since_last_query::Int64
 end
 
 const T_STATUS = 5
@@ -86,9 +86,9 @@ end
 struct MPIScheduler <: AbstractScheduler end
 
 mutable struct MPISchedulerController <: AbstractScheduler
-    num_active_ranks::Int32
+    num_active_ranks::Int
 
-    task_id::Union{Int32,Nothing}
+    task_id::Union{Int,Nothing}
     tasks::Vector{SchedulerTask}
 
     function MPISchedulerController(job::JobInfo, active_ranks::Integer)
@@ -104,8 +104,8 @@ mutable struct MPISchedulerController <: AbstractScheduler
 end
 
 mutable struct MPISchedulerWorker{MC<:AbstractMC}
-    task_id::Int32
-    run_id::Int32
+    task_id::Int
+    run_id::Int
 
     task::SchedulerTask
     run::Union{Run{MC,DefaultRNG},Nothing}
