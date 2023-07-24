@@ -9,7 +9,7 @@ Call this from your job script to start the LoadLeveller command line interface.
 
 If for any reason you do not want to use job scripts, you can directly schedule a job using
 
-    start(LoadLeveller.MPIRunner{job.mc}, job)
+    start(LoadLeveller.MPIRunner, job)
 """
 function start(job::JobInfo, args::AbstractVector{<:AbstractString})
     s = ArgParseSettings()
@@ -58,7 +58,7 @@ function cli_run(job::JobInfo, args::AbstractDict)
     end
 
     runner = args["single"] ? SingleRunner : MPIRunner
-    return start(runner{job.mc}, job)
+    return start(runner, job)
 end
 
 function cli_status(job::JobInfo, ::AbstractDict)

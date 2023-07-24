@@ -119,12 +119,12 @@ end
         @testset "Single" begin
             job3_full = make_test_job("$tmpdir/test3_full", 200)
 
-            LoadLeveller.start(LoadLeveller.SingleRunner{job3_full.mc}, job3_full)
+            start(LoadLeveller.SingleRunner, job3_full)
 
             job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 100)
-            LoadLeveller.start(LoadLeveller.SingleRunner{job3_halfhalf.mc}, job3_halfhalf)
+            start(LoadLeveller.SingleRunner, job3_halfhalf)
             job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 200)
-            LoadLeveller.start(LoadLeveller.SingleRunner{job3_halfhalf.mc}, job3_halfhalf)
+            start(LoadLeveller.SingleRunner, job3_halfhalf)
 
             for job in (job3_full, job3_halfhalf)
                 tasks = JT.read_progress(job)

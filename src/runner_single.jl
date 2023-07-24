@@ -21,9 +21,9 @@ mutable struct SingleRunner{MC<:AbstractMC} <: AbstractRunner
     end
 end
 
-function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
+function start(::Type{SingleRunner}, job::JobInfo)
     JobTools.create_job_directory(job)
-    runner = SingleRunner{MC}(job)
+    runner = SingleRunner{job.mc}(job)
     runner.time_start = Dates.now()
     runner.time_last_checkpoint = runner.time_start
 
@@ -38,11 +38,11 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
         runner_task = runner.tasks[runner.task_id]
         rundir = run_dir(runner_task, 1)
 
-        runner.run = read_checkpoint(Run{MC,DefaultRNG}, rundir, task.params)
+        runner.run = read_checkpoint(Run{job.mc,DefaultRNG}, rundir, task.params)
         if runner.run !== nothing
             @info "read $rundir"
         else
-            runner.run = Run{MC,DefaultRNG}(task.params)
+            runner.run = Run{job.mc,DefaultRNG}(task.params)
             @info "initialized $rundir"
         end
 
@@ -58,7 +58,7 @@ function start(::Type{SingleRunner{MC}}, job::JobInfo) where {MC<:AbstractMC}
 
         taskdir = runner_task.dir
         @info "merging $(taskdir)"
-        merge_results(MC, runner_task.dir; parameters = task.params)
+        merge_results(job.mc, runner_task.dir; parameters = task.params)
 
         runner.task_id = get_new_task_id(runner.tasks, runner.task_id)
     end

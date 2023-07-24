@@ -83,7 +83,7 @@ const T_NEW_TASK = 8
     S_TIMEUP = 11
 end
 
-struct MPIRunner{MC<:AbstractMC} <: AbstractRunner end
+struct MPIRunner <: AbstractRunner end
 
 mutable struct MPIRunnerController <: AbstractRunner
     num_active_ranks::Int32
@@ -111,7 +111,7 @@ mutable struct MPIRunnerWorker{MC<:AbstractMC}
     run::Union{Run{MC,DefaultRNG},Nothing}
 end
 
-function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
+function start(::Type{MPIRunner}, job::JobInfo)
     JobTools.create_job_directory(job)
     MPI.Init()
     comm = MPI.COMM_WORLD
@@ -137,13 +137,13 @@ function start(::Type{MPIRunner{MC}}, job::JobInfo) where {MC}
             @info "running in parallel run mode with $(ranks_per_run) ranks per run"
         end
 
-        t_work = @async start(MPIRunnerWorker{MC}, $job, $run_leader_comm, $run_comm)
+        t_work = @async start(MPIRunnerWorker{job.mc}, $job, $run_leader_comm, $run_comm)
         t_ctrl = @async (rc = start(MPIRunnerController, $job, $run_leader_comm))
         sync_or_error([t_work, t_ctrl])
         @info "controller: concatenating results"
         JobTools.concatenate_results(job)
     else
-        start(MPIRunnerWorker{MC}, job, run_leader_comm, run_comm)
+        start(MPIRunnerWorker{job.mc}, job, run_leader_comm, run_comm)
     end
 
     MPI.Barrier(comm)
