@@ -8,5 +8,5 @@ include("test_mc.jl")
 
 job = deserialize(ARGS[1])
 with_logger(Logging.NullLogger()) do
-    LoadLeveller.start(LoadLeveller.MPIRunner, job)
+    LoadLeveller.start(LoadLeveller.MPIScheduler, job)
 end

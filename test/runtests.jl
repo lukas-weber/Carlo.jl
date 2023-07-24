@@ -11,7 +11,7 @@ tests = [
     "test_taskinfo.jl"
     "test_jobinfo.jl"
     "test_evaluable.jl"
-    "test_runner.jl"
+    "test_scheduler.jl"
     "test_run.jl"
     "test_observable.jl"
     "test_random_wrap.jl"

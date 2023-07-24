@@ -4,7 +4,7 @@ using Logging
 
 @testset "Task Selection" begin
     sweeps = [100, 10, 10, 101, 10]
-    tasks = map(s -> LoadLeveller.RunnerTask(100, s, "", 0), sweeps)
+    tasks = map(s -> LoadLeveller.SchedulerTask(100, s, "", 0), sweeps)
 
     @test LoadLeveller.get_new_task_id(tasks, 1) == 2
     @test LoadLeveller.get_new_task_id(tasks, 2) == 3
@@ -12,7 +12,7 @@ using Logging
     @test LoadLeveller.get_new_task_id(tasks, 4) == 5
     @test LoadLeveller.get_new_task_id(tasks, 5) == 2
 
-    tasks = map(s -> LoadLeveller.RunnerTask(100, s, "", 0), [100, 100, 100])
+    tasks = map(s -> LoadLeveller.SchedulerTask(100, s, "", 0), [100, 100, 100])
     for i = 1:length(tasks)
         @test LoadLeveller.get_new_task_id(tasks, i) === nothing
     end
@@ -50,7 +50,7 @@ function run_test_job_mpi(job::JobInfo; num_ranks::Integer, silent::Bool = false
     serialize(job_path, job)
 
     mpiexec() do exe
-        cmd = `$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job_path)`
+        cmd = `$exe -n $num_ranks $(Base.julia_cmd()) test_scheduler_mpi.jl $(job_path)`
         if silent
             cmd = pipeline(cmd; stdout = devnull, stderr = devnull)
         end
@@ -132,12 +132,12 @@ end
         @testset "Single" begin
             with_logger(Logging.NullLogger()) do
                 job3_full = make_test_job("$tmpdir/test3_full", 200)
-                start(LoadLeveller.SingleRunner, job3_full)
+                start(LoadLeveller.SingleScheduler, job3_full)
 
                 job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 100)
-                start(LoadLeveller.SingleRunner, job3_halfhalf)
+                start(LoadLeveller.SingleScheduler, job3_halfhalf)
                 job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 200)
-                start(LoadLeveller.SingleRunner, job3_halfhalf)
+                start(LoadLeveller.SingleScheduler, job3_halfhalf)
 
                 for job in (job3_full, job3_halfhalf)
                     tasks = JT.read_progress(job)
