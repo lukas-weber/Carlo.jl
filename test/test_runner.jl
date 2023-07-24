@@ -22,8 +22,9 @@ end
 function make_test_job(dir::AbstractString, sweeps::Integer; ranks_per_run = 1, kwargs...)
     tm = TaskMaker()
     tm.sweeps = sweeps
+    tm.seed = 13245432
     tm.thermalization = 14
-    tm.binsize = 4
+    tm.binsize = 1
     for (k, v) in kwargs
         setproperty!(tm, k, v)
     end
@@ -44,7 +45,7 @@ end
 
 function run_test_job_mpi(job::JobInfo; num_ranks::Integer)
     JT.create_job_directory(job)
-    job_path = job.dir * "jobfile"
+    job_path = job.dir * "/jobfile"
     serialize(job_path, job)
 
     mpiexec() do exe
@@ -54,9 +55,21 @@ function run_test_job_mpi(job::JobInfo; num_ranks::Integer)
     return nothing
 end
 
+function compare_results(job1::JobInfo, job2::JobInfo)
+    results1 = ResultTools.dataframe(JT.result_filename(job1))
+    results2 = ResultTools.dataframe(JT.result_filename(job2))
+
+    for (task1, task2) in zip(results1, results2)
+        for key in keys(task1)
+            if !startswith(key, "_ll_")
+                @test (key, task1[key]) == (key, task2[key])
+            end
+        end
+    end
+end
+
 @testset "Task Scheduling" begin
     mktempdir() do tmpdir
-
         @testset "MPI parallel run mode" begin
             job_2rank = make_test_job("$tmpdir/test2_2rank", 100, ranks_per_run = 2)
 
@@ -69,23 +82,13 @@ end
             job_all_full = make_test_job("$tmpdir/test2_full", 200, ranks_per_run = :all)
             run_test_job_mpi(job_all_full; num_ranks = 4)
 
-            results_full = ResultTools.dataframe(JT.result_filename(job_all_full))
-
             # test checkpointing by resetting the seed on a finished simulation
             job_all_half = make_test_job("$tmpdir/test2_half", 100, ranks_per_run = :all)
             run_test_job_mpi(job_all_half; num_ranks = 4)
             job_all_half = make_test_job("$tmpdir/test2_half", 200, ranks_per_run = :all)
             run_test_job_mpi(job_all_half; num_ranks = 4)
 
-            results_halfhalf = ResultTools.dataframe(JT.result_filename(job_all_half))
-
-            for (task_full, task_halfhalf) in zip(results_full, results_halfhalf)
-                for key in keys(task_full)
-                    if !startswith(key, "_ll_")
-                        @test (key, task_full[key]) == (key, task_halfhalf[key])
-                    end
-                end
-            end
+            compare_results(job_all_full, job_all_half)
 
             tasks = JT.read_progress(job_all_half)
             for task in tasks
@@ -114,16 +117,23 @@ end
         end
 
         @testset "Single" begin
-            job3 = make_test_job("$tmpdir/test3", 100)
+            job3_full = make_test_job("$tmpdir/test3_full", 200)
 
-            JT.create_job_directory(job3)
+            LoadLeveller.start(LoadLeveller.SingleRunner{job3_full.mc}, job3_full)
 
-            LoadLeveller.start(LoadLeveller.SingleRunner{job3.mc}, job3)
+            job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 100)
+            LoadLeveller.start(LoadLeveller.SingleRunner{job3_halfhalf.mc}, job3_halfhalf)
+            job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 200)
+            LoadLeveller.start(LoadLeveller.SingleRunner{job3_halfhalf.mc}, job3_halfhalf)
 
-            tasks = JT.read_progress(job3)
-            for task in tasks
-                @test task.sweeps >= task.target_sweeps
+            for job in (job3_full, job3_halfhalf)
+                tasks = JT.read_progress(job)
+                for task in tasks
+                    @test task.sweeps == task.target_sweeps
+                end
             end
+
+            compare_results(job3_full, job3_halfhalf)
         end
     end
 end

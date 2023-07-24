@@ -1,17 +1,19 @@
 import LoadLeveller
 using HDF5
+using MPI
 
-struct TestMC <: LoadLeveller.AbstractMC end
+struct TestMC <: AbstractMC end
 
 TestMC(params::AbstractDict) = TestMC()
 
-LoadLeveller.init!(mc::TestMC, ctx::LoadLeveller.MCContext, params::AbstractDict) = nothing
-LoadLeveller.sweep!(mc::TestMC, ctx::LoadLeveller.MCContext) = nothing
+LoadLeveller.init!(mc::TestMC, ctx::MCContext, params::AbstractDict) = nothing
+LoadLeveller.sweep!(mc::TestMC, ctx::MCContext) = nothing
 
-function LoadLeveller.measure!(mc::TestMC, ctx::LoadLeveller.MCContext)
-    LoadLeveller.measure!(ctx, :test, ctx.sweeps)
-    LoadLeveller.measure!(ctx, :test2, ctx.sweeps^2)
-    LoadLeveller.measure!(ctx, :test_vec, [ctx.sweeps, sin(ctx.sweeps)])
+function LoadLeveller.measure!(mc::TestMC, ctx::MCContext)
+    measure!(ctx, :test, ctx.sweeps)
+    measure!(ctx, :test2, ctx.sweeps^2)
+    measure!(ctx, :test_vec, [ctx.sweeps, sin(ctx.sweeps)])
+    measure!(ctx, :test_rng, rand(ctx.rng))
 
     return nothing
 end
@@ -21,7 +23,7 @@ LoadLeveller.read_checkpoint!(mc::TestMC, in::HDF5.Group) = nothing
 
 function LoadLeveller.register_evaluables(
     ::Type{TestMC},
-    eval::LoadLeveller.Evaluator,
+    eval::Evaluator,
     params::AbstractDict,
 )
     evaluate!((x, y) -> y - x^2, eval, :test4, (:test, :test2))
@@ -35,7 +37,7 @@ function LoadLeveller.register_evaluables(
     return nothing
 end
 
-mutable struct TestParallelRunMC <: LoadLeveller.AbstractMC
+mutable struct TestParallelRunMC <: AbstractMC
     state::Float64
     try_measure_on_nonroot::Bool
 end
@@ -44,7 +46,7 @@ TestParallelRunMC(params::AbstractDict) = TestParallelRunMC(0, false)
 
 function LoadLeveller.init!(
     mc::TestParallelRunMC,
-    ctx::LoadLeveller.MCContext,
+    ctx::MCContext,
     params::AbstractDict,
     comm::MPI.Comm,
 )
@@ -55,11 +57,7 @@ function LoadLeveller.init!(
     return nothing
 end
 
-function LoadLeveller.sweep!(
-    mc::TestParallelRunMC,
-    ctx::LoadLeveller.MCContext,
-    comm::MPI.Comm,
-)
+function LoadLeveller.sweep!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
     @assert comm != MPI.COMM_NULL
     chosen_rank = rand(ctx.rng, 0:MPI.Comm_size(comm)-1)
     chosen_rank = MPI.Bcast(chosen_rank, 0, comm)
@@ -70,23 +68,21 @@ function LoadLeveller.sweep!(
     return nothing
 end
 
-function LoadLeveller.measure!(
-    mc::TestParallelRunMC,
-    ctx::LoadLeveller.MCContext,
-    comm::MPI.Comm,
-)
+function LoadLeveller.measure!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
     @assert comm != MPI.COMM_NULL
     mean = MPI.Reduce(mc.state, +, comm)
     mean2 = MPI.Reduce(mc.state^2, +, comm)
 
     if MPI.Comm_rank(comm) == 0
-        LoadLeveller.measure!(ctx, :test_det, sin(ctx.sweeps))
-        LoadLeveller.measure!(ctx, :test, mean)
-        LoadLeveller.measure!(ctx, :test2, mean2)
+        measure!(ctx, :test_det, sin(ctx.sweeps))
+        measure!(ctx, :test, mean)
+        measure!(ctx, :test2, mean2)
+
+        measure!(ctx, :test_local, rand(ctx.rng))
     end
 
     if mc.try_measure_on_nonroot
-        LoadLeveller.measure!(ctx, :test2, 0.0)
+        measure!(ctx, :test2, 0.0)
     end
 
     return nothing
@@ -125,7 +121,7 @@ end
 
 function LoadLeveller.register_evaluables(
     ::Type{TestParallelRunMC},
-    eval::LoadLeveller.Evaluator,
+    eval::Evaluator,
     params::AbstractDict,
 )
     evaluate!((x, y) -> y - x^2, eval, :test4, (:test, :test2))
