@@ -66,7 +66,7 @@ function start(::Type{SingleRunner}, job::JobInfo)
     JobTools.concatenate_results(runner.job)
 
     all_done = runner.task_id === nothing
-    @info "Stopping due to $(all_done ? "completion" : "time limit")"
+    @info "stopping due to $(all_done ? "completion" : "time limit")"
 
     return !all_done
 end

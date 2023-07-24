@@ -58,7 +58,10 @@ function cli_run(job::JobInfo, args::AbstractDict)
     end
 
     runner = args["single"] ? SingleRunner : MPIRunner
-    return start(runner, job)
+
+    return with_logger(default_logger()) do
+        start(runner, job)
+    end
 end
 
 function cli_status(job::JobInfo, ::AbstractDict)

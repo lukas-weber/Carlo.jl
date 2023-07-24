@@ -1,5 +1,6 @@
 using Serialization
 using LoadLeveller.ResultTools
+using Logging
 
 @testset "Task Selection" begin
     sweeps = [100, 10, 10, 101, 10]
@@ -43,13 +44,17 @@ function make_test_job(dir::AbstractString, sweeps::Integer; ranks_per_run = 1, 
     )
 end
 
-function run_test_job_mpi(job::JobInfo; num_ranks::Integer)
+function run_test_job_mpi(job::JobInfo; num_ranks::Integer, silent::Bool = false)
     JT.create_job_directory(job)
     job_path = job.dir * "/jobfile"
     serialize(job_path, job)
 
     mpiexec() do exe
-        run(`$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job_path)`)
+        cmd = `$exe -n $num_ranks $(Base.julia_cmd()) test_runner_mpi.jl $(job_path)`
+        if silent
+            cmd = pipeline(cmd; stdout = devnull, stderr = devnull)
+        end
+        run(cmd)
     end
 
     return nothing
@@ -102,8 +107,16 @@ end
                 ranks_per_run = 2,
                 try_measure_on_nonroot = true,
             )
-            @test_throws ProcessFailedException run_test_job_mpi(job_fail; num_ranks = 4) # only run leader can measure
-            @test_throws ProcessFailedException run_test_job_mpi(job_2rank; num_ranks = 3) # number of ranks needs to be commensurate
+            @test_throws ProcessFailedException run_test_job_mpi(
+                job_fail;
+                num_ranks = 4,
+                silent = true,
+            ) # only run leader can measure
+            @test_throws ProcessFailedException run_test_job_mpi(
+                job_2rank;
+                num_ranks = 3,
+                silent = true,
+            ) # number of ranks needs to be commensurate
         end
 
         @testset "MPI" begin
@@ -117,23 +130,23 @@ end
         end
 
         @testset "Single" begin
-            job3_full = make_test_job("$tmpdir/test3_full", 200)
+            with_logger(Logging.NullLogger()) do
+                job3_full = make_test_job("$tmpdir/test3_full", 200)
+                start(LoadLeveller.SingleRunner, job3_full)
 
-            start(LoadLeveller.SingleRunner, job3_full)
+                job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 100)
+                start(LoadLeveller.SingleRunner, job3_halfhalf)
+                job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 200)
+                start(LoadLeveller.SingleRunner, job3_halfhalf)
 
-            job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 100)
-            start(LoadLeveller.SingleRunner, job3_halfhalf)
-            job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 200)
-            start(LoadLeveller.SingleRunner, job3_halfhalf)
-
-            for job in (job3_full, job3_halfhalf)
-                tasks = JT.read_progress(job)
-                for task in tasks
-                    @test task.sweeps == task.target_sweeps
+                for job in (job3_full, job3_halfhalf)
+                    tasks = JT.read_progress(job)
+                    for task in tasks
+                        @test task.sweeps == task.target_sweeps
+                    end
                 end
+                compare_results(job3_full, job3_halfhalf)
             end
-
-            compare_results(job3_full, job3_halfhalf)
         end
     end
 end

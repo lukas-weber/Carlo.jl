@@ -9,4 +9,4 @@ function log_formatter(level::LogLevel, _module, group, id, file, line)
     return color, "$(prefix) $(Dates.format(now(), date_format))", suffix
 end
 
-global_logger(ConsoleLogger(meta_formatter = log_formatter))
+default_logger() = ConsoleLogger(meta_formatter = log_formatter)
