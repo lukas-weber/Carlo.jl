@@ -75,7 +75,9 @@ function write_checkpoint!(
         else
             is_run_leader = MPI.Comm_rank(comm) == 0
 
-            @assert is_run_leader || isempty(run.context.measure)
+            if !is_run_leader && !isempty(run.context.measure)
+                error("In parallel run mode, only the first rank of a run can do measurements!")
+            end
 
             if !is_run_leader
                 MPI.send(run.context, comm; dest = 0)
