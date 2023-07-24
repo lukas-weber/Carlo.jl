@@ -20,10 +20,16 @@ end
 
 """Perform one MC step. Returns the number of thermalized sweeps performed"""
 function step!(run::Run, comm::MPI.Comm = MPI.COMM_NULL)
-    sweep!(run.implementation, run.context, comm)
+    sweep_time = @elapsed sweep!(run.implementation, run.context, comm)
     run.context.sweeps += 1
     if is_thermalized(run.context)
-        measure!(run.implementation, run.context, comm)
+        measure_time = @elapsed measure!(run.implementation, run.context, comm)
+
+        if comm == MPI.COMM_NULL || MPI.Comm_rank(comm) == 0
+            measure!(run.context, :_ll_sweep_time, sweep_time)
+            measure!(run.context, :_ll_measure_time, measure_time)
+        end
+
         return 1
     end
 
