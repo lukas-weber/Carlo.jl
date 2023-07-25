@@ -3,21 +3,20 @@ module ResultTools
 using JSON
 using Measurements
 
-
 make_scalar(x) = x isa AbstractVector && size(x) == (1,) ? only(x) : x
 
 function measurement_from_obs(obsname, obs)
-    if obs["rebin_length"] !== nothing && obs["autocorr_time"] >= obs["rebin_length"]
+    if !isnothing(obs["rebin_len"]) &&
+       !isnothing(obs["autocorr_time"]) &&
+       obs["autocorr_time"] >= obs["rebin_len"]
         @warn "$obsname: autocorrelation time longer than rebin length. Results may be unreliable."
     end
 
     mean = obs["mean"]
     error = obs["error"]
-    if isnothing(mean) || isnothing(error)
-        return missing
-    end
 
-    return make_scalar(mean .± error)
+    sanitize(m, e) = (isnothing(m) || isnothing(e)) ? missing : m ± e
+    return make_scalar(sanitize.(mean, error))
 end
 
 """
