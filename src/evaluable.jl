@@ -87,6 +87,11 @@ function evaluate!(
     name::Symbol,
     ingredients::NTuple{N,Symbol},
 ) where {Func,N}
+    notfound = setdiff(ingredients, keys(eval.observables))
+    if !isempty(notfound)
+        @warn "Evaluable '$name': ingredients $notfound not found. Skipping..."
+        return nothing
+    end
     eval.evaluables[name] =
         evaluate(evaluation, tuple((eval.observables[i] for i in ingredients)...))
     return nothing
