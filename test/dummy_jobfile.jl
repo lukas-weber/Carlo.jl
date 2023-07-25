@@ -1,5 +1,5 @@
-using LoadLeveller
-using LoadLeveller.JobTools
+using Carlo
+using Carlo.JobTools
 include("test_mc.jl")
 
 tm = TaskMaker()
@@ -19,4 +19,4 @@ job = JobInfo(
     run_time = "00:10",
 )
 
-LoadLeveller.start(job, ARGS[2:end])
+Carlo.start(job, ARGS[2:end])

@@ -1,4 +1,4 @@
-import LoadLeveller
+import Carlo
 using HDF5
 using MPI
 
@@ -6,10 +6,10 @@ struct TestMC <: AbstractMC end
 
 TestMC(params::AbstractDict) = TestMC()
 
-LoadLeveller.init!(mc::TestMC, ctx::MCContext, params::AbstractDict) = nothing
-LoadLeveller.sweep!(mc::TestMC, ctx::MCContext) = nothing
+Carlo.init!(mc::TestMC, ctx::MCContext, params::AbstractDict) = nothing
+Carlo.sweep!(mc::TestMC, ctx::MCContext) = nothing
 
-function LoadLeveller.measure!(mc::TestMC, ctx::MCContext)
+function Carlo.measure!(mc::TestMC, ctx::MCContext)
     measure!(ctx, :test, ctx.sweeps)
     measure!(ctx, :test2, ctx.sweeps^2)
     measure!(ctx, :test_vec, [ctx.sweeps, sin(ctx.sweeps)])
@@ -18,10 +18,10 @@ function LoadLeveller.measure!(mc::TestMC, ctx::MCContext)
     return nothing
 end
 
-LoadLeveller.write_checkpoint(mc::TestMC, out::HDF5.Group) = nothing
-LoadLeveller.read_checkpoint!(mc::TestMC, in::HDF5.Group) = nothing
+Carlo.write_checkpoint(mc::TestMC, out::HDF5.Group) = nothing
+Carlo.read_checkpoint!(mc::TestMC, in::HDF5.Group) = nothing
 
-function LoadLeveller.register_evaluables(
+function Carlo.register_evaluables(
     ::Type{TestMC},
     eval::Evaluator,
     params::AbstractDict,
@@ -44,7 +44,7 @@ end
 
 TestParallelRunMC(params::AbstractDict) = TestParallelRunMC(0, false)
 
-function LoadLeveller.init!(
+function Carlo.init!(
     mc::TestParallelRunMC,
     ctx::MCContext,
     params::AbstractDict,
@@ -57,7 +57,7 @@ function LoadLeveller.init!(
     return nothing
 end
 
-function LoadLeveller.sweep!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
+function Carlo.sweep!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
     @assert comm != MPI.COMM_NULL
     chosen_rank = rand(ctx.rng, 0:MPI.Comm_size(comm)-1)
     chosen_rank = MPI.Bcast(chosen_rank, 0, comm)
@@ -68,7 +68,7 @@ function LoadLeveller.sweep!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Co
     return nothing
 end
 
-function LoadLeveller.measure!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
+function Carlo.measure!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
     @assert comm != MPI.COMM_NULL
     mean = MPI.Reduce(mc.state, +, comm)
     mean2 = MPI.Reduce(mc.state^2, +, comm)
@@ -88,7 +88,7 @@ function LoadLeveller.measure!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.
     return nothing
 end
 
-function LoadLeveller.write_checkpoint(
+function Carlo.write_checkpoint(
     mc::TestParallelRunMC,
     out::Union{HDF5.Group,Nothing},
     comm::MPI.Comm,
@@ -103,7 +103,7 @@ function LoadLeveller.write_checkpoint(
     return nothing
 end
 
-function LoadLeveller.read_checkpoint!(
+function Carlo.read_checkpoint!(
     mc::TestParallelRunMC,
     in::Union{HDF5.Group,Nothing},
     comm::MPI.Comm,
@@ -119,7 +119,7 @@ function LoadLeveller.read_checkpoint!(
     return nothing
 end
 
-function LoadLeveller.register_evaluables(
+function Carlo.register_evaluables(
     ::Type{TestParallelRunMC},
     eval::Evaluator,
     params::AbstractDict,

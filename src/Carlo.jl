@@ -1,4 +1,4 @@
-module LoadLeveller
+module Carlo
 export AbstractMC, MCContext, measure!, is_thermalized
 export Evaluator, evaluate!, start
 

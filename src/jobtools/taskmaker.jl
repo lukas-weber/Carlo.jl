@@ -6,7 +6,7 @@ Tool for generating a list of tasks, i.e. parameter sets, to be simulated in a M
 The fields of `TaskMaker` can be freely assigned and each time [`task`](@ref) is called, their current state will be copied into a new task.
 Finally the list of tasks can be generated using [`make_tasks`](@ref)
 
-In most cases the resulting tasks will be used in the constructor of [`JobInfo`](@ref), the basic description for jobs in LoadLeveller.
+In most cases the resulting tasks will be used in the constructor of [`JobInfo`](@ref), the basic description for jobs in Carlo.
 
 # Example
 The following example creates a list of 5 tasks for different parameters `T`. This could be a scan of the finite-temperature phase diagram of some model. The first task will be run with more sweeps than the rest.

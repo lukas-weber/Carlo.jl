@@ -15,8 +15,8 @@ end
 function test_checkpointing(obj)
     return tmp_hdf5_file() do file
         group = create_group(file, "test")
-        LoadLeveller.write_checkpoint(obj, group)
-        obj2 = LoadLeveller.read_checkpoint(typeof(obj), group)
+        Carlo.write_checkpoint(obj, group)
+        obj2 = Carlo.read_checkpoint(typeof(obj), group)
 
         return obj == obj2
     end

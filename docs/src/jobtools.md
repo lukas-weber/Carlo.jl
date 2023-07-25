@@ -1,9 +1,9 @@
 # [JobTools](@id jobtools)
 
-This submodule contains tools to specify or read job information necessary to run LoadLeveller calculations.
+This submodule contains tools to specify or read job information necessary to run Carlo calculations.
 
 ```@meta
-CurrentModule = LoadLeveller.JobTools
+CurrentModule = Carlo.JobTools
 ```
 
 ```@docs

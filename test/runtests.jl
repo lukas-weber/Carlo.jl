@@ -1,7 +1,7 @@
 using Test
-using LoadLeveller
-using LoadLeveller.JobTools
-import LoadLeveller.JobTools as JT
+using Carlo
+using Carlo.JobTools
+import Carlo.JobTools as JT
 using MPI
 
 include("test_utils.jl")

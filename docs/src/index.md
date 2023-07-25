@@ -1,8 +1,8 @@
-# LoadLeveller.jl
+# Carlo.jl
 
 ## Overview
 
-LoadLeveller is a framework that aims to simplify the implementation of high-performance Monte Carlo codes
+Carlo is a framework that aims to simplify the implementation of high-performance Monte Carlo codes
 by handling the parallelization, checkpointing and error analysis. What sets it apart is a focus on
 ease of use and minimalism.
 
@@ -10,20 +10,20 @@ ease of use and minimalism.
 
 ```@repl
 using Pkg
-Pkg.add("LoadLeveller")
+Pkg.add("Carlo")
 ```
 
 ## Usage
 
-In order to work with LoadLeveller, a Monte Carlo algorithm has to implement the [AbstractMC](@ref abstract_mc) interface. A full example of this is given in the
+In order to work with Carlo, a Monte Carlo algorithm has to implement the [AbstractMC](@ref abstract_mc) interface. A full example of this is given in the
 reference implementation for the [Ising](https://github.com/lukas-weber/Ising.jl) model.
 
 Then, to perform simulation, one writes a *job script* defining all the parameters needed for the simulation, which could look something like the following.
 ```@example
 #!/usr/bin/env julia
 
-using LoadLeveller
-using LoadLeveller.JobTools
+using Carlo
+using Carlo.JobTools
 using Ising
 
 tm = TaskMaker()
@@ -49,9 +49,9 @@ start(dummy, dummy2) = nothing # hide
 start(job, ARGS)
 ```
 
-This example starts a simulation for the Ising model on the 10×10 lattice for 20 different temperatures. Using the function [`start(job::JobInfo, ARGS)`](@ref) enables the [LoadLeveller CLI](@ref cli).
+This example starts a simulation for the Ising model on the 10×10 lattice for 20 different temperatures. Using the function [`start(job::JobInfo, ARGS)`](@ref) enables the [Carlo CLI](@ref cli).
 
 The first argument of JobInfo is the prefix for starting the simulation. One possible convention is to use the `@__FILE__` macro to automatically start jobs in the same directory as the script file. Alternatively,
 the script file could be located in a git repository, while the large simulation directory is located elsewhere.
 
-It should be noted that in contrast to some other packages, the parameter files of LoadLeveller are programs. This is especially handy when a calculation consists of many different tasks.
+It should be noted that in contrast to some other packages, the parameter files of Carlo are programs. This is especially handy when a calculation consists of many different tasks.

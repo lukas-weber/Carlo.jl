@@ -5,11 +5,11 @@ using PrettyTables
 """
     start(job::JobInfo, ARGS)
 
-Call this from your job script to start the LoadLeveller command line interface.
+Call this from your job script to start the Carlo command line interface.
 
 If for any reason you do not want to use job scripts, you can directly schedule a job using
 
-    start(LoadLeveller.MPIScheduler, job)
+    start(Carlo.MPIScheduler, job)
 """
 function start(job::JobInfo, args::AbstractVector{<:AbstractString})
     s = ArgParseSettings()

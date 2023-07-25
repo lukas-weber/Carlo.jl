@@ -1,41 +1,41 @@
 using Random
 
-import LoadLeveller
+import Carlo
 
 @testset "Run" begin
     params = Dict(:thermalization => 100, :binsize => 13)
-    run = LoadLeveller.Run{TestMC,Random.Xoshiro}(params)
+    run = Carlo.Run{TestMC,Random.Xoshiro}(params)
 
     sweeps = 131
     for i = 1:sweeps
-        LoadLeveller.step!(run)
+        Carlo.step!(run)
     end
     @test run.context.sweeps == sweeps
 
 
     tmpdir = mktempdir()
-    LoadLeveller.write_checkpoint!(run, tmpdir * "/test")
-    @test nothing == LoadLeveller.read_checkpoint(
-        LoadLeveller.Run{TestMC,Random.Xoshiro},
+    Carlo.write_checkpoint!(run, tmpdir * "/test")
+    @test nothing == Carlo.read_checkpoint(
+        Carlo.Run{TestMC,Random.Xoshiro},
         tmpdir * "/test",
         params,
     )
-    LoadLeveller.write_checkpoint_finalize(tmpdir * "/test")
+    Carlo.write_checkpoint_finalize(tmpdir * "/test")
 
 
-    run2 = LoadLeveller.read_checkpoint(
-        LoadLeveller.Run{TestMC,Random.Xoshiro},
+    run2 = Carlo.read_checkpoint(
+        Carlo.Run{TestMC,Random.Xoshiro},
         tmpdir * "/test",
         params,
     )
 
     @test run.implementation == run2.implementation
     @test run.context.rng == run2.context.rng
-    LoadLeveller.step!(run)
-    LoadLeveller.write_checkpoint!(run, tmpdir * "/test")
+    Carlo.step!(run)
+    Carlo.write_checkpoint!(run, tmpdir * "/test")
 
-    run3 = LoadLeveller.read_checkpoint(
-        LoadLeveller.Run{TestMC,Random.Xoshiro},
+    run3 = Carlo.read_checkpoint(
+        Carlo.Run{TestMC,Random.Xoshiro},
         tmpdir * "/test",
         params,
     )

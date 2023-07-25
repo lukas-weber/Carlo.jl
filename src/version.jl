@@ -8,10 +8,10 @@ end
 """
     Version
 
-The version information for both `LoadLeveller` and the parent module of the `AbstractMC` implementation that is currently used.
+The version information for both `Carlo` and the parent module of the `AbstractMC` implementation that is currently used.
 """
 struct Version
-    loadleveller_version::Union{Missing,String}
+    carlo_version::Union{Missing,String}
     mc_package::String
     mc_version::Union{Missing,String}
 

@@ -1,4 +1,4 @@
-using LoadLeveller
+using Carlo
 
 @testset "Evaluable" begin
     @testset "scalar" begin
@@ -8,7 +8,7 @@ using LoadLeveller
 
         # TODO: proper statistical test
         @test all(
-            LoadLeveller.jackknife(func, means) .≈
+            Carlo.jackknife(func, means) .≈
             ([0.712962962962963], [0.25726748128610744]),
         )
     end
@@ -19,14 +19,14 @@ using LoadLeveller
         means = ([[2, 5], [3, 4], [4, 3]],)
 
         @test all(
-            LoadLeveller.jackknife(func, means) .≈
+            Carlo.jackknife(func, means) .≈
             ([0.712962962962963], [0.25726748128610744]),
         )
 
         func2 = x -> [x[1] / x[2], 2x[1] / x[2]]
 
         @test all(
-            LoadLeveller.jackknife(func2, means) .≈ (
+            Carlo.jackknife(func2, means) .≈ (
                 [0.712962962962963, 2 * 0.712962962962963],
                 [0.25726748128610744, 2 * 0.25726748128610744],
             ),

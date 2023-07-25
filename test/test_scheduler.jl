@@ -1,23 +1,23 @@
 using Serialization
-using LoadLeveller.ResultTools
+using Carlo.ResultTools
 using Logging
 
 @testset "Task Selection" begin
     sweeps = [100, 10, 10, 101, 10]
-    tasks = map(s -> LoadLeveller.SchedulerTask(100, s, "", 0), sweeps)
+    tasks = map(s -> Carlo.SchedulerTask(100, s, "", 0), sweeps)
 
-    @test LoadLeveller.get_new_task_id(tasks, 1) == 2
-    @test LoadLeveller.get_new_task_id(tasks, 2) == 3
-    @test LoadLeveller.get_new_task_id(tasks, 3) == 5
-    @test LoadLeveller.get_new_task_id(tasks, 4) == 5
-    @test LoadLeveller.get_new_task_id(tasks, 5) == 2
+    @test Carlo.get_new_task_id(tasks, 1) == 2
+    @test Carlo.get_new_task_id(tasks, 2) == 3
+    @test Carlo.get_new_task_id(tasks, 3) == 5
+    @test Carlo.get_new_task_id(tasks, 4) == 5
+    @test Carlo.get_new_task_id(tasks, 5) == 2
 
-    tasks = map(s -> LoadLeveller.SchedulerTask(100, s, "", 0), [100, 100, 100])
+    tasks = map(s -> Carlo.SchedulerTask(100, s, "", 0), [100, 100, 100])
     for i = 1:length(tasks)
-        @test LoadLeveller.get_new_task_id(tasks, i) === nothing
+        @test Carlo.get_new_task_id(tasks, i) === nothing
     end
 
-    @test LoadLeveller.get_new_task_id(tasks, nothing) === nothing
+    @test Carlo.get_new_task_id(tasks, nothing) === nothing
 end
 
 function make_test_job(dir::AbstractString, sweeps::Integer; ranks_per_run = 1, kwargs...)
@@ -132,12 +132,12 @@ end
         @testset "Single" begin
             with_logger(Logging.NullLogger()) do
                 job3_full = make_test_job("$tmpdir/test3_full", 200)
-                start(LoadLeveller.SingleScheduler, job3_full)
+                start(Carlo.SingleScheduler, job3_full)
 
                 job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 100)
-                start(LoadLeveller.SingleScheduler, job3_halfhalf)
+                start(Carlo.SingleScheduler, job3_halfhalf)
                 job3_halfhalf = make_test_job("$tmpdir/test3_halfhalf", 200)
-                start(LoadLeveller.SingleScheduler, job3_halfhalf)
+                start(Carlo.SingleScheduler, job3_halfhalf)
 
                 for job in (job3_full, job3_halfhalf)
                     tasks = JT.read_progress(job)

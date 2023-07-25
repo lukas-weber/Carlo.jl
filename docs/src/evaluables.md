@@ -4,7 +4,7 @@ In addition to simply calculating the averages of some observables in your Monte
 
 This presents two problems. First, estimating the errors of such quantities is not trivial due to correlations. Second, simply computing functions of quantities with errorbars incurs a bias.
 
-Luckily, LoadLeveller can help you with this by letting you define such quantities – we call them *evaluables* – in the [`LoadLeveller.register_evaluables(YourMC, eval, params)`](@ref) function.
+Luckily, Carlo can help you with this by letting you define such quantities – we call them *evaluables* – in the [`Carlo.register_evaluables(YourMC, eval, params)`](@ref) function.
 
 This function gets an `Evaluator` which can be used to
 
@@ -17,10 +17,10 @@ evaluate!
 This is an example for a `register_evaluables` implementation for a model of a magnet.
 
 ```@example
-using LoadLeveller
+using Carlo
 struct YourMC <: AbstractMC end # hide
 
-function LoadLeveller.register_evaluables(
+function Carlo.register_evaluables(
     ::Type{YourMC},
     eval::Evaluator,
     params::AbstractDict,

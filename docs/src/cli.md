@@ -3,7 +3,7 @@
 ```@docs
     start
 ```
-A job script calling `start(job, ARGS)` (as shown in [Usage](@ref)) exposes the LoadLeveller command line interface when executed.
+A job script calling `start(job, ARGS)` (as shown in [Usage](@ref)) exposes the Carlo command line interface when executed.
 
 ```bash
 ./myjob --help
@@ -25,7 +25,7 @@ mpirun -n $num_cores ./myjob run
 
 Once the simulation is started, a directory `myjob.data` will be created to store all simulation data. The name of the directory corresponds to the first argument of `JobInfo`. Usually that will be `@__FILE__`, but you could collect your simulation data in a different directory.
 
-The data directory will contain hdf5 files for each task of the job that contain checkpointing snapshots and measurement results. Once the job is done, LoadLeveller will average the measurement data for you and produce the file `myjob.results.json` in the same directory as the `myjob.data` directory. This file contains means and errorbars of all observables. See [ResultTools](@ref result_tools) for some tips on consuming this file back into julia for your plotting or other postprocessing.
+The data directory will contain hdf5 files for each task of the job that contain checkpointing snapshots and measurement results. Once the job is done, Carlo will average the measurement data for you and produce the file `myjob.results.json` in the same directory as the `myjob.data` directory. This file contains means and errorbars of all observables. See [ResultTools](@ref result_tools) for some tips on consuming this file back into julia for your plotting or other postprocessing.
 
 ## Job status
 
@@ -43,7 +43,7 @@ The fraction is defined as thermalization sweeps completed/total thermalization 
 ./myjob merge
 ```
 
-Usually LoadLeveller will automatically merge results once a job is complete, but when you are impatient and you want to check on results of a running or aborted job, this command is your friend. It will produce a `myjob.results.json` file containing the averages of the currently available data.
+Usually Carlo will automatically merge results once a job is complete, but when you are impatient and you want to check on results of a running or aborted job, this command is your friend. It will produce a `myjob.results.json` file containing the averages of the currently available data.
 
 ## Deleting jobs
 
@@ -51,7 +51,7 @@ Usually LoadLeveller will automatically merge results once a job is complete, bu
 ./myjob delete
 ```
 
-This deletes `myjob.data` and `myjob.results.json`. Of course, you should archive your simulation data instead of deleting them. However, if you made an error in a previous simulation, keep in mind that by default LoadLeveller will continue it from the checkpoints.
+This deletes `myjob.data` and `myjob.results.json`. Of course, you should archive your simulation data instead of deleting them. However, if you made an error in a previous simulation, keep in mind that by default Carlo will continue it from the checkpoints.
 
 For that case of restarting a job there is a handy shortcut as well
 

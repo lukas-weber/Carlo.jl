@@ -1,9 +1,9 @@
 # [ResultTools](@id result_tools)
 
-This is a small module to ease importing LoadLeveller results back into Julia. It contains the function
+This is a small module to ease importing Carlo results back into Julia. It contains the function
 
 ```@docs
-LoadLeveller.ResultTools.dataframe
+Carlo.ResultTools.dataframe
 ```
 
 An example of using ResultTools with DataFrames.jl would be the following.
@@ -11,7 +11,7 @@ An example of using ResultTools with DataFrames.jl would be the following.
 ```@example
 using Plots
 using DataFrames
-using LoadLeveller.ResultTools
+using Carlo.ResultTools
 
 df = DataFrame(ResultTools.dataframe("example.results.json"))
 

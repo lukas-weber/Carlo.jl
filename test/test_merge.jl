@@ -1,4 +1,4 @@
-using LoadLeveller
+using Carlo
 using Formatting
 using Random
 using Statistics
@@ -21,16 +21,16 @@ function create_mock_data(
         nsamples = samples_per_run + extra_samples * (run == 1)
         start_sample = length(samples) + 1
         h5open(filenames[run], "w") do file
-            meas = LoadLeveller.Measurements{Float64}(internal_binsize)
+            meas = Carlo.Measurements{Float64}(internal_binsize)
             for i = 1:nsamples
                 value = generator(idx)
-                LoadLeveller.add_sample!(meas, obsname, value)
+                Carlo.add_sample!(meas, obsname, value)
                 if i <= (nsamples ÷ internal_binsize) * internal_binsize
                     append!(samples, value)
                 end
                 idx += 1
             end
-            LoadLeveller.write_measurements!(meas, create_group(file, "observables"))
+            Carlo.write_measurements!(meas, create_group(file, "observables"))
         end
         h5open(filenames[run], "r") do file
             @test read(file, "observables/$obsname/samples") == mean(
@@ -45,7 +45,7 @@ end
 
 @testset "rebin_count" begin
     for sample_count = 0:100
-        rebins = LoadLeveller.calc_rebin_count(sample_count)
+        rebins = Carlo.calc_rebin_count(sample_count)
         @test (sample_count != 0) <= rebins <= sample_count
     end
 end
@@ -72,7 +72,7 @@ end
 
                 for rebin_length in [nothing, 1, 2]
                     @testset "rebin_length = $(rebin_length)" begin
-                        results = LoadLeveller.merge_results(
+                        results = Carlo.merge_results(
                             filenames;
                             rebin_length = rebin_length,
                         )
@@ -120,7 +120,7 @@ end
                 return ar1_y
             end
 
-            results = LoadLeveller.merge_results(filenames; rebin_length = 100)
+            results = Carlo.merge_results(filenames; rebin_length = 100)
 
             # AR(1)
             ar1_obs = results[:ar1_test]

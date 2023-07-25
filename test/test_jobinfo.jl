@@ -1,7 +1,7 @@
 using JSON
 using Dates
-using LoadLeveller.JobTools
-import LoadLeveller.JobTools as JT
+using Carlo.JobTools
+import Carlo.JobTools as JT
 
 @testset "JobInfo" begin
     tm = JT.TaskMaker()

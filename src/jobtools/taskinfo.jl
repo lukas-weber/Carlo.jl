@@ -7,11 +7,11 @@ Holds information of one parameter set in a Monte Carlo calculation. While it is
 use [`TaskMaker`](@ref) for convenience.
 
 # Special parameters
-While `params` can hold any kind of parameter, some are special and used to configure the behavior of LoadLeveller.
+While `params` can hold any kind of parameter, some are special and used to configure the behavior of Carlo.
 
 - `sweeps`: *required*. The minimum number of Monte Carlo measurement sweeps to perform for the task.
 - `thermalization`: *required*. The number of thermalization sweeps to perform.
-- `binsize`: *required*. The internal default binsize for observables. LoadLeveller will merge this many samples into one bin before saving them.
+- `binsize`: *required*. The internal default binsize for observables. Carlo will merge this many samples into one bin before saving them.
     On top of this, a rebinning analysis is performed, so that this setting mostly affects disk space and IO efficiency. To get correct autocorrelation times, it should be 1. In all other cases much higher.
 
 - `rng`: *optional*. Type of the random number generator to use. See [rng](@ref).

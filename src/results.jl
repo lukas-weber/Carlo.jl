@@ -1,6 +1,6 @@
 import JSON
 
-"""Result of a LoadLeveller Monte Carlo calculation containing the mean, statistical error and autocorrelation time."""
+"""Result of a Carlo Monte Carlo calculation containing the mean, statistical error and autocorrelation time."""
 struct ResultObservable{T<:AbstractFloat}
     rebin_count::Int64
     rebin_length::Union{Int64,Nothing}

@@ -2,7 +2,7 @@ using HDF5
 using Random
 
 """
-Holds the LoadLeveller-internal state of the simulation and provides an interface to
+Holds the Carlo-internal state of the simulation and provides an interface to
 
 - **Random numbers**: the public field `MCContext.rng` is a random number generator (see [rng](@ref))
 - **Measurements**: see [`measure!(::MCContext, ::Symbol, ::Any)`](@ref)

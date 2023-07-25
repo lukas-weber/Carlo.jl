@@ -1,7 +1,7 @@
-using Documenter, LoadLeveller, LoadLeveller.JobTools
+using Documenter, Carlo, Carlo.JobTools
 
 makedocs(
-    sitename = "LoadLeveller",
+    sitename = "Carlo",
     format = Documenter.HTML(prettyurls = false),
     pages = [
         "index.md",
@@ -11,4 +11,4 @@ makedocs(
     ],
 )
 
-deploydocs(repo = "github.com/lukas-weber/LoadLeveller.jl.git")
+deploydocs(repo = "github.com/lukas-weber/Carlo.jl.git")
