@@ -72,10 +72,12 @@ struct MPISchedulerBusyResponse
     sweeps_since_last_query::Int64
 end
 
-const T_STATUS = 5
-const T_BUSY_STATUS = 6
-const T_ACTION = 7
-const T_NEW_TASK = 8
+const T_STATUS = 4354
+const T_BUSY_STATUS = 4355
+const T_ACTION = 4356
+const T_NEW_TASK = 4357
+
+const T_MCCONTEXT = 4358
 
 @enum MPISchedulerStatus begin
     S_IDLE = 9

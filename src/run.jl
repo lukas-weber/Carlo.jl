@@ -90,13 +90,13 @@ function write_checkpoint!(
             end
 
             if !is_run_leader
-                MPI.send(run.context, comm; dest = 0)
+                MPI.send(run.context, comm; dest = 0, tag = T_MCCONTEXT)
                 write_checkpoint(run.implementation, nothing, comm)
             else
                 h5open(file_prefix * ".dump.h5.tmp", "w") do file
                     write_checkpoint(run.context, create_group(file, "context/0001"))
                     for _ = 1:MPI.Comm_size(comm)-1
-                        context, status = MPI.recv(comm, MPI.Status)
+                        context, status = MPI.recv(comm, MPI.Status; tag = T_MCCONTEXT)
 
                         write_checkpoint(
                             context,
