@@ -159,7 +159,7 @@ function merge_results(
         end
     end
 
-    for (obs_name, obs) in observables
+    for (_, obs) in observables
         @assert obs.current_rebin == obs.rebin_count + 1
         @assert obs.sample_counter == obs.rebin_count * obs.rebin_length
 

@@ -43,6 +43,13 @@ function create_mock_data(
     return collect(filenames), samples
 end
 
+@testset "rebin_count" begin
+    for sample_count = 0:100
+        rebins = LoadLeveller.calc_rebin_count(sample_count)
+        @test (sample_count != 0) <= rebins <= sample_count
+    end
+end
+
 @testset "Merge counter" begin
     tmpdir = mktempdir()
     runs = 4
