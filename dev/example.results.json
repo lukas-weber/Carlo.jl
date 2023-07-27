@@ -162,7 +162,7 @@
   },
   "version": {
    "mc_package": "Ising",
-   "loadleveller_version": "0.1.0",
+   "carlo_version": "0.1.0",
    "mc_version": "0.1.0"
   }
  },
@@ -329,7 +329,7 @@
   },
   "version": {
    "mc_package": "Ising",
-   "loadleveller_version": "0.1.0",
+   "carlo_version": "0.1.0",
    "mc_version": "0.1.0"
   }
  },
@@ -496,7 +496,7 @@
   },
   "version": {
    "mc_package": "Ising",
-   "loadleveller_version": "0.1.0",
+   "carlo_version": "0.1.0",
    "mc_version": "0.1.0"
   }
  },
@@ -663,7 +663,7 @@
   },
   "version": {
    "mc_package": "Ising",
-   "loadleveller_version": "0.1.0",
+   "carlo_version": "0.1.0",
    "mc_version": "0.1.0"
   }
  }
