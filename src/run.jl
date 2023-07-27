@@ -184,7 +184,7 @@ function read_checkpoint(
                         MCContext{RNG},
                         file[@sprintf "context/%04d" rank + 1],
                     )
-                    MPI.send(ctx, comm; dest = rank)
+                    MPI.send(ctx, comm; dest = rank, tag = T_READ_MCCONTEXT)
                 end
 
                 read_checkpoint!(mc, file["simulation"], comm)
@@ -193,10 +193,10 @@ function read_checkpoint(
 
         add_sample!(context.measure, :_ll_checkpoint_read_time, checkpoint_read_time)
     else
-        context = MPI.recv(comm; source = 0)
+        context = MPI.recv(comm; source = 0, tag = T_READ_MCCONTEXT)
 
         read_checkpoint!(mc, nothing, comm)
     end
 
-    return Run(context, mc)
+    return Run{MC,RNG}(context, mc)
 end

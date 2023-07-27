@@ -78,6 +78,7 @@ const T_ACTION = 4356
 const T_NEW_TASK = 4357
 
 const T_MCCONTEXT = 4358
+const T_READ_MCCONTEXT = 4359
 
 @enum MPISchedulerStatus begin
     S_IDLE = 9
@@ -281,8 +282,12 @@ function start(
         while !is_done(worker.task)
             worker.task.sweeps += step!(worker.run, run_comm)
 
-            if JobTools.is_checkpoint_time(job, time_last_checkpoint) ||
-               JobTools.is_end_time(job, time_start)
+            timeup = Ref(
+                JobTools.is_checkpoint_time(job, time_last_checkpoint) ||
+                JobTools.is_end_time(job, time_start),
+            )
+            MPI.Bcast!(timeup, 0, run_comm)
+            if timeup[]
                 break
             end
         end
