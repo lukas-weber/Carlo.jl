@@ -72,10 +72,8 @@ end
 
                 for rebin_length in [nothing, 1, 2]
                     @testset "rebin_length = $(rebin_length)" begin
-                        results = Carlo.merge_results(
-                            filenames;
-                            rebin_length = rebin_length,
-                        )
+                        results =
+                            Carlo.merge_results(filenames; rebin_length = rebin_length)
                         count_obs = results[:count_test]
 
                         rebinned_samples =

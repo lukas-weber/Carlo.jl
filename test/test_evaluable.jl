@@ -8,8 +8,7 @@ using Carlo
 
         # TODO: proper statistical test
         @test all(
-            Carlo.jackknife(func, means) .≈
-            ([0.712962962962963], [0.25726748128610744]),
+            Carlo.jackknife(func, means) .≈ ([0.712962962962963], [0.25726748128610744]),
         )
     end
 
@@ -19,8 +18,7 @@ using Carlo
         means = ([[2, 5], [3, 4], [4, 3]],)
 
         @test all(
-            Carlo.jackknife(func, means) .≈
-            ([0.712962962962963], [0.25726748128610744]),
+            Carlo.jackknife(func, means) .≈ ([0.712962962962963], [0.25726748128610744]),
         )
 
         func2 = x -> [x[1] / x[2], 2x[1] / x[2]]

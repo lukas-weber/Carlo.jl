@@ -15,30 +15,19 @@ import Carlo
 
     tmpdir = mktempdir()
     Carlo.write_checkpoint!(run, tmpdir * "/test")
-    @test nothing == Carlo.read_checkpoint(
-        Carlo.Run{TestMC,Random.Xoshiro},
-        tmpdir * "/test",
-        params,
-    )
+    @test nothing ==
+          Carlo.read_checkpoint(Carlo.Run{TestMC,Random.Xoshiro}, tmpdir * "/test", params)
     Carlo.write_checkpoint_finalize(tmpdir * "/test")
 
 
-    run2 = Carlo.read_checkpoint(
-        Carlo.Run{TestMC,Random.Xoshiro},
-        tmpdir * "/test",
-        params,
-    )
+    run2 = Carlo.read_checkpoint(Carlo.Run{TestMC,Random.Xoshiro}, tmpdir * "/test", params)
 
     @test run.implementation == run2.implementation
     @test run.context.rng == run2.context.rng
     Carlo.step!(run)
     Carlo.write_checkpoint!(run, tmpdir * "/test")
 
-    run3 = Carlo.read_checkpoint(
-        Carlo.Run{TestMC,Random.Xoshiro},
-        tmpdir * "/test",
-        params,
-    )
+    run3 = Carlo.read_checkpoint(Carlo.Run{TestMC,Random.Xoshiro}, tmpdir * "/test", params)
     @test run3.implementation == run2.implementation
     @test run3.context.rng == run2.context.rng
 end

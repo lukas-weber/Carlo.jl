@@ -21,11 +21,7 @@ end
 Carlo.write_checkpoint(mc::TestMC, out::HDF5.Group) = nothing
 Carlo.read_checkpoint!(mc::TestMC, in::HDF5.Group) = nothing
 
-function Carlo.register_evaluables(
-    ::Type{TestMC},
-    eval::Evaluator,
-    params::AbstractDict,
-)
+function Carlo.register_evaluables(::Type{TestMC}, eval::Evaluator, params::AbstractDict)
     evaluate!((x, y) -> y - x^2, eval, :test4, (:test, :test2))
     evaluate!(x -> x^2, eval, :test5, (:test,))
     evaluate!(eval, :test6, (:test_vec,)) do x
