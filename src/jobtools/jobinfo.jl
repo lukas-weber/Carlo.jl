@@ -122,7 +122,9 @@ function read_progress(job::JobInfo)
         )
 
         thermalization_fraction =
+            num_runs == 0 ? 0.0 :
             sum(s[2] for s in sweeps; init = 0) / task.params[:thermalization] / num_runs
+
         return TaskProgress(
             target_sweeps,
             thermalized_sweeps,

@@ -22,4 +22,21 @@
     run_cmd("delete")
     @test !isfile(tmpdir * "/test.results.json")
     @test !isdir(tmpdir * "/test")
+
+    tm = TaskMaker()
+    tm.sweeps = 100
+    tm.thermalization = 100
+    tm.binsize = 10
+    task(tm)
+
+    job = JobInfo(
+        tmpdir * "/test",
+        TestMC;
+        tasks = make_tasks(tm),
+        checkpoint_time = "00:05",
+        run_time = "00:10",
+    )
+
+    JobTools.create_job_directory(job)
+    run_cmd("status")
 end
