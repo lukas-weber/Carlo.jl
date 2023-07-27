@@ -61,6 +61,8 @@ function JobInfo(
     ranks_per_run::Union{Integer,Symbol} = 1,
 )
 
+    job_file_name = expanduser(job_file_name)
+
     if (ranks_per_run isa Symbol && ranks_per_run != :all) ||
        (ranks_per_run isa Integer && ranks_per_run < 1)
         throw(
