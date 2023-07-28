@@ -1,4 +1,4 @@
-![Carlo.jl](docs/header.svg)
+# ![Carlo.jl](docs/header.svg)
 [![CI](https://github.com/lukas-weber/Carlo.jl/workflows/CI/badge.svg)](https://github.com/lukas-weber/Carlo.jl/actions)
 
 Carlo is a framework for developing high-performance, distributed (quantum) Monte Carlo simultation.
