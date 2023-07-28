@@ -1,8 +1,14 @@
 # ![Carlo.jl](docs/header.svg)
 [![CI](https://github.com/lukas-weber/Carlo.jl/workflows/CI/badge.svg)](https://github.com/lukas-weber/Carlo.jl/actions)
 
-Carlo is a framework for developing high-performance, distributed (quantum) Monte Carlo simultation.
-Its aim is to take care of model-independent tasks such as error analysis, checkpointing and MPI scheduling and leaves the implementation of Monte Carlo updates and estimators to you.
+Carlo is a framework for developing high-performance, distributed (quantum) Monte Carlo simultations.
+Its aim is to take care of model-independent tasks such as
+
+* autocorrelation and error analysis,
+* Monte-Carlo-aware MPI scheduling, and
+* checkpointing
+
+while leaving all the flexibility of implementating Monte Carlo updates and estimators to you.
 
 
 ## Getting started
