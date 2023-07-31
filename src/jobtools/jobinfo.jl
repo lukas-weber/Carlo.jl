@@ -87,6 +87,11 @@ function task_dir(job::JobInfo, task::TaskInfo)
     return format("{}/{}", job.dir, task.name)
 end
 
+"""
+    result_filename(job::JobInfo)
+
+Returns the filename of the `.results.json` file containing the merged results of the calculation of `job`.
+"""
 result_filename(job::JobInfo) = "$(job.dir)/../$(job.name).results.json"
 
 function concatenate_results(job::JobInfo)
