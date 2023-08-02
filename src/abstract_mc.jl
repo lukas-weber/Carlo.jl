@@ -12,7 +12,7 @@ macro stub(func::Expr)
 end
 
 """
-    init!(mc::YourMC, ctx::MCContext, params::AbstractDict [, comm::MPI.Comm])
+    Carlo.init!(mc::YourMC, ctx::MCContext, params::AbstractDict)
 
 Executed when a simulation is started from scratch.
 """
@@ -21,17 +21,18 @@ init!(mc::AbstractMC, ctx::MCContext, params::AbstractDict, comm::MPI.Comm) =
     init!(mc, ctx, params)
 
 """
-    sweep!(mc::YourMC, ctx::MCContext [, comm::MPI.Comm])
+    Carlo.sweep!(mc::YourMC, ctx::MCContext)
 
 Perform one Monte Carlo sweep or update to the configuration.
 
-Doing measurements is supported during this step as some algorithms require doing so for efficiency. However you are responsible for checking if the simulation [`is_thermalized`](@ref).
+!!! note
+    Doing measurements is supported during this step as some algorithms require doing so for efficiency. Remember to check for [`is_thermalized`](@ref) in that case.
 """
 @stub sweep!(mc::AbstractMC, ctx::MCContext)
 sweep!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm) = sweep!(mc, ctx)
 
 """
-    measure!(mc::YourMC, ctx::MCContext [, comm::MPI.comm])
+    Carlo.measure!(mc::YourMC, ctx::MCContext)
 
 Perform one Monte Carlo measurement.
 """
@@ -48,7 +49,7 @@ function measure!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm)
 end
 
 """
-    write_checkpoint(mc::YourMC, out::HDF5.Group [, comm::MPI.comm])
+    Carlo.write_checkpoint(mc::YourMC, out::HDF5.Group)
 
 Save the complete state of the simulation to `out`.
 """
@@ -69,8 +70,8 @@ function write_checkpoint(
 end
 
 """
-    read_checkpoint!(mc::YourMC, in::HDF5.Group [, comm::MPI.comm])
-    
+    Carlo.read_checkpoint!(mc::YourMC, in::HDF5.Group)
+
 Read the state of the simulation from `in`.
 """
 @stub read_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group)
@@ -90,7 +91,7 @@ function read_checkpoint!(
 end
 
 """
-    register_evaluables(mc::Type{YourMC}, eval::Evaluator, params::AbstractDict)
+    Carlo.register_evaluables(mc::Type{YourMC}, eval::Evaluator, params::AbstractDict)
 
 This function is used to calculate postprocessed quantities from quantities that were measured during the simulation. Common examples are variances or ratios of observables.
 

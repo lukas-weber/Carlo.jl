@@ -8,7 +8,7 @@ implementation.
 Carlo.AbstractMC
 ```
 
-The following methods all need to be defined for your Monte Carlo algoritm type (here referred to as `YourMC <: AbstractMC`).
+The following methods all need to be defined for your Monte Carlo algoritm type (here referred to as `YourMC <: AbstractMC`). See [Parallel run mode](@ref parallel_run_mode) for a slightly different interface that allows inner MPI parallelization of your algorithm.
 
 ```@docs
 Carlo.init!
