@@ -41,12 +41,21 @@ function Base.getproperty(tm::TaskMaker, symbol::Symbol)
 end
 
 """
+    current_task_name(tm::TaskMaker)
+
+Returns the name of the task that will be created by `task(tm)`.
+"""
+function current_task_name(tm::TaskMaker)
+    return task_name(length(Base.getfield(tm, :tasks)) + 1)
+end
+
+"""
     task(tm::TaskMaker; kwargs...)
 
 Creates a new task for the current set of parameters saved in `tm`. Optionally, `kwargs` can be used to specify parameters that are set for this task only.
 """
 function task(tm::TaskMaker; kwargs...)
-    taskname = task_name(length(Base.getfield(tm, :tasks)) + 1)
+    taskname = current_task_name(tm)
 
     append!(
         Base.getfield(tm, :tasks),
