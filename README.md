@@ -2,6 +2,7 @@
 [![Docs dev](https://img.shields.io/badge/docs-latest-blue.svg)](https://lukas.weber.science/Carlo.jl/dev/)
 [![Docs stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://lukas.weber.science/Carlo.jl/stable/)
 [![CI](https://github.com/lukas-weber/Carlo.jl/workflows/CI/badge.svg)](https://github.com/lukas-weber/Carlo.jl/actions)
+[![codecov](https://codecov.io/gh/lukas-weber/Carlo.jl/branch/main/graph/badge.svg?token=AI8CPOGKXF)](https://codecov.io/gh/lukas-weber/Carlo.jl)
 
 Carlo is a framework for developing high-performance, distributed (quantum) Monte Carlo simultations.
 Its aim is to take care of model-independent tasks such as
