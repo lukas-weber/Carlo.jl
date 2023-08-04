@@ -8,7 +8,13 @@ makedocs(
         "index.md",
         "cli.md",
         "abstract_mc.md",
-        "Advanced Topics" => ["evaluables.md", "jobtools.md", "resulttools.md", "rng.md", "parallel_run_mode.md"],
+        "Advanced Topics" => [
+            "evaluables.md",
+            "jobtools.md",
+            "resulttools.md",
+            "rng.md",
+            "parallel_run_mode.md",
+        ],
     ],
 )
 
