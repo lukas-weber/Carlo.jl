@@ -1,7 +1,7 @@
 using Documenter, Carlo, Carlo.JobTools
 
 makedocs(
-    sitename = "Carlo",
+    sitename = "Carlo.jl",
     format = Documenter.HTML(prettyurls = false),
     checkdocs = :all,
     pages = [
