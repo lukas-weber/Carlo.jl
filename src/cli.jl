@@ -110,4 +110,5 @@ function cli_merge(job::JobInfo, ::AbstractDict)
             data_type = Float64,
         )
     end
+    JobTools.concatenate_results(job)
 end
