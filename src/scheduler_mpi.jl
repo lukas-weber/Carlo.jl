@@ -150,7 +150,7 @@ function start(::Type{MPIScheduler}, job::JobInfo)
     end
 
     MPI.Barrier(comm)
-    MPI.Finalize()
+    # MPI.Finalize()
 
     return rc
 end
