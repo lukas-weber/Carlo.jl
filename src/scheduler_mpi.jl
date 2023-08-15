@@ -297,7 +297,7 @@ function start(
 
         if JobTools.is_end_time(job, time_start)
             worker_signal_timeup(run_leader_comm, run_comm)
-            @info "rank $rank exits: time up"
+            @info "exits: time up"
             break
         end
 
