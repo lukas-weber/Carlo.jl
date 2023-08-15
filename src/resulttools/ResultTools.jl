@@ -6,6 +6,9 @@ using Measurements
 make_scalar(x) = x isa AbstractVector && size(x) == (1,) ? only(x) : x
 
 function measurement_from_obs(obsname, obs)
+    if ismissing(obs)
+        return missing
+    end
     if !isnothing(obs["rebin_len"]) &&
        !isnothing(obs["autocorr_time"]) &&
        obs["autocorr_time"] >= obs["rebin_len"]
@@ -27,13 +30,15 @@ Helper to import result data from a `*.results.json` file produced after a Carlo
 function dataframe(result_json::AbstractString)
     json = JSON.parsefile(result_json)
 
+    obsnames = unique(Iterators.flatten(keys(t["results"]) for t in json))
     flattened_json = Dict{String,Any}[
         Dict(
             "task" => basename(t["task"]),
             t["parameters"]...,
             Dict(
-                obsname => measurement_from_obs(obsname, obs) for
-                (obsname, obs) in t["results"]
+                obsname =>
+                    measurement_from_obs(obsname, get(t["results"], obsname, missing))
+                for obsname in obsnames
             )...,
         ) for t in json
     ]
