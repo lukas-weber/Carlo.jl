@@ -111,4 +111,5 @@ function cli_merge(job::JobInfo, ::AbstractDict)
         )
     end
     JobTools.concatenate_results(job)
+    return nothing
 end
