@@ -30,14 +30,14 @@ Returns true if the simulation is thermalized.
 """
 is_thermalized(ctx::MCContext) = ctx.sweeps > ctx.thermalization_sweeps
 
-function MCContext{RNG}(parameters::AbstractDict) where {RNG}
+function MCContext{RNG}(parameters::AbstractDict; seed_variation::Integer = 0) where {RNG}
     measure = Measurements{Float64}(parameters[:binsize])
     register_observable!(measure, :_ll_checkpoint_read_time, 1, 1)
     register_observable!(measure, :_ll_checkpoint_write_time, 1, 1)
 
 
     if haskey(parameters, :seed)
-        rng = RNG(parameters[:seed])
+        rng = RNG(parameters[:seed] * (1 + seed_variation))
     else
         rng = RNG()
     end

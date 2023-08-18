@@ -11,7 +11,8 @@ function Run{MC,RNG}(
     params::Dict,
     comm::MPI.Comm = MPI.COMM_NULL,
 ) where {MC<:AbstractMC,RNG<:AbstractRNG}
-    context = MCContext{RNG}(params)
+    seed_variation = comm == MPI.COMM_NULL ? 0 : MPI.Comm_rank(comm)
+    context = MCContext{RNG}(params; seed_variation)
     implementation = MC(params)
     init!(implementation, context, params, comm)
 
