@@ -90,18 +90,15 @@ function write_checkpoint!(
                 error("In parallel run mode, only the first rank of a run can do measurements!")
             end
 
+            contexts = MPI.gather(run.context, comm)
             if !is_run_leader
-                MPI.send(run.context, comm; dest = 0, tag = T_MCCONTEXT)
                 write_checkpoint(run.implementation, nothing, comm)
             else
                 h5open(file_prefix * ".dump.h5.tmp", "w") do file
-                    write_checkpoint(run.context, create_group(file, "context/0001"))
-                    for _ = 1:MPI.Comm_size(comm)-1
-                        context, status = MPI.recv(comm, MPI.Status; tag = T_MCCONTEXT)
-
+                    for (i, context) in enumerate(contexts)
                         write_checkpoint(
                             context,
-                            create_group(file, @sprintf("context/%04d", status.source + 1)),
+                            create_group(file, @sprintf("context/%04d", i)),
                         )
                     end
 
@@ -179,14 +176,15 @@ function read_checkpoint(
     if is_run_leader(comm)
         checkpoint_read_time = @elapsed begin
             h5open(file_prefix * ".dump.h5", "r") do file
-                context = read_checkpoint(MCContext{RNG}, file["context/0001"])
-                for rank = 1:MPI.Comm_size(comm)-1
-                    ctx = read_checkpoint(
-                        MCContext{RNG},
-                        file[@sprintf "context/%04d" rank + 1],
-                    )
-                    MPI.send(ctx, comm; dest = rank, tag = T_READ_MCCONTEXT)
-                end
+                ranks = 0:MPI.Comm_size(comm)-1
+                keys = [@sprintf("context/%04d", rank + 1) for rank in ranks]
+
+                contexts = [
+                    haskey(file, key) ? read_checkpoint(MCContext{RNG}, file[key]) :
+                    MCContext{RNG}(parameters; seed_variation = rank) for
+                    (rank, key) in zip(ranks, keys)
+                ]
+                context = MPI.scatter(contexts, comm)
 
                 read_checkpoint!(mc, file["simulation"], comm)
             end
@@ -194,7 +192,7 @@ function read_checkpoint(
 
         add_sample!(context.measure, :_ll_checkpoint_read_time, checkpoint_read_time)
     else
-        context = MPI.recv(comm; source = 0, tag = T_READ_MCCONTEXT)
+        context = MPI.scatter(nothing, comm)
 
         read_checkpoint!(mc, nothing, comm)
     end

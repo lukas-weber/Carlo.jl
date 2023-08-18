@@ -49,13 +49,11 @@ function run_test_job_mpi(job::JobInfo; num_ranks::Integer, silent::Bool = false
     job_path = job.dir * "/jobfile"
     serialize(job_path, job)
 
-    mpiexec() do exe
-        cmd = `$exe -n $num_ranks $(Base.julia_cmd()) test_scheduler_mpi.jl $(job_path)`
-        if silent
-            cmd = pipeline(cmd; stdout = devnull, stderr = devnull)
-        end
-        run(cmd)
+    cmd = `$(mpiexec()) -n $num_ranks $(Base.julia_cmd()) test_scheduler_mpi.jl $(job_path)`
+    if silent
+        cmd = pipeline(cmd; stdout = devnull, stderr = devnull)
     end
+    run(cmd)
 
     return nothing
 end
