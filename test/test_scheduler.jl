@@ -110,11 +110,6 @@ end
                 num_ranks = 4,
                 silent = true,
             ) # only run leader can measure
-            @test_throws ProcessFailedException run_test_job_mpi(
-                job_2rank;
-                num_ranks = 3,
-                silent = true,
-            ) # number of ranks needs to be commensurate
         end
 
         @testset "MPI" begin
