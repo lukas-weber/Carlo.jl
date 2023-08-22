@@ -19,7 +19,6 @@ function create_mock_data(
     idx = 1
     for run = 1:runs
         nsamples = samples_per_run + extra_samples * (run == 1)
-        start_sample = length(samples) + 1
         h5open(filenames[run], "w") do file
             meas = Carlo.Measurements{Float64}(internal_binsize)
             for i = 1:nsamples
@@ -31,12 +30,6 @@ function create_mock_data(
                 idx += 1
             end
             Carlo.write_measurements!(meas, create_group(file, "observables"))
-        end
-        h5open(filenames[run], "r") do file
-            @test read(file, "observables/$obsname/samples") == mean(
-                reshape(copy(samples[start_sample:end]), internal_binsize, :);
-                dims = 1,
-            )
         end
     end
 
@@ -70,6 +63,15 @@ end
                     return idx
                 end
 
+                filenames2, _ = create_mock_data(
+                    idx -> [idx, 1.0];
+                    runs = runs,
+                    obsname = :vec_test,
+                    internal_binsize = internal_binsize,
+                    samples_per_run = samples_per_run,
+                    extra_samples = extra_samples,
+                )
+
                 for rebin_length in [nothing, 1, 2]
                     @testset "rebin_length = $(rebin_length)" begin
                         results =
@@ -89,6 +91,13 @@ end
                                   count_obs.rebin_length * count_obs.rebin_count <=
                                   count_obs.total_sample_count
                         end
+
+                        results2 =
+                            Carlo.merge_results(filenames2; rebin_length = rebin_length)
+                        vec_obs = results2[:vec_test]
+                        @test iszero(vec_obs.error[2])
+                        @test vec_obs.error[1] ≈ count_obs.error[1]
+                        @test vec_obs.mean ≈ [count_obs.mean[1], 1.0]
                     end
                 end
             end

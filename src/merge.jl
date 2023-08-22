@@ -146,8 +146,8 @@ function merge_results(
 
                     obs.current_rebin_filling += 1
                     if obs.current_rebin_filling >= obs.rebin_length
-                        obs.rebin_means[obs.current_rebin] /= obs.rebin_length
-                        diff = obs.rebin_means[obs.current_rebin] .- obs.mean
+                        obs.rebin_means[:, obs.current_rebin] /= obs.rebin_length
+                        diff = obs.rebin_means[:, obs.current_rebin] .- obs.mean
                         obs.error .+= diff .^ 2
 
                         obs.current_rebin += 1
