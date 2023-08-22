@@ -77,9 +77,6 @@ const T_BUSY_STATUS = 4355
 const T_ACTION = 4356
 const T_NEW_TASK = 4357
 
-const T_MCCONTEXT = 4358
-const T_READ_MCCONTEXT = 4359
-
 @enum MPISchedulerStatus begin
     S_IDLE = 9
     S_BUSY = 10
