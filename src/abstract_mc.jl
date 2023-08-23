@@ -5,18 +5,12 @@ This type is an interface for implementing your own Monte Carlo algorithm that w
 """
 abstract type AbstractMC end
 
-macro stub(func::Expr)
-    return :(
-        $func = error("AbstractMC interface not implemented for MC type $(typeof(mc))")
-    )
-end
-
 """
     Carlo.init!(mc::YourMC, ctx::MCContext, params::AbstractDict)
 
 Executed when a simulation is started from scratch.
 """
-@stub init!(mc::AbstractMC, ctx::MCContext, params::AbstractDict)
+function init! end
 init!(mc::AbstractMC, ctx::MCContext, params::AbstractDict, comm::MPI.Comm) =
     init!(mc, ctx, params)
 
@@ -28,7 +22,7 @@ Perform one Monte Carlo sweep or update to the configuration.
 !!! note
     Doing measurements is supported during this step as some algorithms require doing so for efficiency. Remember to check for [`is_thermalized`](@ref) in that case.
 """
-@stub sweep!(mc::AbstractMC, ctx::MCContext)
+function sweep! end
 sweep!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm) = sweep!(mc, ctx)
 
 """
@@ -36,7 +30,7 @@ sweep!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm) = sweep!(mc, ctx)
 
 Perform one Monte Carlo measurement.
 """
-@stub measure!(mc::AbstractMC, ctx::MCContext)
+function measure! end
 function measure!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm)
     if comm == MPI.COMM_NULL || MPI.Comm_size(comm) == 1
         measure!(mc, ctx)
@@ -53,7 +47,7 @@ end
 
 Save the complete state of the simulation to `out`.
 """
-@stub write_checkpoint(mc::AbstractMC, dump_file::HDF5.Group)
+function write_checkpoint end
 function write_checkpoint(
     mc::AbstractMC,
     dump_file::Union{HDF5.Group,Nothing},
@@ -84,7 +78,7 @@ end
 
 Read the state of the simulation from `in`.
 """
-@stub read_checkpoint!(mc::AbstractMC, dump_file::HDF5.Group)
+function read_checkpoint! end
 function read_checkpoint!(
     mc::AbstractMC,
     dump_file::Union{HDF5.Group,Nothing},
@@ -107,4 +101,4 @@ This function is used to calculate postprocessed quantities from quantities that
 
 See [evaluables](@ref) for more details.
 """
-@stub register_evaluables(mc::Type{AbstractMC}, eval::Evaluator, params::AbstractDict)
+function register_evaluables end
