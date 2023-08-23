@@ -1,5 +1,6 @@
 module Carlo
-export AbstractMC, MCContext, measure!, is_thermalized
+export AbstractMC,
+    MCContext, measure!, is_thermalized, write_checkpoint, read_checkpoint!, read_checkpoint
 export Evaluator, evaluate!, start
 
 include("jobtools/JobTools.jl")

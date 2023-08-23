@@ -69,6 +69,16 @@ function write_checkpoint(
     return nothing
 end
 
+
+function write_checkpoint(x, out::HDF5.Group, name::AbstractString = "value")
+    write(out, name, x)
+end
+function read_checkpoint(::Type, in::HDF5.Group, name::AbstractString = "value")
+    return read(in, name)
+end
+
+
+
 """
     Carlo.read_checkpoint!(mc::YourMC, in::HDF5.Group)
 
