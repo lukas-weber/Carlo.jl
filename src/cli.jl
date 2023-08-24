@@ -82,7 +82,7 @@ function cli_status(job::JobInfo, ::AbstractDict)
             ),
         )
         header = ["task", "sweeps", "target", "runs", "thermalized"]
-        pretty_table(data, vlines = :none, header = header)
+        pretty_table(data, vlines = :none, header = header, crop = :none)
         return all(map(x -> x.sweeps >= x.target_sweeps, tasks))
     catch err
         if isa(err, Base.IOError)
