@@ -64,10 +64,18 @@ function write_checkpoint(
 end
 
 
-function write_checkpoint(x, out::HDF5.Group, name::AbstractString = "value")
+function write_checkpoint(
+    x::Union{AbstractArray,Number},
+    out::HDF5.Group,
+    name::AbstractString = "value",
+)
     write(out, name, x)
 end
-function read_checkpoint(::Type, in::HDF5.Group, name::AbstractString = "value")
+function read_checkpoint(
+    ::Type{T},
+    in::HDF5.Group,
+    name::AbstractString = "value",
+) where {T<:Union{AbstractArray,Number}}
     return read(in, name)
 end
 
