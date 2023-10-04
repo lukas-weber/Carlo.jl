@@ -1,5 +1,4 @@
 using Carlo
-using Formatting
 using Random
 using Statistics
 
@@ -14,7 +13,7 @@ function create_mock_data(
     tmpdir = mktempdir()
     samples = zeros(0)
 
-    filenames = map(x -> format("{}/run{}.h5", tmpdir, x), 1:runs)
+    filenames = ["$tmpdir/run$i.h5" for i = 1:runs]
 
     idx = 1
     for run = 1:runs

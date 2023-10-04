@@ -1,6 +1,5 @@
 using JSON
 using Dates
-using Formatting
 
 """Parse a duration of the format `[[hours:]minutes]:seconds`."""
 function parse_duration(duration::AbstractString)::Dates.Period
@@ -84,7 +83,7 @@ function JobInfo(
 end
 
 function task_dir(job::JobInfo, task::TaskInfo)
-    return format("{}/{}", job.dir, task.name)
+    return "$(job.dir)/$(task.name)"
 end
 
 """

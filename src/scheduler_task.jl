@@ -1,5 +1,3 @@
-using Formatting
-
 mutable struct SchedulerTask
     target_sweeps::Int64
     sweeps::Int64
@@ -11,7 +9,7 @@ end
 is_done(task::SchedulerTask) = task.sweeps >= task.target_sweeps
 
 function run_dir(task::SchedulerTask, run_id::Integer)
-    return format("{}/run{:04d}", task.dir, run_id)
+    return @sprintf "%s/run%04d" task.dir run_id
 end
 
 function merge_results(

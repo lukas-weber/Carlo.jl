@@ -1,4 +1,5 @@
 using HDF5
+using Printf
 
 """
     TaskInfo(name::AbstractString, params::Dict{Symbol,Any})
@@ -37,7 +38,7 @@ struct TaskInfo
 end
 
 function task_name(task_id::Integer)
-    return format("task{:04d}", task_id)
+    return @sprintf "task%04d" task_id
 end
 
 function list_run_files(taskdir::AbstractString, ending::AbstractString)
