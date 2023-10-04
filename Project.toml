@@ -29,7 +29,7 @@ MPIPreferences = "0.1.9"
 Measurements = "2.10.0"
 PrecompileTools = "1.2.0"
 PrettyTables = "2.2.7"
-julia = ">= 1.7"
+julia = "1.7"
 
 [extras]
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
