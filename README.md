@@ -19,7 +19,7 @@ while leaving all the flexibility of implementating Monte Carlo updates and esti
 To install the package, type
 
 ```julia
-using Pkg; Pkg.add("Carlo")
+using Pkg; Pkg.add("https://github.com/lukas-weber/Carlo.jl")
 ```
 
-The package itself does not include Monte Carlo algorithms. You can test the [Ising](https://github.com/lukas-weber/Ising.jl) or [StochasticSeriesExpansion](https://github.com/lukas-weber/StochasticSeriesExpansion.jl) packages. The former is a particularly easy example you can use as a template for writing your own algorithms.
+The package itself does not include Monte Carlo algorithms. You can test the [Ising](https://github.com/lukas-weber/Ising.jl) or the (not yet released) [StochasticSeriesExpansion](https://github.com/lukas-weber/StochasticSeriesExpansion.jl) packages. The former is a particularly easy example you can use as a template for writing your own algorithms.
