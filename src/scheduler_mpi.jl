@@ -179,7 +179,7 @@ function controller_react_idle(
         task = controller.tasks[controller.task_id]
         task.scheduled_runs += 1
 
-        sweeps_until_comm = max(0, task.target_sweeps - task.sweeps)
+        sweeps_until_comm = max(0, (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs)
         msg = MPISchedulerNewJobResponse(
             controller.task_id,
             task.scheduled_runs,
