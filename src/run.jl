@@ -1,6 +1,5 @@
 using Random
 using Printf
-using Serialization
 
 struct Run{MC<:AbstractMC,RNG<:Random.AbstractRNG}
     context::MCContext{RNG}
