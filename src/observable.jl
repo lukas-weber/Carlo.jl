@@ -76,7 +76,7 @@ function write_measurements!(obs::Observable{T}, out::HDF5.Group) where {T}
             saved_samples,
             (size(obs.samples, 1), old_bin_count + size(obs.samples, 2) - 1),
         )
-        saved_samples[:, old_bin_count+1:end] = obs.samples[:, 1:end-1]
+        saved_samples[:, old_bin_count+1:end] = Matrix(obs.samples[:, 1:end-1])
 
         obs.samples = ElasticArray{T,2}(copy(obs.samples[:, end:end]))
 
@@ -93,7 +93,7 @@ function write_checkpoint(obs::Observable, out::HDF5.Group)
     @assert !has_complete_bins(obs)
     out["bin_length"] = obs.bin_length
     out["current_bin_filling"] = obs.current_bin_filling
-    out["samples"] = obs.samples
+    out["samples"] = Matrix(obs.samples)
 
     return nothing
 end
