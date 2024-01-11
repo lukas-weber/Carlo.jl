@@ -38,6 +38,9 @@ function start(job::JobInfo, args::AbstractVector{<:AbstractString})
     end
 
     parsed_args = parse_args(args, s)
+    if isnothing(parsed_args)
+        return nothing
+    end
     cmd = parsed_args["%COMMAND%"]
 
     cmd_funcs = Dict(
