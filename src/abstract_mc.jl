@@ -64,23 +64,6 @@ function write_checkpoint(
 end
 
 
-function write_checkpoint(
-    x::Union{AbstractArray,Number},
-    out::HDF5.Group,
-    name::AbstractString = "value",
-)
-    write(out, name, x)
-end
-function read_checkpoint(
-    ::Type{T},
-    in::HDF5.Group,
-    name::AbstractString = "value",
-) where {T<:Union{AbstractArray,Number}}
-    return read(in, name)
-end
-
-
-
 """
     Carlo.read_checkpoint!(mc::YourMC, in::HDF5.Group)
 
