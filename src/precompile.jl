@@ -23,7 +23,7 @@ using ..JobTools
 
             redirect_stdio(stdout = devnull, stderr = devnull) do
                 start(job, ["run", "-s"])
-                start(job, ["run"])
+                # start(job, ["run"])
                 start(job, ["status"])
                 start(job, ["merge"])
                 start(job, ["delete"])
