@@ -76,6 +76,7 @@ const T_STATUS = 4354
 const T_BUSY_STATUS = 4355
 const T_ACTION = 4356
 const T_NEW_TASK = 4357
+const T_CONTINUE_SWEEPS = 4358
 
 @enum MPISchedulerStatus begin
     S_IDLE = 9
@@ -165,12 +166,32 @@ function start(::Type{MPISchedulerController}, job::JobInfo, run_leader_comm::MP
     return !all_done
 end
 
+function get_new_task_id_with_significant_work(
+    tasks::AbstractVector{<:SchedulerTask},
+    task_id::Union{Nothing,Integer},
+)
+    for _ in eachindex(tasks)
+        task_id = get_new_task_id(tasks, task_id)
+
+        if task_id === nothing
+            break
+        end
+
+        task = tasks[task_id]
+        if task.target_sweeps - task.sweeps > task.scheduled_runs
+            break
+        end
+    end
+    return task_id
+end
+
 function controller_react_idle(
     controller::MPISchedulerController,
     run_leader_comm::MPI.Comm,
     rank::Integer,
 )
-    controller.task_id = get_new_task_id(controller.tasks, controller.task_id)
+    controller.task_id =
+        get_new_task_id_with_significant_work(controller.tasks, controller.task_id)
     if controller.task_id === nothing
         send_action(run_leader_comm, A_EXIT, rank)
         controller.num_active_ranks -= 1
@@ -213,6 +234,8 @@ function controller_react_busy(
         end
     else
         send_action(run_leader_comm, A_CONTINUE, rank)
+        sweeps_until_comm = max(1, (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs)
+        send(sweeps_until_comm, run_leader_comm; dest = rank, tag = T_CONTINUE_SWEEPS)
     end
     return nothing
 end
@@ -320,6 +343,8 @@ function start(
             worker = nothing
         else
             @assert action == A_CONTINUE
+            worker.task.target_sweeps = worker_react_continue(run_leader_comm, run_comm)
+            @assert !is_done(worker.task)
         end
     end
 end
@@ -372,6 +397,16 @@ function worker_signal_busy(
     MPI.Bcast!(new_action, 0, run_comm)
 
     return new_action[]
+end
+
+function worker_react_continue(run_leader_comm::MPI.Comm, run_comm::MPI.Comm)
+    sweeps_until_comm = Ref{Int64}()
+    if is_run_leader(run_comm)
+        sweeps_until_comm[], _ =
+            recv(Int64, run_leader_comm; source = 0, tag = T_CONTINUE_SWEEPS)
+    end
+    MPI.Bcast!(sweeps_until_comm, 0, run_comm)
+    return sweeps_until_comm[]
 end
 
 function write_checkpoint(scheduler::MPISchedulerWorker, run_comm::MPI.Comm)
