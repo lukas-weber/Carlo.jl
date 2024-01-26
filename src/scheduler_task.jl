@@ -4,7 +4,11 @@ mutable struct SchedulerTask
 
     dir::String
     scheduled_runs::Int64
+    max_scheduled_runs::Int64
 end
+
+SchedulerTask(target_sweeps::Integer, sweeps::Integer, dir::AbstractString) =
+    SchedulerTask(target_sweeps, sweeps, dir, 0, typemax(Int64))
 
 is_done(task::SchedulerTask) = task.sweeps >= task.target_sweeps
 

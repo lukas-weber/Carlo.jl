@@ -28,7 +28,7 @@ function start(::Type{SingleScheduler}, job::JobInfo)
     scheduler.time_last_checkpoint = scheduler.time_start
 
     scheduler.tasks = map(
-        x -> SchedulerTask(x.target_sweeps, x.sweeps, x.dir, 0),
+        x -> SchedulerTask(x.target_sweeps, x.sweeps, x.dir),
         JobTools.read_progress(scheduler.job),
     )
     scheduler.task_id = get_new_task_id(scheduler.tasks, length(scheduler.tasks))
@@ -77,7 +77,10 @@ function get_new_task_id(
     tasks::AbstractVector{SchedulerTask},
     old_id::Integer,
 )::Union{Integer,Nothing}
-    next_unshifted = findfirst(x -> !is_done(x), circshift(tasks, -old_id))
+    next_unshifted = findfirst(
+        x -> !is_done(x) && x.scheduled_runs < x.max_scheduled_runs,
+        circshift(tasks, -old_id),
+    )
     if next_unshifted === nothing
         return nothing
     end

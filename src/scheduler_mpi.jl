@@ -96,10 +96,15 @@ mutable struct MPISchedulerController <: AbstractScheduler
         return new(
             active_ranks,
             length(job.tasks),
-            map(
-                x -> SchedulerTask(x.target_sweeps, x.sweeps, x.dir, 0),
-                JobTools.read_progress(job),
-            ),
+            [
+                SchedulerTask(
+                    p.target_sweeps,
+                    p.sweeps,
+                    p.dir,
+                    0,
+                    get(t.params, :max_runs_per_task, typemax(Int64)),
+                ) for (p, t) in zip(JobTools.read_progress(job), job.tasks)
+            ],
         )
     end
 end
@@ -286,7 +291,7 @@ function start(
 
             task = job.tasks[msg.task_id]
             scheduler_task =
-                SchedulerTask(msg.sweeps_until_comm, 0, JobTools.task_dir(job, task), 0)
+                SchedulerTask(msg.sweeps_until_comm, 0, JobTools.task_dir(job, task))
             rundir = run_dir(scheduler_task, msg.run_id)
 
             run = read_checkpoint(Run{MC,DefaultRNG}, rundir, task.params, run_comm)

@@ -4,7 +4,7 @@ using Logging
 
 @testset "Task Selection" begin
     sweeps = [100, 10, 10, 101, 10]
-    tasks = map(s -> Carlo.SchedulerTask(100, s, "", 0), sweeps)
+    tasks = [Carlo.SchedulerTask(100, s, "") for s in sweeps]
 
     @test Carlo.get_new_task_id(tasks, 1) == 2
     @test Carlo.get_new_task_id(tasks, 2) == 3
@@ -12,7 +12,7 @@ using Logging
     @test Carlo.get_new_task_id(tasks, 4) == 5
     @test Carlo.get_new_task_id(tasks, 5) == 2
 
-    tasks = map(s -> Carlo.SchedulerTask(100, s, "", 0), [100, 100, 100])
+    tasks = [Carlo.SchedulerTask(100, s, "") for s in [100, 100, 100]]
     for i = 1:length(tasks)
         @test Carlo.get_new_task_id(tasks, i) === nothing
     end
