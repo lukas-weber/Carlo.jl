@@ -1,5 +1,6 @@
 using JSON
 using Dates
+using Random
 
 """Parse a duration of the format `[[hours:]minutes]:seconds`."""
 function parse_duration(duration::AbstractString)::Dates.Period
@@ -24,6 +25,7 @@ parse_duration(duration::Dates.Period) = duration
         checkpoint_time::Union{AbstractString, Dates.Second},
         run_time::Union{AbstractString, Dates.Second},
         tasks::Vector{TaskInfo},
+        rng::Type = Random.Xoshiro,
         ranks_per_run::Union{Integer, Symbol} = 1,
     )
 
@@ -36,12 +38,15 @@ Holds all information required for a Monte Carlo calculation. The data of the ca
 Each job contains a set of `tasks`, corresponding
 to different sets of simulation parameters that should be run in parallel. The [`TaskMaker`](@ref) type can be used to conveniently generate them.
 
+`rng` sets the type of random number generator that should be used.
+
 Setting the optional parameter `ranks_per_run > 1` enables [Parallel run mode](@ref parallel_run_mode). The special value `ranks_per_run = :all` uses all available ranks for a single run."""
 struct JobInfo
     name::String
     dir::String
 
     mc::Type
+    rng::Type
 
     tasks::Vector{TaskInfo}
 
@@ -54,6 +59,7 @@ end
 function JobInfo(
     job_file_name::AbstractString,
     mc::Type;
+    rng::Type = Random.Xoshiro,
     checkpoint_time::Union{AbstractString,Dates.Second},
     run_time::Union{AbstractString,Dates.Second},
     tasks::Vector{TaskInfo},
@@ -75,6 +81,7 @@ function JobInfo(
         basename(job_file_name),
         job_file_name * ".data",
         mc,
+        rng,
         tasks,
         parse_duration(checkpoint_time),
         parse_duration(run_time),

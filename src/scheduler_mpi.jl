@@ -109,12 +109,12 @@ mutable struct MPISchedulerController <: AbstractScheduler
     end
 end
 
-mutable struct MPISchedulerWorker{MC<:AbstractMC}
+mutable struct MPISchedulerWorker
     task_id::Int
     run_id::Int
 
     task::SchedulerTask
-    run::Union{Run{MC,DefaultRNG},Nothing}
+    run::Union{Run,Nothing}
 end
 
 function start(::Type{MPIScheduler}, job::JobInfo)
@@ -143,13 +143,13 @@ function start(::Type{MPIScheduler}, job::JobInfo)
             @info "running in parallel run mode with $(ranks_per_run) ranks per run"
         end
 
-        t_work = @async start(MPISchedulerWorker{job.mc}, $job, $run_leader_comm, $run_comm)
+        t_work = @async start(MPISchedulerWorker, $job, $run_leader_comm, $run_comm)
         t_ctrl = @async (rc = start(MPISchedulerController, $job, $run_leader_comm))
         sync_or_error([t_work, t_ctrl])
         @info "controller: concatenating results"
         JobTools.concatenate_results(job)
     else
-        start(MPISchedulerWorker{job.mc}, job, run_leader_comm, run_comm)
+        start(MPISchedulerWorker, job, run_leader_comm, run_comm)
     end
 
     MPI.Barrier(comm)
@@ -270,12 +270,12 @@ function react!(controller::MPISchedulerController, run_leader_comm::MPI.Comm)
 end
 
 function start(
-    ::Type{MPISchedulerWorker{MC}},
+    ::Type{MPISchedulerWorker},
     job::JobInfo,
     run_leader_comm::MPI.Comm,
     run_comm::MPI.Comm,
-) where {MC}
-    worker::Union{MPISchedulerWorker{MC},Nothing} = nothing
+)
+    worker::Union{MPISchedulerWorker,Nothing} = nothing
 
     scheduler_task::Union{SchedulerTask,Nothing} = nothing
 
@@ -294,14 +294,14 @@ function start(
                 SchedulerTask(msg.sweeps_until_comm, 0, JobTools.task_dir(job, task))
             rundir = run_dir(scheduler_task, msg.run_id)
 
-            run = read_checkpoint(Run{MC,DefaultRNG}, rundir, task.params, run_comm)
+            run = read_checkpoint(Run{job.mc,job.rng}, rundir, task.params, run_comm)
             if run !== nothing
                 is_run_leader(run_comm) && @info "read $rundir"
             else
-                run = Run{MC,DefaultRNG}(task.params, run_comm)
+                run = Run{job.mc,job.rng}(task.params, run_comm)
                 is_run_leader(run_comm) && @info "initialized $rundir"
             end
-            worker = MPISchedulerWorker{MC}(msg.task_id, msg.run_id, scheduler_task, run)
+            worker = MPISchedulerWorker(msg.task_id, msg.run_id, scheduler_task, run)
         end
 
         while !is_done(worker.task)
@@ -338,7 +338,7 @@ function start(
         if action == A_PROCESS_DATA_NEW_TASK
             if is_run_leader(run_comm)
                 merge_results(
-                    MC,
+                    job.mc,
                     worker.task.dir;
                     parameters = job.tasks[worker.task_id].params,
                 )

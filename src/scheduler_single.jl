@@ -4,26 +4,24 @@ using .JobTools: JobInfo
 
 abstract type AbstractScheduler end
 
-const DefaultRNG = Random.Xoshiro
-
-mutable struct SingleScheduler{MC<:AbstractMC} <: AbstractScheduler
+mutable struct SingleScheduler <: AbstractScheduler
     job::JobInfo
-    run::Union{Run{MC,DefaultRNG},Nothing}
+    run::Union{Run,Nothing}
 
     time_start::Dates.DateTime
     time_last_checkpoint::Dates.DateTime
 
     task_id::Union{Int,Nothing}
     tasks::Vector{SchedulerTask}
+end
 
-    function SingleScheduler{MC}(job::JobInfo) where {MC<:AbstractMC}
-        return new{MC}(job, nothing, Dates.now(), Dates.now(), 1, SchedulerTask[])
-    end
+function SingleScheduler(job::JobInfo)
+    return SingleScheduler(job, nothing, Dates.now(), Dates.now(), 1, SchedulerTask[])
 end
 
 function start(::Type{SingleScheduler}, job::JobInfo)
     JobTools.create_job_directory(job)
-    scheduler = SingleScheduler{job.mc}(job)
+    scheduler = SingleScheduler(job)
     scheduler.time_start = Dates.now()
     scheduler.time_last_checkpoint = scheduler.time_start
 
@@ -39,11 +37,11 @@ function start(::Type{SingleScheduler}, job::JobInfo)
         scheduler_task = scheduler.tasks[scheduler.task_id]
         rundir = run_dir(scheduler_task, 1)
 
-        scheduler.run = read_checkpoint(Run{job.mc,DefaultRNG}, rundir, task.params)
+        scheduler.run = read_checkpoint(Run{job.mc,job.rng}, rundir, task.params)
         if scheduler.run !== nothing
             @info "read $rundir"
         else
-            scheduler.run = Run{job.mc,DefaultRNG}(task.params)
+            scheduler.run = Run{job.mc,job.rng}(task.params)
             @info "initialized $rundir"
         end
 
