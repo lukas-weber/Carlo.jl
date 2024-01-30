@@ -3,12 +3,12 @@
    Resolving package versions...
    Installed Carlo ─ v0.1.4
     Updating `~/work/Carlo.jl/Carlo.jl/docs/Project.toml`
-  [780c37f4] ~ Carlo v0.1.4 `~/work/Carlo.jl/Carlo.jl` ⇒ v0.1.4
+  [780c37f4] ~ Carlo v0.1.5 `~/work/Carlo.jl/Carlo.jl` ⇒ v0.1.4
     Updating `~/work/Carlo.jl/Carlo.jl/docs/Manifest.toml`
-  [780c37f4] ~ Carlo v0.1.4 `~/work/Carlo.jl/Carlo.jl` ⇒ v0.1.4
+  [780c37f4] ~ Carlo v0.1.5 `~/work/Carlo.jl/Carlo.jl` ⇒ v0.1.4
 Precompiling project...
 <span class="sgr33">  ✓ </span>Carlo
-  1 dependency successfully precompiled in 13 seconds. 183 already precompiled.
+  1 dependency successfully precompiled in 12 seconds. 183 already precompiled.
   <span class="sgr33">1</span> dependency precompiled but a different version is currently loaded. Restart julia to access the new version</code></pre><h2 id="Usage"><a class="docs-heading-anchor" href="#Usage">Usage</a><a id="Usage-1"></a><a class="docs-heading-anchor-permalink" href="#Usage" title="Permalink"></a></h2><p>In order to work with Carlo, a Monte Carlo algorithm has to implement the <a href="abstract_mc.html#abstract_mc">AbstractMC</a> interface. A full example of this is given in the reference implementation for the <a href="https://github.com/lukas-weber/Ising.jl">Ising</a> model.</p><p>Then, to perform simulation, one writes a <em>job script</em> defining all the parameters needed for the simulation, which could look something like the following.</p><pre><code class="language- hljs">#!/usr/bin/env julia
 
 using Carlo
