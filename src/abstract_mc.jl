@@ -63,6 +63,14 @@ function write_checkpoint(
     return nothing
 end
 
+function write_checkpoint(
+    obj,
+    dump_file::HDF5.Group
+)
+    @warn "checkpointing $(typeof(obj)) not supported. Implement Carlo.write_checkpoint."
+
+    return nothing
+end
 
 """
     Carlo.read_checkpoint!(mc::YourMC, in::HDF5.Group)
@@ -83,6 +91,14 @@ function read_checkpoint!(
         )
     end
     return nothing
+end
+
+function read_checkpoint(
+    ::Type{T},
+    dump_file::HDF5.Group
+) where T
+    @warn "checkpointing $(T) not supported. Implement Carlo.read_checkpoint. Attempting to construct $(T)() as a stand-in..."
+    return T()
 end
 
 """
