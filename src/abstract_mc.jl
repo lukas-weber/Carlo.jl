@@ -32,7 +32,7 @@ Perform one Monte Carlo measurement.
 """
 function measure! end
 function measure!(mc::AbstractMC, ctx::MCContext, comm::MPI.Comm)
-    if comm == MPI.COMM_NULL || MPI.Comm_size(comm) == 1
+    if MPI.Comm_size(comm) == 1
         measure!(mc, ctx)
     else
         error(
@@ -53,7 +53,7 @@ function write_checkpoint(
     dump_file::Union{HDF5.Group,Nothing},
     comm::MPI.Comm,
 )
-    if comm == MPI.COMM_NULL || MPI.Comm_size(comm) == 1
+    if MPI.Comm_size(comm) == 1
         write_checkpoint(mc, dump_file)
     else
         error(
@@ -63,10 +63,7 @@ function write_checkpoint(
     return nothing
 end
 
-function write_checkpoint(
-    obj,
-    dump_file::HDF5.Group
-)
+function write_checkpoint(obj, dump_file::HDF5.Group)
     @warn "checkpointing $(typeof(obj)) not supported. Implement Carlo.write_checkpoint."
 
     return nothing
@@ -83,7 +80,7 @@ function read_checkpoint!(
     dump_file::Union{HDF5.Group,Nothing},
     comm::MPI.Comm,
 )
-    if comm == MPI.COMM_NULL || MPI.Comm_size(comm) == 1
+    if MPI.Comm_size(comm) == 1
         read_checkpoint!(mc, dump_file)
     else
         error(
@@ -93,10 +90,7 @@ function read_checkpoint!(
     return nothing
 end
 
-function read_checkpoint(
-    ::Type{T},
-    dump_file::HDF5.Group
-) where T
+function read_checkpoint(::Type{T}, dump_file::HDF5.Group) where {T}
     @warn "checkpointing $(T) not supported. Implement Carlo.read_checkpoint. Attempting to construct $(T)() as a stand-in..."
     return T()
 end

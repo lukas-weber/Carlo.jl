@@ -20,6 +20,7 @@ function SingleScheduler(job::JobInfo)
 end
 
 function start(::Type{SingleScheduler}, job::JobInfo)
+    MPI.Init()
     JobTools.create_job_directory(job)
     scheduler = SingleScheduler(job)
     scheduler.time_start = Dates.now()
@@ -37,17 +38,18 @@ function start(::Type{SingleScheduler}, job::JobInfo)
         scheduler_task = scheduler.tasks[scheduler.task_id]
         rundir = run_dir(scheduler_task, 1)
 
-        scheduler.run = read_checkpoint(Run{job.mc,job.rng}, rundir, task.params)
+        scheduler.run =
+            read_checkpoint(Run{job.mc,job.rng}, rundir, task.params, MPI.COMM_WORLD)
         if scheduler.run !== nothing
             @info "read $rundir"
         else
-            scheduler.run = Run{job.mc,job.rng}(task.params)
+            scheduler.run = Run{job.mc,job.rng}(task.params, MPI.COMM_WORLD)
             @info "initialized $rundir"
         end
 
         while !is_done(scheduler_task) &&
             !JobTools.is_end_time(scheduler.job, scheduler.time_start)
-            scheduler_task.sweeps += step!(scheduler.run)
+            scheduler_task.sweeps += step!(scheduler.run, MPI.COMM_WORLD)
 
             if JobTools.is_checkpoint_time(scheduler.job, scheduler.time_last_checkpoint)
                 write_checkpoint(scheduler)
@@ -91,7 +93,7 @@ get_new_task_id(::AbstractVector{SchedulerTask}, ::Nothing) = nothing
 function write_checkpoint(scheduler::SingleScheduler)
     scheduler.time_last_checkpoint = Dates.now()
     rundir = run_dir(scheduler.tasks[scheduler.task_id], 1)
-    write_checkpoint!(scheduler.run, rundir)
+    write_checkpoint!(scheduler.run, rundir, MPI.COMM_WORLD)
     write_checkpoint_finalize(rundir)
     @info "checkpointing $rundir"
 

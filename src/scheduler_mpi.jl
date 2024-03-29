@@ -40,7 +40,7 @@ struct MPISchedulerBusyRequest
     sweeps_since_last_query::Int64
 end
 
-const T_STATUS = 4355
+const T_STATUS_REQUEST = 4355
 const T_IDLE_RESPONSE = 4356
 const T_BUSY_REQUEST = 4357
 const T_BUSY_RESPONSE = 4358
@@ -90,6 +90,10 @@ function start(::Type{MPIScheduler}, job::JobInfo)
     rank = MPI.Comm_rank(comm)
     num_ranks = MPI.Comm_size(comm)
     rc = false
+
+    if num_ranks == 1
+        @error "started MPIScheduler with a single rank, but at least two are required for doing any work. Use SingleScheduler instead."
+    end
 
     ranks_per_run = job.ranks_per_run == :all ? num_ranks - 1 : job.ranks_per_run
 
@@ -245,7 +249,7 @@ function react!(controller::MPISchedulerController, run_leader_comm::MPI.Comm)
         run_leader_comm,
         MPI.Status;
         source = MPI.ANY_SOURCE,
-        tag = T_STATUS,
+        tag = T_STATUS_REQUEST,
     )
     rank = status.source
 
@@ -353,7 +357,7 @@ is_run_leader(run_comm::MPI.Comm) = MPI.Comm_rank(run_comm) == 0
 
 function worker_signal_timeup(run_leader_comm::MPI.Comm, run_comm::MPI.Comm)
     if is_run_leader(run_comm)
-        MPI.Send(S_TIMEUP, run_leader_comm; dest = 0, tag = T_STATUS)
+        MPI.Send(S_TIMEUP, run_leader_comm; dest = 0, tag = T_STATUS_REQUEST)
     end
 end
 
@@ -361,7 +365,7 @@ function worker_signal_idle(run_leader_comm::MPI.Comm, run_comm::MPI.Comm)
     response = Ref{MPISchedulerIdleResponse}()
     if is_run_leader(run_comm)
         delay = @elapsed begin
-            MPI.Send(S_IDLE, run_leader_comm; dest = 0, tag = T_STATUS)
+            MPI.Send(S_IDLE, run_leader_comm; dest = 0, tag = T_STATUS_REQUEST)
             response[] = MPI.Recv(
                 MPISchedulerIdleResponse,
                 run_leader_comm;
@@ -384,7 +388,7 @@ function worker_signal_busy(
 )
     response = Ref{MPISchedulerBusyResponse}()
     if is_run_leader(run_comm)
-        MPI.Send(S_BUSY, run_leader_comm; dest = 0, tag = T_STATUS)
+        MPI.Send(S_BUSY, run_leader_comm; dest = 0, tag = T_STATUS_REQUEST)
         MPI.Send(
             MPISchedulerBusyRequest(task_id, sweeps_since_last_query),
             run_leader_comm;

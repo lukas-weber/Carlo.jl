@@ -46,7 +46,6 @@ function Carlo.init!(
     params::AbstractDict,
     comm::MPI.Comm,
 )
-    @assert comm != MPI.COMM_NULL
     mc.state = MPI.Comm_rank(comm)
     mc.try_measure_on_nonroot = get(params, :try_measure_on_nonroot, false)
 
@@ -54,7 +53,6 @@ function Carlo.init!(
 end
 
 function Carlo.sweep!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
-    @assert comm != MPI.COMM_NULL
     chosen_rank = rand(ctx.rng, 0:MPI.Comm_size(comm)-1)
     chosen_rank = MPI.Bcast(chosen_rank, 0, comm)
     addition_state = MPI.Bcast(mc.state, chosen_rank, comm)
@@ -65,7 +63,6 @@ function Carlo.sweep!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
 end
 
 function Carlo.measure!(mc::TestParallelRunMC, ctx::MCContext, comm::MPI.Comm)
-    @assert comm != MPI.COMM_NULL
     mean = MPI.Reduce(mc.state, +, comm)
     mean2 = MPI.Reduce(mc.state^2, +, comm)
 
@@ -89,7 +86,6 @@ function Carlo.write_checkpoint(
     out::Union{HDF5.Group,Nothing},
     comm::MPI.Comm,
 )
-    @assert comm != MPI.COMM_NULL
     states = MPI.Gather(mc.state, comm)
 
     if MPI.Comm_rank(comm) == 0
@@ -104,7 +100,6 @@ function Carlo.read_checkpoint!(
     in::Union{HDF5.Group,Nothing},
     comm::MPI.Comm,
 )
-    @assert comm != MPI.COMM_NULL
     if MPI.Comm_rank(comm) == 0
         states = read(in["states"])
     else

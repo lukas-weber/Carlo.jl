@@ -6,11 +6,8 @@ struct Run{MC<:AbstractMC,RNG<:Random.AbstractRNG}
     implementation::MC
 end
 
-function Run{MC,RNG}(
-    params::Dict,
-    comm::MPI.Comm = MPI.COMM_NULL,
-) where {MC<:AbstractMC,RNG<:AbstractRNG}
-    seed_variation = comm == MPI.COMM_NULL ? 0 : MPI.Comm_rank(comm)
+function Run{MC,RNG}(params::Dict, comm::MPI.Comm) where {MC<:AbstractMC,RNG<:AbstractRNG}
+    seed_variation = MPI.Comm_rank(comm)
     context = MCContext{RNG}(params; seed_variation)
     implementation = MC(params)
     init!(implementation, context, params, comm)
@@ -19,13 +16,13 @@ function Run{MC,RNG}(
 end
 
 """Perform one MC step. Returns the number of thermalized sweeps performed"""
-function step!(run::Run, comm::MPI.Comm = MPI.COMM_NULL)
+function step!(run::Run, comm::MPI.Comm)
     sweep_time = @elapsed sweep!(run.implementation, run.context, comm)
     run.context.sweeps += 1
     if is_thermalized(run.context)
         measure_time = @elapsed measure!(run.implementation, run.context, comm)
 
-        if comm == MPI.COMM_NULL || MPI.Comm_rank(comm) == 0
+        if MPI.Comm_rank(comm) == 0
             measure!(run.context, :_ll_sweep_time, sweep_time)
             measure!(run.context, :_ll_measure_time, measure_time)
         end
@@ -33,7 +30,7 @@ function step!(run::Run, comm::MPI.Comm = MPI.COMM_NULL)
         return 1
     end
 
-    if comm != MPI.COMM_NULL && MPI.Comm_rank(comm) != 0
+    if MPI.Comm_rank(comm) != 0
         if !isempty(run.context.measure)
             error(
                 "In parallel run mode, only the first rank of the run communicator is allowed to do measurements!",
@@ -63,59 +60,34 @@ function write_measurements(run::Run, file_prefix::AbstractString)
     @assert !has_complete_bins(run.context.measure)
 end
 
-function write_checkpoint!(
-    run::Run,
-    file_prefix::AbstractString,
-    comm::MPI.Comm = MPI.COMM_NULL,
-)
+function write_checkpoint!(run::Run, file_prefix::AbstractString, comm::MPI.Comm)
     checkpoint_write_time = @elapsed begin
-        if comm == MPI.COMM_NULL || MPI.Comm_rank(comm) == 0
+        is_run_leader = MPI.Comm_rank(comm) == 0
+        if is_run_leader
             write_measurements(run, file_prefix)
+        elseif !isempty(run.context.measure)
+            error("In parallel run mode, only the first rank of a run can do measurements!")
         end
 
-        if comm == MPI.COMM_NULL
+        contexts = MPI.gather(run.context, comm)
+        if !is_run_leader
+            write_checkpoint(run.implementation, nothing, comm)
+        else
             h5open(file_prefix * ".dump.h5.tmp", "w") do file
-                write_checkpoint(run.context, create_group(file, "context/0001"))
-                write_checkpoint(run.implementation, create_group(file, "simulation"))
+                for (i, context) in enumerate(contexts)
+                    write_checkpoint(context, create_group(file, @sprintf("context/%04d", i)))
+                end
+
+                write_checkpoint(run.implementation, create_group(file, "simulation"), comm)
                 write_hdf5(
                     Version(typeof(run.implementation)),
                     create_group(file, "version"),
                 )
             end
-        else
-            is_run_leader = MPI.Comm_rank(comm) == 0
-
-            if !is_run_leader && !isempty(run.context.measure)
-                error("In parallel run mode, only the first rank of a run can do measurements!")
-            end
-
-            contexts = MPI.gather(run.context, comm)
-            if !is_run_leader
-                write_checkpoint(run.implementation, nothing, comm)
-            else
-                h5open(file_prefix * ".dump.h5.tmp", "w") do file
-                    for (i, context) in enumerate(contexts)
-                        write_checkpoint(
-                            context,
-                            create_group(file, @sprintf("context/%04d", i)),
-                        )
-                    end
-
-                    write_checkpoint(
-                        run.implementation,
-                        create_group(file, "simulation"),
-                        comm,
-                    )
-                    write_hdf5(
-                        Version(typeof(run.implementation)),
-                        create_group(file, "version"),
-                    )
-                end
-            end
         end
     end
 
-    if comm == MPI.COMM_NULL || MPI.Comm_rank(comm) == 0
+    if is_run_leader
         add_sample!(run.context.measure, :_ll_checkpoint_write_time, checkpoint_write_time)
     end
 
@@ -127,30 +99,6 @@ function write_checkpoint_finalize(file_prefix::AbstractString)
     mv(file_prefix * ".meas.h5.tmp", file_prefix * ".meas.h5", force = true)
 
     return nothing
-end
-
-function read_checkpoint(
-    ::Type{Run{MC,RNG}},
-    file_prefix::AbstractString,
-    parameters::Dict,
-)::Union{Run{MC,RNG},Nothing} where {MC,RNG}
-    if !isfile(file_prefix * ".dump.h5")
-        return nothing
-    end
-
-    context = nothing
-
-    mc = MC(parameters)
-    checkpoint_read_time = @elapsed begin
-        h5open(file_prefix * ".dump.h5", "r") do file
-            context = read_checkpoint(MCContext{RNG}, file["context/0001"])
-            read_checkpoint!(mc, file["simulation"])
-        end
-    end
-
-    add_sample!(context.measure, :_ll_checkpoint_read_time, checkpoint_read_time)
-
-    return Run(context, mc)
 end
 
 function read_checkpoint(
@@ -188,6 +136,7 @@ function read_checkpoint(
                 read_checkpoint!(mc, file["simulation"], comm)
             end
         end
+        @assert context !== nothing
 
         add_sample!(context.measure, :_ll_checkpoint_read_time, checkpoint_read_time)
     else
@@ -195,6 +144,8 @@ function read_checkpoint(
 
         read_checkpoint!(mc, nothing, comm)
     end
+
+    @assert context !== nothing
 
     return Run{MC,RNG}(context, mc)
 end

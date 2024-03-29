@@ -61,6 +61,10 @@ function cli_run(job::JobInfo, args::AbstractDict)
     end
 
     scheduler = args["single"] ? SingleScheduler : MPIScheduler
+    if scheduler == MPIScheduler && (MPI.Init(); MPI.Comm_size(MPI.COMM_WORLD)) == 1
+        @info "running with a single process: defaulting to --single scheduler"
+        scheduler = SingleScheduler
+    end
 
     return with_logger(default_logger()) do
         start(scheduler, job)

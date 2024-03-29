@@ -14,7 +14,7 @@
     run_cmd("delete")
     @test !isfile(tmpdir * "/test.results.json")
 
-    run_cmd(`run --single`)
+    run_cmd(`run`)
 
     run_cmd("status")
     run_cmd("merge")
