@@ -4,79 +4,46 @@ using HDF5
 using .JobTools: JobInfo
 
 @enum MPISchedulerAction begin
-    A_INVALID = 0
-    A_EXIT = 1
-    A_CONTINUE = 2
-    A_NEW_TASK = 3
-    A_PROCESS_DATA_NEW_TASK = 4
+    A_INVALID = 0x00
+    A_EXIT = 0x01
+    A_CONTINUE = 0x02
+    A_NEW_TASK = 0x03
+    A_PROCESS_DATA_NEW_TASK = 0x04
 end
 
-send_action(comm::MPI.Comm, action::MPISchedulerAction, dest::Integer) =
-    send(action, comm; dest = dest, tag = T_ACTION)
-recv_action(comm::MPI.Comm) = recv(MPISchedulerAction, comm; source = 0, tag = T_ACTION)[1]
-
-function send(data, comm; dest, tag)
-    req = MPI.Isend(data, comm; dest, tag)
-    while !MPI.Test(req)
-        yield()
+function warn_if_controller_slow(delay::Real)
+    if delay > 0.5
+        @warn "controller took a long time to respond: $delay"
     end
-    return nothing
-end
-
-function recv(::Type{T}, comm; source, tag) where {T}
-    data = Ref{T}()
-    req = MPI.Irecv!(data, comm; source = source, tag = tag)
-    status = MPI.Status(0, 0, 0, 0, 0)
-
-    while ((flag, status) = MPI.Test(req, MPI.Status); !flag)
-        yield()
-    end
-    return data[], status
 end
 
 struct TaskInterruptedException <: Exception end
 
-# Base.@sync only propagates errors once all tasks are done. We want
-# to fail everything as soon as one task is broken. Possibly this is
-# not completely bullet-proof, but good enough for now.
-function sync_or_error(tasks::AbstractArray{Task})
-    c = Channel(Inf)
-    for t in tasks
-        @async begin
-            Base._wait(t)
-            put!(c, t)
-        end
-    end
-    for _ in eachindex(tasks)
-        t = take!(c)
-        if istaskfailed(t)
-            for tother in tasks
-                if tother != t
-                    schedule(tother, TaskInterruptedException(); error = true)
-                end
-            end
-            throw(TaskFailedException(t))
-        end
-    end
-    close(c)
-end
-
-struct MPISchedulerNewJobResponse
+struct MPISchedulerIdleResponse
+    action::MPISchedulerAction
     task_id::Int
     run_id::Int
     sweeps_until_comm::Int64
 end
 
+MPISchedulerIdleResponse(action::MPISchedulerAction) =
+    MPISchedulerIdleResponse(action, 0, 0, 0)
+
 struct MPISchedulerBusyResponse
+    action::MPISchedulerAction
+    sweeps_until_comm::Int64
+end
+MPISchedulerBusyResponse(action::MPISchedulerAction) = MPISchedulerBusyResponse(action, 0)
+
+struct MPISchedulerBusyRequest
     task_id::Int
     sweeps_since_last_query::Int64
 end
 
-const T_STATUS = 4354
-const T_BUSY_STATUS = 4355
-const T_ACTION = 4356
-const T_NEW_TASK = 4357
-const T_CONTINUE_SWEEPS = 4358
+const T_STATUS = 4355
+const T_IDLE_RESPONSE = 4356
+const T_BUSY_REQUEST = 4357
+const T_BUSY_RESPONSE = 4358
 
 @enum MPISchedulerStatus begin
     S_IDLE = 9
@@ -91,23 +58,21 @@ mutable struct MPISchedulerController <: AbstractScheduler
 
     task_id::Union{Int,Nothing}
     tasks::Vector{SchedulerTask}
-
-    function MPISchedulerController(job::JobInfo, active_ranks::Integer)
-        return new(
-            active_ranks,
-            length(job.tasks),
-            [
-                SchedulerTask(
-                    p.target_sweeps,
-                    p.sweeps,
-                    p.dir,
-                    0,
-                    get(t.params, :max_runs_per_task, typemax(Int64)),
-                ) for (p, t) in zip(JobTools.read_progress(job), job.tasks)
-            ],
-        )
-    end
 end
+
+MPISchedulerController(job::JobInfo, active_ranks::Integer) = MPISchedulerController(
+    active_ranks,
+    length(job.tasks),
+    [
+        SchedulerTask(
+            p.target_sweeps,
+            p.sweeps,
+            p.dir,
+            0,
+            get(t.params, :max_runs_per_task, typemax(Int64)),
+        ) for (p, t) in zip(JobTools.read_progress(job), job.tasks)
+    ],
+)
 
 mutable struct MPISchedulerWorker
     task_id::Int
@@ -126,16 +91,15 @@ function start(::Type{MPIScheduler}, job::JobInfo)
     num_ranks = MPI.Comm_size(comm)
     rc = false
 
-    ranks_per_run = job.ranks_per_run == :all ? num_ranks : job.ranks_per_run
+    ranks_per_run = job.ranks_per_run == :all ? num_ranks - 1 : job.ranks_per_run
 
-    if num_ranks % ranks_per_run != 0
+    if (num_ranks - 1) % ranks_per_run != 0
         error(
-            "Number of MPI ranks ($num_ranks) is not a multiple of ranks per run ($(ranks_per_run))!",
+            "Number of MPI worker ranks ($num_ranks - 1 = $(num_ranks-1)) is not a multiple of ranks per run ($(ranks_per_run))!",
         )
     end
-    run_comm = MPI.Comm_split(comm, rank ÷ ranks_per_run, 0)
+    run_comm = MPI.Comm_split(comm, rank == 0 ? 0 : 1 + (rank - 1) ÷ ranks_per_run, 0)
     run_leader_comm = MPI.Comm_split(comm, is_run_leader(run_comm) ? 1 : nothing, 0)
-
 
     if rank == 0
         @info "starting job '$(job.name)'"
@@ -143,9 +107,7 @@ function start(::Type{MPIScheduler}, job::JobInfo)
             @info "running in parallel run mode with $(ranks_per_run) ranks per run"
         end
 
-        t_work = @async start(MPISchedulerWorker, $job, $run_leader_comm, $run_comm)
-        t_ctrl = @async (rc = start(MPISchedulerController, $job, $run_leader_comm))
-        sync_or_error([t_work, t_ctrl])
+        rc = start(MPISchedulerController, job, run_leader_comm)
         @info "controller: concatenating results"
         JobTools.concatenate_results(job)
     else
@@ -159,7 +121,7 @@ function start(::Type{MPIScheduler}, job::JobInfo)
 end
 
 function start(::Type{MPISchedulerController}, job::JobInfo, run_leader_comm::MPI.Comm)
-    controller = MPISchedulerController(job, MPI.Comm_size(run_leader_comm))
+    controller = MPISchedulerController(job, MPI.Comm_size(run_leader_comm) - 1)
 
     while controller.num_active_ranks > 0
         react!(controller, run_leader_comm)
@@ -198,21 +160,29 @@ function controller_react_idle(
     controller.task_id =
         get_new_task_id_with_significant_work(controller.tasks, controller.task_id)
     if controller.task_id === nothing
-        send_action(run_leader_comm, A_EXIT, rank)
+        MPI.Send(
+            MPISchedulerIdleResponse(A_EXIT),
+            run_leader_comm;
+            dest = rank,
+            tag = T_IDLE_RESPONSE,
+        )
         controller.num_active_ranks -= 1
     else
-        send_action(run_leader_comm, A_NEW_TASK, rank)
         task = controller.tasks[controller.task_id]
         task.scheduled_runs += 1
 
         sweeps_until_comm = max(0, (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs)
-        msg = MPISchedulerNewJobResponse(
-            controller.task_id,
-            task.scheduled_runs,
-            sweeps_until_comm,
+        MPI.Send(
+            MPISchedulerIdleResponse(
+                A_NEW_TASK,
+                controller.task_id,
+                task.scheduled_runs,
+                sweeps_until_comm,
+            ),
+            run_leader_comm;
+            dest = rank,
+            tag = T_IDLE_RESPONSE,
         )
-
-        send(msg, run_leader_comm; dest = rank, tag = T_NEW_TASK)
     end
 
     return nothing
@@ -223,8 +193,12 @@ function controller_react_busy(
     run_leader_comm::MPI.Comm,
     rank::Integer,
 )
-    msg, _ =
-        recv(MPISchedulerBusyResponse, run_leader_comm; source = rank, tag = T_BUSY_STATUS)
+    msg = MPI.Recv(
+        MPISchedulerBusyRequest,
+        run_leader_comm;
+        source = rank,
+        tag = T_BUSY_REQUEST,
+    )
 
     task = controller.tasks[msg.task_id]
     task.sweeps += msg.sweeps_since_last_query
@@ -232,15 +206,29 @@ function controller_react_busy(
         task.scheduled_runs -= 1
         if task.scheduled_runs > 0
             @info "$(basename(task.dir)) has enough sweeps. Waiting for $(task.scheduled_runs) busy ranks."
-            send_action(run_leader_comm, A_NEW_TASK, rank)
+            MPI.Send(
+                MPISchedulerBusyResponse(A_NEW_TASK),
+                run_leader_comm;
+                dest = rank,
+                tag = T_BUSY_RESPONSE,
+            )
         else
             @info "$(basename(task.dir)) is done. Merging."
-            send_action(run_leader_comm, A_PROCESS_DATA_NEW_TASK, rank)
+            MPI.Send(
+                MPISchedulerBusyResponse(A_PROCESS_DATA_NEW_TASK),
+                run_leader_comm;
+                dest = rank,
+                tag = T_BUSY_RESPONSE,
+            )
         end
     else
-        send_action(run_leader_comm, A_CONTINUE, rank)
         sweeps_until_comm = max(1, (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs)
-        send(sweeps_until_comm, run_leader_comm; dest = rank, tag = T_CONTINUE_SWEEPS)
+        MPI.Send(
+            MPISchedulerBusyResponse(A_CONTINUE, sweeps_until_comm),
+            run_leader_comm;
+            dest = rank,
+            tag = T_BUSY_RESPONSE,
+        )
     end
     return nothing
 end
@@ -252,8 +240,13 @@ end
 
 
 function react!(controller::MPISchedulerController, run_leader_comm::MPI.Comm)
-    rank_status, status =
-        recv(MPISchedulerStatus, run_leader_comm; source = MPI.ANY_SOURCE, tag = T_STATUS)
+    rank_status, status = MPI.Recv(
+        MPISchedulerStatus,
+        run_leader_comm,
+        MPI.Status;
+        source = MPI.ANY_SOURCE,
+        tag = T_STATUS,
+    )
     rank = status.source
 
     if rank_status == S_IDLE
@@ -284,15 +277,15 @@ function start(
 
     while true
         if worker === nothing
-            action, msg = worker_signal_idle(run_leader_comm, run_comm)
-            if action == A_EXIT
+            response = worker_signal_idle(run_leader_comm, run_comm)
+            if response.action == A_EXIT
                 break
             end
 
-            task = job.tasks[msg.task_id]
+            task = job.tasks[response.task_id]
             scheduler_task =
-                SchedulerTask(msg.sweeps_until_comm, 0, JobTools.task_dir(job, task))
-            rundir = run_dir(scheduler_task, msg.run_id)
+                SchedulerTask(response.sweeps_until_comm, 0, JobTools.task_dir(job, task))
+            rundir = run_dir(scheduler_task, response.run_id)
 
             run = read_checkpoint(Run{job.mc,job.rng}, rundir, task.params, run_comm)
             if run !== nothing
@@ -301,11 +294,13 @@ function start(
                 run = Run{job.mc,job.rng}(task.params, run_comm)
                 is_run_leader(run_comm) && @info "initialized $rundir"
             end
-            worker = MPISchedulerWorker(msg.task_id, msg.run_id, scheduler_task, run)
+            worker =
+                MPISchedulerWorker(response.task_id, response.run_id, scheduler_task, run)
         end
 
         while !is_done(worker.task)
             worker.task.sweeps += step!(worker.run, run_comm)
+            yield()
 
             timeup = Ref(
                 JobTools.is_checkpoint_time(job, time_last_checkpoint) ||
@@ -326,7 +321,7 @@ function start(
             break
         end
 
-        action = worker_signal_busy(
+        response = worker_signal_busy(
             run_leader_comm,
             run_comm,
             worker.task_id,
@@ -335,7 +330,7 @@ function start(
         worker.task.target_sweeps -= worker.task.sweeps
         worker.task.sweeps = 0
 
-        if action == A_PROCESS_DATA_NEW_TASK
+        if response.action == A_PROCESS_DATA_NEW_TASK
             if is_run_leader(run_comm)
                 merge_results(
                     job.mc,
@@ -344,11 +339,11 @@ function start(
                 )
             end
             worker = nothing
-        elseif action == A_NEW_TASK
+        elseif response.action == A_NEW_TASK
             worker = nothing
         else
-            @assert action == A_CONTINUE
-            worker.task.target_sweeps = worker_react_continue(run_leader_comm, run_comm)
+            @assert response.action == A_CONTINUE
+            worker.task.target_sweeps = response.sweeps_until_comm
             @assert !is_done(worker.task)
         end
     end
@@ -358,31 +353,27 @@ is_run_leader(run_comm::MPI.Comm) = MPI.Comm_rank(run_comm) == 0
 
 function worker_signal_timeup(run_leader_comm::MPI.Comm, run_comm::MPI.Comm)
     if is_run_leader(run_comm)
-        send(S_TIMEUP, run_leader_comm; dest = 0, tag = T_STATUS)
+        MPI.Send(S_TIMEUP, run_leader_comm; dest = 0, tag = T_STATUS)
     end
 end
 
 function worker_signal_idle(run_leader_comm::MPI.Comm, run_comm::MPI.Comm)
-    new_action = Ref{MPISchedulerAction}()
+    response = Ref{MPISchedulerIdleResponse}()
     if is_run_leader(run_comm)
-        send(S_IDLE, run_leader_comm; dest = 0, tag = T_STATUS)
-        new_action[] = recv_action(run_leader_comm)
+        delay = @elapsed begin
+            MPI.Send(S_IDLE, run_leader_comm; dest = 0, tag = T_STATUS)
+            response[] = MPI.Recv(
+                MPISchedulerIdleResponse,
+                run_leader_comm;
+                source = 0,
+                tag = T_IDLE_RESPONSE,
+            )
+        end
+        warn_if_controller_slow(delay)
     end
-    MPI.Bcast!(new_action, 0, run_comm)
+    MPI.Bcast!(response, 0, run_comm)
 
-    if new_action[] == A_EXIT
-        return (A_EXIT, nothing)
-    end
-
-    @assert new_action[] == A_NEW_TASK
-
-    msg = Ref{MPISchedulerNewJobResponse}()
-    if is_run_leader(run_comm)
-        msg[], _ =
-            recv(MPISchedulerNewJobResponse, run_leader_comm; source = 0, tag = T_NEW_TASK)
-    end
-    MPI.Bcast!(msg, run_comm)
-    return (A_NEW_TASK, msg[])
+    return response[]
 end
 
 function worker_signal_busy(
@@ -391,27 +382,26 @@ function worker_signal_busy(
     task_id::Integer,
     sweeps_since_last_query::Integer,
 )
-    new_action = Ref{MPISchedulerAction}()
+    response = Ref{MPISchedulerBusyResponse}()
     if is_run_leader(run_comm)
-        send(S_BUSY, run_leader_comm; dest = 0, tag = T_STATUS)
-        msg = MPISchedulerBusyResponse(task_id, sweeps_since_last_query)
-        send(msg, run_leader_comm; dest = 0, tag = T_BUSY_STATUS)
-        new_action[] = recv_action(run_leader_comm)
+        MPI.Send(S_BUSY, run_leader_comm; dest = 0, tag = T_STATUS)
+        MPI.Send(
+            MPISchedulerBusyRequest(task_id, sweeps_since_last_query),
+            run_leader_comm;
+            dest = 0,
+            tag = T_BUSY_REQUEST,
+        )
+        response[] = MPI.Recv(
+            MPISchedulerBusyResponse,
+            run_leader_comm;
+            source = 0,
+            tag = T_BUSY_RESPONSE,
+        )
     end
 
-    MPI.Bcast!(new_action, 0, run_comm)
+    MPI.Bcast!(response, 0, run_comm)
 
-    return new_action[]
-end
-
-function worker_react_continue(run_leader_comm::MPI.Comm, run_comm::MPI.Comm)
-    sweeps_until_comm = Ref{Int64}()
-    if is_run_leader(run_comm)
-        sweeps_until_comm[], _ =
-            recv(Int64, run_leader_comm; source = 0, tag = T_CONTINUE_SWEEPS)
-    end
-    MPI.Bcast!(sweeps_until_comm, 0, run_comm)
-    return sweeps_until_comm[]
+    return response[]
 end
 
 function write_checkpoint(scheduler::MPISchedulerWorker, run_comm::MPI.Comm)

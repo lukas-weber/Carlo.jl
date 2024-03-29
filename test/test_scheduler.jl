@@ -76,20 +76,20 @@ end
         @testset "MPI parallel run mode" begin
             job_2rank = make_test_job("$tmpdir/test2_2rank", 100, ranks_per_run = 2)
 
-            run_test_job_mpi(job_2rank; num_ranks = 4)
+            run_test_job_mpi(job_2rank; num_ranks = 5)
             tasks = JT.read_progress(job_2rank)
             for task in tasks
                 @test task.sweeps >= task.target_sweeps
             end
 
             job_all_full = make_test_job("$tmpdir/test2_full", 200, ranks_per_run = :all)
-            run_test_job_mpi(job_all_full; num_ranks = 4)
+            run_test_job_mpi(job_all_full; num_ranks = 5)
 
             # test checkpointing by resetting the seed on a finished simulation
             job_all_half = make_test_job("$tmpdir/test2_half", 100, ranks_per_run = :all)
-            run_test_job_mpi(job_all_half; num_ranks = 4)
+            run_test_job_mpi(job_all_half; num_ranks = 5)
             job_all_half = make_test_job("$tmpdir/test2_half", 200, ranks_per_run = :all)
-            run_test_job_mpi(job_all_half; num_ranks = 4)
+            run_test_job_mpi(job_all_half; num_ranks = 5)
 
             compare_results(job_all_full, job_all_half)
 
@@ -107,7 +107,7 @@ end
             )
             @test_throws ProcessFailedException run_test_job_mpi(
                 job_fail;
-                num_ranks = 4,
+                num_ranks = 5,
                 silent = true,
             ) # only run leader can measure
         end
