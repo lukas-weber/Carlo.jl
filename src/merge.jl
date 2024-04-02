@@ -56,7 +56,7 @@ function merge_results(
                     obs_group = meas_file["observables"][obs_name]
                     internal_bin_length = read(obs_group, "bin_length")[1]
 
-                    samples = read(obs_group, "samples")
+                    samples = obs_group["samples"]
 
                     obs_symb = Symbol(obs_name)
                     if !haskey(observables, obs_symb)
@@ -68,7 +68,7 @@ function merge_results(
                     obs = observables[obs_symb]
 
                     sample_size = size(samples, 2)
-                    obs.total_sample_count += sample_size - min(sample_size, sample_skip)
+                    obs.total_sample_count += max(0, sample_size - sample_skip)
                 catch err
                     if isa(err, KeyError)
                         @warn "$(obs_name): $(err). Skipping..."
@@ -80,8 +80,11 @@ function merge_results(
         end
     end
 
-    for (obs_name, obs) in observables
-        if rebin_length !== nothing
+    for (_, obs) in observables
+        if obs.total_sample_count == 0
+            obs.rebin_length = 0
+            obs.rebin_count = 0
+        elseif rebin_length !== nothing
             obs.rebin_length = rebin_length
             obs.rebin_count = obs.total_sample_count ÷ obs.rebin_length
         else
@@ -105,14 +108,15 @@ function merge_results(
                 remaining_samples = obs.rebin_count * obs.rebin_length - obs.sample_counter
 
                 sample_start = 1 + sample_skip
-                sample_end = min(size(samples, 2), remaining_samples)
-                obs.mean .+= vec(sum(samples[:, sample_start:sample_end], dims = 2))
+                sample_end = min(size(samples, 2), remaining_samples + sample_skip)
+
+                obs.mean .+= vec(sum(view(samples, :, sample_start:sample_end), dims = 2))
                 obs.sample_counter += length(sample_start:sample_end)
             end
         end
     end
 
-    for (obs_name, obs) in observables
+    for (_, obs) in observables
         if obs.rebin_count == 0
             continue
         end
@@ -136,7 +140,7 @@ function merge_results(
                 remaining_samples = obs.rebin_count * obs.rebin_length - obs.sample_counter
 
                 sample_start = 1 + sample_skip
-                sample_end = min(size(samples, 2), remaining_samples)
+                sample_end = min(size(samples, 2), remaining_samples + sample_skip)
 
                 for s = sample_start:sample_end
                     obs.rebin_means[:, obs.current_rebin] .+= samples[:, s]

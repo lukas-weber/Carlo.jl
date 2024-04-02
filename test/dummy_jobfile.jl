@@ -5,9 +5,10 @@ include("test_mc.jl")
 tm = TaskMaker()
 tm.thermalization = 100000
 tm.sweeps = 100000000000
-tm.binsize = 10
+tm.binsize = 100
 
-tm.float_type = Float32
+tm.rebin_sample_skip = 100000
+tm.rebin_length = 1000
 
 task(tm)
 

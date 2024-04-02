@@ -9,15 +9,16 @@ function create_mock_data(
     samples_per_run::Integer,
     extra_samples::Integer = 0,
     obsname::Symbol,
-)::Tuple{Vector{String},Vector{Float64}}
+)
     tmpdir = mktempdir()
-    samples = zeros(0)
+    all_samples = []
 
     filenames = ["$tmpdir/run$i.h5" for i = 1:runs]
 
     idx = 1
     for run = 1:runs
         nsamples = samples_per_run + extra_samples * (run == 1)
+        samples = zeros(0)
         h5open(filenames[run], "w") do file
             meas = Carlo.Measurements{Float64}(internal_binsize)
             for i = 1:nsamples
@@ -30,9 +31,10 @@ function create_mock_data(
             end
             Carlo.write_measurements!(meas, create_group(file, "observables"))
         end
+        push!(all_samples, samples)
     end
 
-    return collect(filenames), samples
+    return collect(filenames), all_samples
 end
 
 @testset "rebin_count" begin
@@ -71,17 +73,21 @@ end
                     extra_samples = extra_samples,
                 )
 
-                for rebin_length in [nothing, 1, 2]
-                    @testset "rebin_length = $(rebin_length)" begin
-                        results =
-                            Carlo.merge_results(filenames; rebin_length = rebin_length)
+                @testset for sample_skip in [0, 10]
+                    @testset for rebin_length in [nothing, 1, 2]
+                        results = Carlo.merge_results(filenames; rebin_length, sample_skip)
                         count_obs = results[:count_test]
 
+                        skipped_samples = mapreduce(
+                            s -> s[1+internal_binsize*sample_skip:end],
+                            vcat,
+                            samples,
+                        )
                         rebinned_samples =
-                            samples[1:internal_binsize*count_obs.rebin_length*count_obs.rebin_count]
+                            skipped_samples[1:internal_binsize*count_obs.rebin_length*count_obs.rebin_count]
 
                         @test count_obs.total_sample_count ==
-                              length(samples) ÷ internal_binsize
+                              length(skipped_samples) ÷ internal_binsize
                         @test count_obs.mean[1] ≈ mean(rebinned_samples)
                         if rebin_length !== nothing
                             @test count_obs.rebin_length == rebin_length
@@ -91,8 +97,11 @@ end
                                   count_obs.total_sample_count
                         end
 
-                        results2 =
-                            Carlo.merge_results(filenames2; rebin_length = rebin_length)
+                        results2 = Carlo.merge_results(
+                            filenames2;
+                            rebin_length = rebin_length,
+                            sample_skip,
+                        )
                         vec_obs = results2[:vec_test]
                         @test iszero(vec_obs.error[2])
                         @test vec_obs.error[1] ≈ count_obs.error[1]

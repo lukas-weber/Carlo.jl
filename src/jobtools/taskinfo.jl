@@ -18,6 +18,8 @@ While `params` can hold any kind of parameter, some are special and used to conf
 - `rng`: *optional*. Type of the random number generator to use. See [rng](@ref).
 - `seed`: *optional*. Optionally run calculations with a fixed seed. Useful for debugging.
 - `float_type`: *optional*. Type of floating point numbers to use for the measurement postprocessing. Default: Float64.
+- `rebin_length`: *optional*. Override the automatic rebinning length chosen by Carlo (⚠ do not set without knowing what you are doing).
+- `rebin_sample_skip`: *optional*. Skip the first ``N`` internal bins of each run when performing the rebinning analysis. Useful if `thermalization` was not set high enough at the start of the simulation.
 
 Out of these parameters, it is only permitted to change `sweeps` for an existing calculation. This is handy to run the simulation for longer or shorter than planned originally.
 """

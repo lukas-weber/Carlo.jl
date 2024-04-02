@@ -21,8 +21,8 @@ function merge_results(
     taskdir::AbstractString;
     parameters::Dict{Symbol,Any},
     data_type::Type{T} = Float64,
-    rebin_length::Union{Integer,Nothing} = nothing,
-    sample_skip::Integer = 0,
+    rebin_length::Union{Integer,Nothing} = get(parameters, :rebin_length, nothing),
+    sample_skip::Integer = get(parameters, :rebin_sample_skip, 0),
 ) where {MC<:AbstractMC,T}
     merged_results = merge_results(
         JobTools.list_run_files(taskdir, "meas\\.h5"),
