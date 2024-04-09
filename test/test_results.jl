@@ -3,16 +3,16 @@ using JSON
 
 
 @testset "Results" begin
-    merged_obs = Carlo.MergedObservable{Float64}(100, 3)
-    merged_obs.mean = [1, 2, 3]
-    merged_obs.error = [0.1, 0.1, 0.1]
-
-    result_obs = Carlo.ResultObservable(merged_obs)
-
-    @test result_obs.mean == merged_obs.mean
-    @test result_obs.error == merged_obs.error
+    result_obs = Carlo.ResultObservable(
+        100,
+        3,
+        [1.0, 2.0, 3.0],
+        [0.1, 0.1, 0.1],
+        [0.1, 0.2, 0.3],
+        zeros(3, 4),
+    )
 
     repr = JSON.parse(JSON.json(result_obs, 1))
-    @test repr["mean"] == merged_obs.mean
-    @test repr["error"] == merged_obs.error
+    @test repr["mean"] == result_obs.mean
+    @test repr["error"] == result_obs.error
 end

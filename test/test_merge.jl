@@ -84,17 +84,13 @@ end
                             samples,
                         )
                         rebinned_samples =
-                            skipped_samples[1:internal_binsize*count_obs.rebin_length*count_obs.rebin_count]
+                            skipped_samples[1:internal_binsize*count_obs.rebin_length*Carlo.rebin_count(
+                                count_obs,
+                            )]
 
-                        @test count_obs.total_sample_count ==
-                              length(skipped_samples) ÷ internal_binsize
                         @test count_obs.mean[1] ≈ mean(rebinned_samples)
                         if rebin_length !== nothing
                             @test count_obs.rebin_length == rebin_length
-                        else
-                            @test 1 <
-                                  count_obs.rebin_length * count_obs.rebin_count <=
-                                  count_obs.total_sample_count
                         end
 
                         results2 = Carlo.merge_results(

@@ -1,6 +1,8 @@
 
 struct Evaluable{T<:AbstractFloat}
-    bin_count::Int64
+    internal_bin_length::Any
+    rebin_length::Int64
+    rebin_count::Int64
 
     mean::Vector{T}
     error::Vector{T}
@@ -49,32 +51,45 @@ end
 
 function evaluate(
     evaluation::Func,
-    used_observables::NTuple{N,MergedObservable},
+    used_observables::NTuple{N,ResultObservable},
 )::Union{Evaluable,Nothing} where {Func,N}
-    bin_count = minimum(map(obs -> obs.rebin_count, used_observables))
+    internal_bin_length = minimum(obs -> obs.internal_bin_length, used_observables)
+    rebin_length = minimum(obs -> obs.rebin_length, used_observables)
+    bin_count = minimum(rebin_count, used_observables)
 
     if bin_count == 0
         return nothing
     end
     return Evaluable(
+        internal_bin_length,
+        rebin_length,
         bin_count,
         jackknife(
             evaluation,
-            map(
-                obs -> eachcol_or_scalar(obs.rebin_means[:, 1:bin_count]),
-                used_observables,
-            ),
+            map(obs -> eachcol_or_scalar(obs.rebin_means), used_observables),
         )...,
     )
 end
 
-struct Evaluator{T<:AbstractFloat}
-    observables::Dict{Symbol,MergedObservable{T}}
-    evaluables::Dict{Symbol,Evaluable{T}}
+function ResultObservable(eval::Evaluable)
+    return ResultObservable(
+        eval.internal_bin_length,
+        eval.rebin_length,
+        eval.mean,
+        eval.error,
+        fill(NaN, size(eval.mean)...),
+        eltype(eval.mean)[],
+    )
 end
 
-Evaluator(observables::Dict{Symbol,MergedObservable{T}}) where {T} =
-    Evaluator(observables, Dict{Symbol,Evaluable{T}}())
+
+struct Evaluator
+    observables::Dict{Symbol,ResultObservable}
+    evaluables::Dict{Symbol,Evaluable}
+end
+
+Evaluator(observables::Dict{Symbol,ResultObservable}) =
+    Evaluator(observables, Dict{Symbol,Evaluable}())
 
 """
     evaluate!(func::Function, eval::Evaluator, name::Symbol, (ingredients::Symbol...))

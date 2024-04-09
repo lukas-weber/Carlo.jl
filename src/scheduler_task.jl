@@ -34,10 +34,11 @@ function merge_results(
     evaluator = Evaluator(merged_results)
     register_evaluables(MC, evaluator, parameters)
 
-    results = Dict(
-        name => ResultObservable(obs) for
-        (name, obs) in merge(merged_results, evaluator.evaluables)
+    results = merge(
+        merged_results,
+        Dict(name => ResultObservable(obs) for (name, obs) in evaluator.evaluables),
     )
+
     write_results(
         merge(results),
         taskdir * "/results.json",

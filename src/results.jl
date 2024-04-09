@@ -1,49 +1,36 @@
 import JSON
 
 """Result of a Carlo Monte Carlo calculation containing the mean, statistical error and autocorrelation time."""
-struct ResultObservable{T<:AbstractFloat}
-    rebin_count::Int64
-    rebin_length::Union{Int64,Nothing}
-    internal_bin_length::Union{Int64,Nothing}
+mutable struct ResultObservable{T<:AbstractFloat,N,M}
+    internal_bin_length::Int64
+    rebin_length::Int64
 
-    mean::Vector{T}
-    error::Vector{T}
-    autocorrelation_time::T
+    mean::Array{T,N}
+    error::Array{T,N}
+    autocorrelation_time::Array{T,N}
+
+    rebin_means::Array{T,M}
 end
 
-function ResultObservable(mobs::MergedObservable)
-    return ResultObservable(
-        mobs.rebin_count,
-        mobs.rebin_length,
-        mobs.internal_bin_length,
-        mobs.mean,
-        mobs.error,
-        maximum(mobs.autocorrelation_time),
-    )
-end
-
-function ResultObservable(eval::Evaluable)
-    return ResultObservable(eval.bin_count, nothing, nothing, eval.mean, eval.error, NaN)
-end
-
+rebin_count(obs::ResultObservable) = size(obs.rebin_means)[end]
 
 JSON.lower(obs::ResultObservable) = Dict(
     "mean" => obs.mean,
     "error" => obs.error,
-    "autocorr_time" => obs.autocorrelation_time,
+    "autocorr_time" => maximum(obs.autocorrelation_time),
     "rebin_len" => obs.rebin_length,
-    "rebin_count" => obs.rebin_count,
+    "rebin_count" => rebin_count(obs),
     "internal_bin_len" => obs.internal_bin_length,
 )
 
 
 function write_results(
-    observables::Dict{Symbol,ResultObservable{T}},
+    observables::Dict{Symbol,ResultObservable},
     filename::AbstractString,
     taskdir::AbstractString,
     parameters::Dict,
     version::Version,
-) where {T}
+)
     open(filename, "w") do file
         JSON.print(
             file,
