@@ -2,9 +2,9 @@ using Carlo
 
 @testset "Evaluable" begin
     @testset "scalar" begin
-        func = (x, y) -> x / y
+        func = (x::Real, y::Real) -> x / y
 
-        means = ([2 3 4], [5 4 3])
+        means = ([2, 3, 4], [5, 4, 3])
 
         # TODO: proper statistical test
         @test all(
@@ -15,7 +15,7 @@ using Carlo
     @testset "vector" begin
         func = x -> x[1] / x[2]
 
-        means = ([[2, 5], [3, 4], [4, 3]],)
+        means = ([2 3 4; 5 4 3],)
 
         @test all(
             Carlo.jackknife(func, means) .≈ ([0.712962962962963], [0.25726748128610744]),

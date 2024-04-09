@@ -20,7 +20,7 @@ function create_mock_data(
         nsamples = samples_per_run + extra_samples * (run == 1)
         samples = zeros(0)
         h5open(filenames[run], "w") do file
-            meas = Carlo.Measurements{Float64}(internal_binsize)
+            meas = Carlo.Measurements(internal_binsize)
             for i = 1:nsamples
                 value = generator(idx)
                 Carlo.add_sample!(meas, obsname, value)

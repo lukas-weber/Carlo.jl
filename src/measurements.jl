@@ -1,17 +1,29 @@
-mutable struct Measurements{T<:AbstractFloat}
+mutable struct Measurements
     default_bin_size::Int64
-    observables::Dict{Symbol,Observable{T}}
+    observables::Dict{Symbol,Accumulator}
 end
 
-Measurements{T}(default_bin_size::Integer) where {T} =
-    Measurements{T}(default_bin_size, Dict())
+Measurements(default_bin_size::Integer) = Measurements(default_bin_size, Dict())
 
 function add_sample!(meas::Measurements, obsname::Symbol, value)
     if !haskey(meas.observables, obsname)
-        register_observable!(meas, obsname, meas.default_bin_size, length(value))
+        register_observable!(
+            meas,
+            obsname,
+            meas.default_bin_size,
+            size(value),
+            float(eltype(value)),
+        )
     end
 
-    add_sample!(meas.observables[obsname], value)
+    add_sample!(
+        meas.observables[obsname]::Accumulator{
+            float(eltype(value)),
+            ndims(value) + 1,
+            ndims(value),
+        },
+        value,
+    )
     return nothing
 end
 
@@ -19,16 +31,17 @@ Base.isempty(meas::Measurements) = all(isempty.(values(meas.observables)))
 has_complete_bins(meas::Measurements) = any(has_complete_bins.(values(meas.observables)))
 
 function register_observable!(
-    meas::Measurements{T},
+    meas::Measurements,
     obsname::Symbol,
     bin_length::Integer,
-    vector_length::Integer,
-) where {T}
+    shape::Tuple{Vararg{Integer}},
+    T::Type{<:Number} = Float64,
+)
     if haskey(meas.observables, obsname)
-        error("Observable '$(obsname)' already exists.")
+        error("Accumulator '$obsname' already exists.")
     end
 
-    meas.observables[obsname] = Observable{T}(bin_length, vector_length)
+    meas.observables[obsname] = Accumulator{T}(bin_length, shape)
     return nothing
 end
 
@@ -45,19 +58,20 @@ function write_checkpoint(meas::Measurements, out::HDF5.Group)
     out["default_bin_size"] = meas.default_bin_size
 
     for (name, obs) in meas.observables
+        @assert !has_complete_bins(obs)
         write_checkpoint(obs, create_group(out, "observables/$(name)"))
     end
     return nothing
 end
 
-function read_checkpoint(::Type{Measurements{T}}, in::HDF5.Group) where {T}
+function read_checkpoint(::Type{Measurements}, in::HDF5.Group)
     default_bin_size = read(in, "default_bin_size")
 
-    observables = Dict{Symbol,Observable{T}}()
+    observables = Dict{Symbol,Accumulator}()
     for obsname in keys(in["observables"])
         observables[Symbol(obsname)] =
-            read_checkpoint(Observable{T}, in["observables/$(obsname)"])
+            read_checkpoint(Accumulator, in["observables/$(obsname)"])
     end
 
-    return Measurements{T}(default_bin_size, observables)
+    return Measurements(default_bin_size, observables)
 end

@@ -8,22 +8,23 @@ struct Evaluable{T<:AbstractFloat}
     error::Vector{T}
 end
 
-# TODO: remove collect when Julia compatibility rises above ^1.9 
-eachcol_or_scalar(M::AbstractMatrix) = size(M, 1) == 1 ? vec(M) : collect(eachcol(M))
+function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) where {N}
+    sample_count = minimum(x -> last(size(x)), sample_set)
 
-function jackknife(func::Function, sample_set)
-    sample_count = minimum(map(x -> size(x)[end], sample_set))
+    # truncate sample counts to smallest
+    sample_set = map(s -> s[axes(s)[1:end-1]..., 1:sample_count], sample_set)
 
-    sums = sum.(sample_set)
+    # the .+0 is a trick to decay 0-dim arrays to scalars
+    sums = map(s -> dropdims(sum(s; dims = ndims(s)); dims = ndims(s)) .+ 0, sample_set)
 
     # evaluation based on complete dataset (truncated to the lowest sample_count)
-    complete_eval = func(sums ./ sample_count...)
+    complete_eval = func((sums ./ sample_count)...)
 
     # evaluation on the jacked datasets    
     jacked_eval_mean = zero(complete_eval)
     for k = 1:sample_count
         jacked_means = (
-            (sum - samples[k]) ./ (sample_count - 1) for
+            (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) for
             (sum, samples) in zip(sums, sample_set)
         )
         jacked_eval_mean += func(jacked_means...)
@@ -39,7 +40,7 @@ function jackknife(func::Function, sample_set)
     error = zero(complete_eval)
     for k = 1:sample_count
         jacked_means = (
-            (sum .- samples[k]) ./ (sample_count - 1) for
+            (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) for
             (sum, samples) in zip(sums, sample_set)
         )
         error += (func(jacked_means...) - jacked_eval_mean) .^ 2
@@ -64,10 +65,7 @@ function evaluate(
         internal_bin_length,
         rebin_length,
         bin_count,
-        jackknife(
-            evaluation,
-            map(obs -> eachcol_or_scalar(obs.rebin_means), used_observables),
-        )...,
+        jackknife(evaluation, map(obs -> obs.rebin_means, used_observables))...,
     )
 end
 

@@ -13,7 +13,7 @@ mutable struct MCContext{RNG<:Random.AbstractRNG}
     thermalization_sweeps::Int64
 
     rng::RNG
-    measure::Measurements{Float64}
+    measure::Measurements
 end
 
 """
@@ -31,10 +31,9 @@ Returns true if the simulation is thermalized.
 is_thermalized(ctx::MCContext) = ctx.sweeps > ctx.thermalization_sweeps
 
 function MCContext{RNG}(parameters::AbstractDict; seed_variation::Integer = 0) where {RNG}
-    measure = Measurements{Float64}(parameters[:binsize])
-    register_observable!(measure, :_ll_checkpoint_read_time, 1, 1)
-    register_observable!(measure, :_ll_checkpoint_write_time, 1, 1)
-
+    measure = Measurements(parameters[:binsize])
+    register_observable!(measure, :_ll_checkpoint_read_time, 1, ())
+    register_observable!(measure, :_ll_checkpoint_write_time, 1, ())
 
     if haskey(parameters, :seed)
         rng = RNG(parameters[:seed] * (1 + seed_variation))
@@ -71,6 +70,6 @@ function read_checkpoint(::Type{MCContext{RNG}}, in::HDF5.Group) where {RNG}
         sweeps,
         therm_sweeps,
         read_checkpoint(RNG, in["random_number_generator"]),
-        read_checkpoint(Measurements{Float64}, in["measurements"]),
+        read_checkpoint(Measurements, in["measurements"]),
     )
 end

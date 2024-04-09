@@ -1,5 +1,4 @@
 using Logging
-using Statistics
 
 """Determine the number of bins in the rebin procedure. Rebinning will not be performed if the number of samples is smaller than `min_bin_count`."""
 function calc_rebin_count(sample_count::Integer, min_bin_count::Integer = 10)::Integer
@@ -9,48 +8,13 @@ end
 
 function calc_rebin_length(total_sample_count, rebin_length)
     if total_sample_count == 0
-        return 0
+        return 1
     elseif rebin_length !== nothing
         return rebin_length
     else
         return total_sample_count ÷ calc_rebin_count(total_sample_count)
     end
 end
-
-mutable struct Accumulator{T,N,M}
-    const binsize::Int64
-
-    const bins::ElasticArray{T,N,M,Vector{T}}
-    current_filling::Int64
-end
-
-Accumulator{T}(shape::Tuple{Vararg{Integer}}, binsize) where {T} =
-    Accumulator{T,length(shape) + 1,length(shape)}(
-        binsize,
-        ElasticMatrix(zeros(T, shape..., 1)),
-        0,
-    )
-
-function add!(acc::Accumulator, value)
-    acc.bins[axes(acc.bins)[1:end-1]..., end] .+= value
-    acc.current_filling += 1
-
-    if acc.current_filling == acc.binsize
-        acc.bins[axes(acc.bins)[1:end-1]..., end] ./= acc.binsize
-        acc.current_filling = 0
-        append!(acc.bins, zeros(eltype(acc.bins), axes(acc.bins)[1:end-1]...))
-    end
-end
-
-Statistics.mean(acc::Accumulator) =
-    dropdims(mean(bins(acc); dims = ndims(acc.bins)); dims = ndims(acc.bins))
-std_of_mean(acc::Accumulator) = dropdims(
-    std(bins(acc); dims = ndims(acc.bins)) / sqrt(num_bins(acc));
-    dims = ndims(acc.bins),
-)
-bins(acc::Accumulator) = Array(@view acc.bins[axes(acc.bins)[1:end-1]..., 1:end-1])
-num_bins(acc::Accumulator) = size(acc.bins)[end] - 1
-num_samples(acc::Accumulator) = acc.binsize * num_bins(acc)
 
 """
 This helper function consecutively opens all ".meas.h5" files of a task. For each
@@ -143,15 +107,15 @@ function merge_results(
         if state === nothing
             binsize = calc_rebin_length(obs_type.total_sample_count, rebin_length)
             state = (;
-                acc = Accumulator{obs_type.T}(obs_type.shape, binsize),
-                acc² = Accumulator{obs_type.T}(obs_type.shape, binsize),
+                acc = Accumulator{obs_type.T}(binsize, obs_type.shape),
+                acc² = Accumulator{real(obs_type.T)}(binsize, obs_type.shape),
             )
         end
 
         samples = read(obs_group, "samples")
         for value in Iterators.drop(eachslice(samples; dims = ndims(samples)), sample_skip)
-            add!(state.acc, value)
-            add!(state.acc², abs2.(value))
+            add_sample!(state.acc, value)
+            add_sample!(state.acc², abs2.(value))
         end
 
         return state
@@ -163,15 +127,22 @@ function merge_results(
             σ = std_of_mean(obs.acc)
 
             no_rebinning_σ =
-                sqrt.(max.(0, mean(obs.acc²) .- abs2.(μ)) ./ (num_samples(obs.acc) - 1))
+                sqrt.(
+                    max.(0, mean(obs.acc²) .- abs2.(μ)) ./
+                    (obs.acc.bin_length * num_bins(obs.acc) - 1)
+                )
             autocorrelation_time = 0.5 .* (σ ./ no_rebinning_σ) .^ 2
+
+            # broadcasting promotes 0-dim arrays to scalar, which we do not want
+            ensure_array(x::Number) = fill(x)
+            ensure_array(x::AbstractArray) = x
 
             ResultObservable(
                 obs_types[obs_name].internal_bin_length,
-                obs.acc.binsize,
+                obs.acc.bin_length,
                 μ,
                 σ,
-                autocorrelation_time,
+                ensure_array(autocorrelation_time),
                 bins(obs.acc),
             )
         end for (obs_name, obs) in binned_obs if num_bins(obs.acc) > 0

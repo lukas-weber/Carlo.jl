@@ -11,15 +11,15 @@ tests = [
     "test_taskinfo.jl"
     "test_jobinfo.jl"
     "test_evaluable.jl"
-    "test_scheduler.jl"
     "test_run.jl"
-    "test_observable.jl"
+    "test_accumulator.jl"
     "test_random_wrap.jl"
     "test_results.jl"
     "test_measurements.jl"
     "test_mccontext.jl"
     "test_merge.jl"
     "test_taskmaker.jl"
+    "test_scheduler.jl"
     "test_cli.jl"
 ]
 
