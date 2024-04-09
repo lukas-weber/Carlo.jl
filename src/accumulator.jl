@@ -4,7 +4,7 @@ using Statistics
 
 const binning_output_chunk_size = 1000
 
-mutable struct Accumulator{T<:AbstractFloat,N,M}
+mutable struct Accumulator{T<:Number,N,M}
     const bin_length::Int64
     bins::ElasticArray{T,N,M,Vector{T}}
 

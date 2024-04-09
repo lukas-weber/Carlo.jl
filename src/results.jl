@@ -1,13 +1,13 @@
 import JSON
 
 """Result of a Carlo Monte Carlo calculation containing the mean, statistical error and autocorrelation time."""
-mutable struct ResultObservable{T<:AbstractFloat,N,M}
+mutable struct ResultObservable{T<:Number,R<:Real,N,M}
     internal_bin_length::Int64
     rebin_length::Int64
 
     mean::Array{T,N}
-    error::Array{T,N}
-    autocorrelation_time::Array{T,N}
+    error::Array{R,N}
+    autocorrelation_time::Array{R,N}
 
     rebin_means::Array{T,M}
 end

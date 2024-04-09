@@ -18,7 +18,7 @@ function create_mock_data(
     idx = 1
     for run = 1:runs
         nsamples = samples_per_run + extra_samples * (run == 1)
-        samples = zeros(0)
+        samples = []
         h5open(filenames[run], "w") do file
             meas = Carlo.Measurements(internal_binsize)
             for i = 1:nsamples
@@ -65,7 +65,7 @@ end
                 end
 
                 filenames2, _ = create_mock_data(
-                    idx -> [idx, 1.0];
+                    idx -> [idx+1.0im 1.0; 1.0im 0];
                     runs = runs,
                     obsname = :vec_test,
                     internal_binsize = internal_binsize,
@@ -101,7 +101,7 @@ end
                         vec_obs = results2[:vec_test]
                         @test iszero(vec_obs.error[2])
                         @test vec_obs.error[1] ≈ count_obs.error[1]
-                        @test vec_obs.mean ≈ [count_obs.mean[1], 1.0]
+                        @test vec_obs.mean ≈ [count_obs.mean[1]+1.0im 1.0; 1.0im 0]
                     end
                 end
             end
