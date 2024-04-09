@@ -84,11 +84,35 @@ function iterate_measfile_observables(func::Func, filenames) where {Func}
 end
 
 function merge_results(
-    filenames::AbstractArray{<:AbstractString},
-    ::Type{T} = Float64;
+    ::Type{MC},
+    taskdir::AbstractString;
+    parameters::Dict{Symbol,Any},
+    rebin_length::Union{Integer,Nothing} = get(parameters, :rebin_length, nothing),
+    sample_skip::Integer = get(parameters, :rebin_sample_skip, 0),
+) where {MC<:AbstractMC}
+    merged_results = merge_results(
+        JobTools.list_run_files(taskdir, "meas\\.h5");
+        rebin_length,
+        sample_skip,
+    )
+
+    evaluator = Evaluator(merged_results)
+    register_evaluables(MC, evaluator, parameters)
+
+    results = merge(
+        merged_results,
+        Dict(name => ResultObservable(obs) for (name, obs) in evaluator.evaluables),
+    )
+
+    write_results(results, taskdir * "/results.json", taskdir, parameters, Version(MC))
+    return nothing
+end
+
+function merge_results(
+    filenames::AbstractArray{<:AbstractString};
     rebin_length::Union{Integer,Nothing},
     sample_skip::Integer = 0,
-) where {T<:AbstractFloat}
+)
     obs_types = iterate_measfile_observables(filenames) do _, obs_group, state
         internal_bin_length = read(obs_group, "bin_length")
         sample_size = size(obs_group["samples"])

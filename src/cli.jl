@@ -110,12 +110,7 @@ end
 
 function cli_merge(job::JobInfo, ::AbstractDict)
     for task in job.tasks
-        merge_results(
-            job.mc,
-            JobTools.task_dir(job, task);
-            parameters = task.params,
-            data_type = Float64,
-        )
+        merge_results(job.mc, JobTools.task_dir(job, task); parameters = task.params)
     end
     JobTools.concatenate_results(job)
     return nothing
