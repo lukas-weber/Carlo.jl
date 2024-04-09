@@ -2,12 +2,14 @@ using Test
 using Carlo
 using Carlo.JobTools
 import Carlo.JobTools as JT
+using Carlo.ResultTools
 using MPI
 
 include("test_utils.jl")
 include("test_mc.jl")
 
 tests = [
+    "test_dump_compat.jl"
     "test_taskinfo.jl"
     "test_jobinfo.jl"
     "test_evaluable.jl"

@@ -87,16 +87,25 @@ end
 
 function write_checkpoint(acc::Accumulator, out::HDF5.Group)
     out["bin_length"] = acc.bin_length
-    out["current_filling"] = acc.current_filling
+    out["current_bin_filling"] = acc.current_filling
     out["samples"] = Array(acc.bins)
+    if size(out["samples"]) == (1, 1)
+        attributes(out["samples"])["v0.2_format"] = true
+    end
 
     return nothing
 end
 
 function read_checkpoint(::Type{<:Accumulator}, in::HDF5.Group)
+    samples = read(in, "samples")
+
+    # this maintains checkpoint compatibility with Carlo v0.1.5. remove in v0.3
+    if size(samples) == (1, 1) && !haskey(attributes(in["samples"]), "v0.2_format")
+        samples = dropdims(samples; dims = 1)
+    end
     return Accumulator(
         read(in, "bin_length"),
-        ElasticArray(read(in, "samples")),
-        read(in, "current_filling"),
+        ElasticArray(samples),
+        read(in, "current_bin_filling"),
     )
 end
