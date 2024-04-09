@@ -7,7 +7,7 @@ tm.thermalization = 100000
 tm.sweeps = 100000000000
 tm.binsize = 100
 
-tm.rebin_sample_skip = 100000
+tm.rebin_sample_skip = 1000
 tm.rebin_length = 1000
 
 task(tm)

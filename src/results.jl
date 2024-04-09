@@ -25,7 +25,7 @@ JSON.lower(obs::ResultObservable) = Dict(
 
 
 function write_results(
-    observables::Dict{Symbol,ResultObservable},
+    observables::AbstractDict,
     filename::AbstractString,
     taskdir::AbstractString,
     parameters::Dict,
