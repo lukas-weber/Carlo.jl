@@ -46,7 +46,7 @@ end
             @test obs_names == Set(keys(results))
 
             df = ResultTools.dataframe("dump_compat.data/$(task.name)/results.json")
-            @test issubset(obs_names..., Symbol.(keys(only(df))))
+            @test issubset(obs_names, Symbol.(keys(only(df))))
         end
     end
 end
