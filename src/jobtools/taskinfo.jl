@@ -20,6 +20,8 @@ While `params` can hold any kind of parameter, some are special and used to conf
 - `rebin_length`: *optional*. Override the automatic rebinning length chosen by Carlo (⚠ do not set without knowing what you are doing).
 - `rebin_sample_skip`: *optional*. Skip the first ``N`` internal bins of each run when performing the rebinning analysis. Useful if `thermalization` was not set high enough at the start of the simulation.
 
+- `max_runs_per_task`: *optional*. If set, puts a limit on the maximum number of runs that will be scheduled for this task.
+
 Out of these parameters, it is only permitted to change `sweeps` for an existing calculation. This is handy to run the simulation for longer or shorter than planned originally.
 """
 struct TaskInfo
