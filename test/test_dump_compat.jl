@@ -1,24 +1,19 @@
-
-function compat_job()
-    return JobInfo(
-        "dump_compat",
-        TestMC;
-        tasks = [
-            TaskInfo("v0.1.5", Dict(:sweeps => 100, :thermalization => 0, :binsize => 10)),
-        ],
-        checkpoint_time = "00:05",
-        run_time = "00:10",
-    )
-end
+include("compat_job.jl")
 
 @testset "Checkpoint compatibility" begin
 
-    job = compat_job()
+    job = compat_job([(v"1.10.2", v"0.1.5")])
     progress = JobTools.read_progress(job)
+
+    obs_names =
+        Set([:_ll_sweep_time, :test, :test2, :test_rng, :test_vec, :_ll_measure_time])
 
     MPI.Init()
     for (i, task) in enumerate(job.tasks)
         @testset "$(task.name)" begin
+            if VERSION < task.params[:min_julia_version]
+                continue
+            end
             run = Carlo.read_checkpoint(
                 Carlo.Run{job.mc,job.rng},
                 "dump_compat.data/$(task.name)/run0001",
@@ -34,19 +29,10 @@ end
                 ["dump_compat.data/$(task.name)/run0001.meas.h5"];
                 rebin_length = nothing,
             )
-            obs_names = Set([
-                :_ll_sweep_time,
-                :test,
-                :test2,
-                :test_rng,
-                :_ll_checkpoint_write_time,
-                :test_vec,
-                :_ll_measure_time,
-            ])
             @test obs_names == Set(keys(results))
 
-            df = ResultTools.dataframe("dump_compat.data/$(task.name)/results.json")
-            @test issubset(obs_names, Symbol.(keys(only(df))))
         end
     end
+    df = ResultTools.dataframe("dump_compat.results.json")
+    @test issubset(obs_names, Symbol.(keys(only(df))))
 end
