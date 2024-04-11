@@ -3,6 +3,8 @@ export AbstractMC,
     MCContext, measure!, is_thermalized, write_checkpoint, read_checkpoint!, read_checkpoint
 export Evaluator, evaluate!, start
 
+using Statistics
+
 include("jobtools/JobTools.jl")
 include("resulttools/ResultTools.jl")
 

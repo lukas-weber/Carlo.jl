@@ -3,13 +3,16 @@ using Carlo.JobTools
 include("test_mc.jl")
 
 tm = TaskMaker()
-tm.thermalization = 100000
-tm.sweeps = 100000000000
 tm.binsize = 100
 
 tm.rebin_sample_skip = 1000
 tm.rebin_length = 1000
 
+tm.sweeps = 10
+tm.thermalization = 0
+task(tm)
+tm.thermalization = 100000
+tm.sweeps = 100000000000
 task(tm)
 
 job = JobInfo(

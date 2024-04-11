@@ -52,6 +52,7 @@ end
         tm.thermalization = 100
         tm.binsize = 10
         task(tm)
+        task(tm)
 
         job = JobInfo(
             tmpdir * "/test",

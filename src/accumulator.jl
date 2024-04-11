@@ -1,6 +1,5 @@
 using HDF5
 using ElasticArrays
-using Statistics
 
 const binning_output_chunk_size = 1000
 

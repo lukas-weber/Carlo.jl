@@ -132,8 +132,11 @@ function read_progress(job::JobInfo)
             init = 0,
         )
 
-        thermalization_fraction =
-            num_runs == 0 ? 0.0 : sum(min(s, ts) / ts for (s, ts) in sweeps) / num_runs
+        thermalization_fraction = 0
+        if num_runs > 0
+            thermalization_fraction =
+                mean(ts == 0 ? 1.0 : min(s, ts) / ts for (s, ts) in sweeps)
+        end
 
         return TaskProgress(
             target_sweeps,
