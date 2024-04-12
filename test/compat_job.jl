@@ -1,9 +1,9 @@
 using Carlo
 using Carlo.JobTools
 
-function compat_job(versions)
+function compat_job(versions; dir)
     return JobInfo(
-        "dump_compat",
+        "$dir/dump_compat",
         TestMC;
         tasks = [
             TaskInfo(
