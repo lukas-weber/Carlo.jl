@@ -7,12 +7,12 @@ by handling the parallelization, checkpointing and error analysis. What sets it 
 ease of use and minimalism.
 
 ## Installation
-
-```@repl
-using Pkg
-Pkg.add("Carlo")
+Installation is simple via the Julia REPL.
+```julia
+] add Carlo
 ```
 
+If you wish to use the system MPI implementation, take a look at the [MPI.jl documentation](https://juliaparallel.org/MPI.jl/stable/configuration/#using_system_mpi) and be aware that in that case also the system binary of HDF5 as described [here](https://juliaio.github.io/HDF5.jl/stable/#Using-custom-or-system-provided-HDF5-binaries)!
 ## Usage
 
 In order to work with Carlo, a Monte Carlo algorithm has to implement the [AbstractMC](@ref abstract_mc) interface. A full example of this is given in the
@@ -49,9 +49,62 @@ start(dummy, dummy2) = nothing # hide
 start(job, ARGS)
 ```
 
-This example starts a simulation for the Ising model on the 10×10 lattice for 20 different temperatures. Using the function [`start(job::JobInfo, ARGS)`](@ref) enables the [Carlo CLI](@ref cli).
+This example starts a simulation for the Ising model on the 10×10 lattice for 20 different temperatures. Using the function [`start(job::JobInfo, ARGS)`](@ref) enables the Carlo CLI when we  execute the script above as follows.
 
-The first argument of JobInfo is the prefix for starting the simulation. One possible convention is to use the `@__FILE__` macro to automatically start jobs in the same directory as the script file. Alternatively,
-the script file could be located in a git repository, while the large simulation directory is located elsewhere.
+```bash
+./myjob --help
+```
 
-It should be noted that in contrast to some other packages, the parameter files of Carlo are programs. This is especially handy when a calculation consists of many different tasks.
+The command line interface allows (re)starting a job, merging preliminary results, and showing the completion status of a calculation.
+
+### Starting jobs
+
+```bash
+./myjob run
+```
+
+This will start a simulation on a single core. To use multiple cores, use MPI.
+
+```bash
+mpirun -n $num_cores ./myjob run
+```
+
+Once the simulation is started, a directory `myjob.data` will be created to store all simulation data. The name of the directory corresponds to the first argument of `JobInfo`. Usually that will be `@__FILE__`, but you could also collect your simulation data in a different directory.
+
+The data directory will contain hdf5 files for each task of the job that contain checkpointing snapshots and measurement results. Once the job is done, Carlo will average the measurement data for you and produce the file `myjob.results.json` in the same directory as the `myjob.data` directory. This file contains means and errorbars of all observables. See [ResultTools](@ref result_tools) for some tips on consuming this file back into julia for your plotting or other postprocessing.
+
+### Job status
+
+```bash
+./myjob status
+```
+
+Use this command to find out the state of the simulation. It will show a table with the number of completed measurement sweeps, the target number of sweeps, the numbers of runs, and the fraction of them that is thermalized.
+
+The fraction is defined as thermalization sweeps completed/total thermalization sweeps needed.
+
+### Merging jobs
+
+```bash
+./myjob merge
+```
+
+Usually Carlo will automatically merge results once a job is complete, but when you are impatient and you want to check on results of a running or aborted job, this command is your friend. It will produce a `myjob.results.json` file containing the averages of the currently available data.
+
+### Deleting jobs
+
+```bash
+./myjob delete
+```
+
+This deletes `myjob.data` and `myjob.results.json`. Of course, you should archive your simulation data instead of deleting them. However, if you made an error in a previous simulation, keep in mind that by default Carlo will continue it from the checkpoints.
+
+For that case of restarting a job there is a handy shortcut as well
+
+```bash
+./myjob run --restart
+```
+
+## Shortcuts
+
+All commands here have shortcut versions that you can view in the help.

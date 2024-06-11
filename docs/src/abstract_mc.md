@@ -13,7 +13,7 @@ The following methods all need to be defined for your Monte Carlo algoritm type 
 ```@docs
 Carlo.init!
 Carlo.sweep!
-Carlo.measure!(::AbstractMC, ::MCContext)
+Carlo.measure!
 Carlo.write_checkpoint
 Carlo.read_checkpoint!
 Carlo.register_evaluables

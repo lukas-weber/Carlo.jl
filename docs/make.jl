@@ -6,7 +6,6 @@ makedocs(
     checkdocs = :all,
     pages = [
         "index.md",
-        "cli.md",
         "abstract_mc.md",
         "Advanced Topics" => [
             "evaluables.md",
