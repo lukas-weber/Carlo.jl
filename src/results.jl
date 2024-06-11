@@ -12,7 +12,7 @@ mutable struct ResultObservable{T<:Number,R<:Real,N,M}
     rebin_means::Array{T,M}
 end
 
-rebin_count(obs::ResultObservable) = size(obs.rebin_means)[end]
+rebin_count(obs::ResultObservable) = Int64(size(obs.rebin_means)[end])
 
 JSON.lower(obs::ResultObservable) = Dict(
     "mean" => obs.mean,
