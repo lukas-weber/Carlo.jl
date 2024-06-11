@@ -4,8 +4,8 @@ using JSON
 
 @testset "Results" begin
     result_obs = Carlo.ResultObservable(
-        100,
-        3,
+        Int64(100),
+        Int64(3),
         [1.0, 2.0, 3.0],
         [0.1, 0.1, 0.1],
         [0.1, 0.2, 0.3],
