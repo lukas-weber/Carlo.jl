@@ -1,6 +1,6 @@
 
 struct Evaluable{T<:AbstractFloat}
-    internal_bin_length::Any
+    internal_bin_length::Int64
     rebin_length::Int64
     rebin_count::Int64
 
