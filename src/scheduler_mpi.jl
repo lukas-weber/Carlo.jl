@@ -145,15 +145,16 @@ function get_new_task_id_with_significant_work(
         task_id = get_new_task_id(tasks, task_id)
 
         if task_id === nothing
-            break
+            return nothing
         end
 
         task = tasks[task_id]
         if task.target_sweeps - task.sweeps > task.scheduled_runs
+            return task_id
             break
         end
     end
-    return task_id
+    return nothing
 end
 
 function controller_react_idle(

@@ -3,6 +3,9 @@ using Carlo.ResultTools
 using Logging
 
 @testset "Task Selection" begin
+    @test Carlo.get_new_task_id(Carlo.SchedulerTask[], 0) === nothing
+    @test Carlo.get_new_task_id_with_significant_work(Carlo.SchedulerTask[], 0) === nothing
+
     sweeps = [100, 10, 10, 101, 10]
     tasks = [Carlo.SchedulerTask(100, s, "") for s in sweeps]
 
@@ -20,7 +23,13 @@ using Logging
     @test Carlo.get_new_task_id(tasks, nothing) === nothing
 end
 
-function make_test_job(dir::AbstractString, sweeps::Integer; ranks_per_run = 1, kwargs...)
+function make_test_job(
+    dir::AbstractString,
+    sweeps::Integer;
+    ranks_per_run = 1,
+    ntasks = 3,
+    kwargs...,
+)
     tm = TaskMaker()
     tm.sweeps = sweeps
     tm.seed = 13245432
@@ -30,7 +39,7 @@ function make_test_job(dir::AbstractString, sweeps::Integer; ranks_per_run = 1, 
         setproperty!(tm, k, v)
     end
 
-    for i = 1:3
+    for i = 1:ntasks
         task(tm; i = i)
     end
 
