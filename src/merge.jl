@@ -81,6 +81,13 @@ function merge_results(
         internal_bin_length = read(obs_group, "bin_length")
         sample_size = size(obs_group["samples"])
 
+        # TODO: compat for v0.1.5 format. Remove in v0.3
+        if length(sample_size) == 2 &&
+           sample_size[1] == 1 &&
+           !haskey(attributes(obs_group["samples"]), "v0.2_format")
+            sample_size = (sample_size[2],)
+        end
+
         shape = sample_size[1:end-1]
         nsamples = max(0, sample_size[end] - sample_skip)
 
@@ -113,6 +120,11 @@ function merge_results(
         end
 
         samples = read(obs_group, "samples")
+        # TODO: compat for v0.1.5 format. Remove in v0.3
+        if !haskey(attributes(obs_group["samples"]), "v0.2_format")
+            samples = reshape(samples, obs_type.shape..., :)
+        end
+
         for value in Iterators.drop(eachslice(samples; dims = ndims(samples)), sample_skip)
             add_sample!(state.acc, value)
             add_sample!(state.acc², abs2.(value))

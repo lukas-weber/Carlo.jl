@@ -72,6 +72,7 @@ function write_measurements!(acc::Accumulator{T}, out::HDF5.Group) where {T}
                 ((shape(acc)..., num_bins(acc)), (shape(acc)..., -1));
                 chunk = (shape(acc)..., binning_output_chunk_size),
             )
+            attributes(out["samples"])["v0.2_format"] = true
             old_bin_count = 0
         end
 
@@ -98,7 +99,7 @@ end
 function read_checkpoint(::Type{<:Accumulator}, in::HDF5.Group)
     samples = read(in, "samples")
 
-    # this maintains checkpoint compatibility with Carlo v0.1.5. remove in v0.3
+    # TODO: this maintains checkpoint compatibility with Carlo v0.1.5. remove in v0.3
     if size(samples) == (1, 1) && !haskey(attributes(in["samples"]), "v0.2_format")
         samples = dropdims(samples; dims = 1)
     end
