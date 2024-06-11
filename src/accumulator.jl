@@ -17,7 +17,7 @@ function Accumulator{T}(bin_length::Integer, shape::Tuple{Vararg{Integer}}) wher
 
     bins = ElasticArray{T}(undef, shape..., 1)
     bins .= 0
-    return Accumulator(bin_length, bins, 0)
+    return Accumulator(Int64(bin_length), bins, 0)
 end
 
 Base.isempty(acc::Accumulator) = num_bins(acc) == 0 && acc.current_filling == 0
