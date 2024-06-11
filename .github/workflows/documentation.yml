@@ -20,7 +20,7 @@ jobs:
       - uses: julia-actions/cache@v1
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg;
-          Pkg.add(url="https://github.com/lukas-weber/Ising.jl")
+          Pkg.add(url="https://github.com/lukas-weber/Ising.jl");
           Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
         env:
