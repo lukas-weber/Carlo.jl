@@ -41,7 +41,7 @@ function MCContext{RNG}(parameters::AbstractDict; seed_variation::Integer = 0) w
         rng = RNG()
     end
 
-    return MCContext(0, parameters[:thermalization], rng, measure)
+    return MCContext(Int64(0), Int64(parameters[:thermalization]), rng, measure)
 end
 
 
