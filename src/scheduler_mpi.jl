@@ -67,6 +67,7 @@ MPISchedulerController(job::JobInfo, active_ranks::Integer) = MPISchedulerContro
         SchedulerTask(
             p.target_sweeps,
             p.sweeps,
+            t.params[:thermalization],
             p.dir,
             0,
             get(t.params, :max_runs_per_task, typemax(Int64)),
@@ -149,9 +150,9 @@ function get_new_task_id_with_significant_work(
         end
 
         task = tasks[task_id]
-        if task.target_sweeps - task.sweeps > task.scheduled_runs
+        if task.target_sweeps - task.sweeps >
+           max(task.thermalization * task.scheduled_runs, task.scheduled_runs)
             return task_id
-            break
         end
     end
     return nothing
@@ -288,8 +289,12 @@ function start(
             end
 
             task = job.tasks[response.task_id]
-            scheduler_task =
-                SchedulerTask(response.sweeps_until_comm, 0, JobTools.task_dir(job, task))
+            scheduler_task = SchedulerTask(
+                response.sweeps_until_comm,
+                0,
+                task.params[:thermalization],
+                JobTools.task_dir(job, task),
+            )
             rundir = run_dir(scheduler_task, response.run_id)
 
             run = read_checkpoint(Run{job.mc,job.rng}, rundir, task.params, run_comm)

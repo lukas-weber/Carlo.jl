@@ -27,7 +27,8 @@ function start(::Type{SingleScheduler}, job::JobInfo)
     scheduler.time_last_checkpoint = scheduler.time_start
 
     scheduler.tasks = map(
-        x -> SchedulerTask(x.target_sweeps, x.sweeps, x.dir),
+        # thermalization information is not needed by the single scheduler, so we pass 0
+        x -> SchedulerTask(x.target_sweeps, x.sweeps, 0, x.dir),
         JobTools.read_progress(scheduler.job),
     )
     scheduler.task_id = get_new_task_id(scheduler.tasks, length(scheduler.tasks))

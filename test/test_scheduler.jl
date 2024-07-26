@@ -7,7 +7,7 @@ using Logging
     @test Carlo.get_new_task_id_with_significant_work(Carlo.SchedulerTask[], 0) === nothing
 
     sweeps = [100, 10, 10, 101, 10]
-    tasks = [Carlo.SchedulerTask(100, s, "") for s in sweeps]
+    tasks = [Carlo.SchedulerTask(100, s, 10, "") for s in sweeps]
 
     @test Carlo.get_new_task_id(tasks, 1) == 2
     @test Carlo.get_new_task_id(tasks, 2) == 3
@@ -15,7 +15,7 @@ using Logging
     @test Carlo.get_new_task_id(tasks, 4) == 5
     @test Carlo.get_new_task_id(tasks, 5) == 2
 
-    tasks = [Carlo.SchedulerTask(100, s, "") for s in [100, 100, 100]]
+    tasks = [Carlo.SchedulerTask(100, s, 10, "") for s in [100, 100, 100]]
     for i = 1:length(tasks)
         @test Carlo.get_new_task_id(tasks, i) === nothing
     end
