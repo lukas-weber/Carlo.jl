@@ -1,11 +1,11 @@
 
-struct Evaluable{T<:AbstractFloat}
+struct Evaluable{T<:Number,R<:Real}
     internal_bin_length::Int64
     rebin_length::Int64
     rebin_count::Int64
 
     mean::Vector{T}
-    error::Vector{T}
+    error::Vector{R}
 end
 
 function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) where {N}
@@ -15,7 +15,7 @@ function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) w
     sample_set = map(s -> s[axes(s)[1:end-1]..., 1:sample_count], sample_set)
 
     # the .+0 is a trick to decay 0-dim arrays to scalars
-    sums = map(s -> dropdims(sum(s; dims = ndims(s)); dims = ndims(s)) .+ 0, sample_set)
+    sums = map(s -> dropdims(sum(s; dims=ndims(s)); dims=ndims(s)) .+ 0, sample_set)
 
     # evaluation based on complete dataset (truncated to the lowest sample_count)
     complete_eval = func((sums ./ sample_count)...)
@@ -43,9 +43,10 @@ function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) w
             (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) for
             (sum, samples) in zip(sums, sample_set)
         )
-        error += (func(jacked_means...) - jacked_eval_mean) .^ 2
+        # use abs2 to give real number error for complex number variables
+        error += abs2.(func(jacked_means...) - jacked_eval_mean)
     end
-    error = sqrt.((sample_count - 1) .* error ./ sample_count)
+    error = real.(sqrt.((sample_count - 1) .* error ./ sample_count))
 
     return vec(collect(bias_corrected_mean)), vec(collect(error))
 end
@@ -74,7 +75,7 @@ function ResultObservable(eval::Evaluable)
         eval.internal_bin_length,
         eval.rebin_length,
         eval.mean,
-        eval.error,
+        real.(eval.error),
         fill(NaN, size(eval.mean)...),
         eltype(eval.mean)[],
     )

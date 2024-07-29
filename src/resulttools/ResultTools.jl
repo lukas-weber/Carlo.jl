@@ -16,9 +16,20 @@ function measurement_from_obs(obsname, obs)
     end
 
     mean = obs["mean"]
+    if mean isa Dict
+        mean = Complex(mean["re"], mean["im"])
+    end
+    if mean isa AbstractVector
+        for i in 1:length(mean)
+            if mean[i] isa Dict
+                mean[i] = Complex(mean[i]["re"], mean[i]["im"])
+            end
+        end
+    end
     error = obs["error"]
 
     sanitize(m, e) = (isnothing(m) || isnothing(e)) ? missing : m ± e
+    sanitize(m::Complex, e) = (isnothing(m) || isnothing(e)) ? missing : Complex(real(m) ± e, imag(m))
     return make_scalar(sanitize.(mean, error))
 end
 
