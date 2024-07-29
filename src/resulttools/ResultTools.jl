@@ -22,8 +22,10 @@ function measurement_from_obs(obsname, obs)
     error = obs["error"]
 
     sanitize(m, e) = (isnothing(m) || isnothing(e)) ? missing : m ± e
-    sanitize(m::Complex, e) = (isnothing(m) || isnothing(e)) ? missing : Complex(real(m) ± e, imag(m))
-    sanitize(m::AbstractDict, e) = (isnothing(m) || isnothing(e)) ? missing : Complex(m["re"] ± e, m["im"])
+    sanitize(m::Complex, e) =
+        (isnothing(m) || isnothing(e)) ? missing : Complex(real(m) ± e, imag(m))
+    sanitize(m::AbstractDict, e) =
+        (isnothing(m) || isnothing(e)) ? missing : Complex(m["re"] ± e, m["im"])
     return make_scalar(sanitize.(mean, error))
 end
 

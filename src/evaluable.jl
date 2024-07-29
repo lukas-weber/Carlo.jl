@@ -15,7 +15,7 @@ function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) w
     sample_set = map(s -> s[axes(s)[1:end-1]..., 1:sample_count], sample_set)
 
     # the .+0 is a trick to decay 0-dim arrays to scalars
-    sums = map(s -> dropdims(sum(s; dims=ndims(s)); dims=ndims(s)) .+ 0, sample_set)
+    sums = map(s -> dropdims(sum(s; dims = ndims(s)); dims = ndims(s)) .+ 0, sample_set)
 
     # evaluation based on complete dataset (truncated to the lowest sample_count)
     complete_eval = func((sums ./ sample_count)...)
