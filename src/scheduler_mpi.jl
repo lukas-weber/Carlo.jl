@@ -177,7 +177,12 @@ function controller_react_idle(
         task = controller.tasks[controller.task_id]
         task.scheduled_runs += 1
 
-        sweeps_until_comm = max(0, (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs)
+        @assert controller.num_active_ranks > 0
+        sweeps_until_comm = clamp(
+            (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs,
+            0,
+            task.target_sweeps ÷ controller.num_active_ranks,
+        )
         MPI.Send(
             MPISchedulerIdleResponse(
                 A_NEW_TASK,
@@ -228,7 +233,11 @@ function controller_react_busy(
             )
         end
     else
-        sweeps_until_comm = max(1, (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs)
+        sweeps_until_comm = clamp(
+            (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs,
+            1,
+            task.target_sweeps ÷ controller.num_active_ranks,
+        )
         MPI.Send(
             MPISchedulerBusyResponse(A_CONTINUE, sweeps_until_comm),
             run_leader_comm;
@@ -306,24 +315,22 @@ function start(
             end
             worker =
                 MPISchedulerWorker(response.task_id, response.run_id, scheduler_task, run)
+            time_last_checkpoint = Dates.now()
         end
 
+        timeup = Ref(false)
         while !is_done(worker.task)
             worker.task.sweeps += step!(worker.run, run_comm)
             yield()
 
-            timeup = Ref(
+            timeup[] =
                 JobTools.is_checkpoint_time(job, time_last_checkpoint) ||
-                JobTools.is_end_time(job, time_start),
-            )
+                JobTools.is_end_time(job, time_start)
             MPI.Bcast!(timeup, 0, run_comm)
             if timeup[]
                 break
             end
         end
-
-        write_checkpoint(worker, run_comm)
-        time_last_checkpoint = Dates.now()
 
         if JobTools.is_end_time(job, time_start)
             worker_signal_timeup(run_leader_comm, run_comm)
@@ -341,6 +348,8 @@ function start(
         worker.task.sweeps = 0
 
         if response.action == A_PROCESS_DATA_NEW_TASK
+            write_checkpoint(worker, run_comm)
+
             if is_run_leader(run_comm)
                 merge_results(
                     job.mc,
@@ -350,8 +359,14 @@ function start(
             end
             worker = nothing
         elseif response.action == A_NEW_TASK
+            write_checkpoint(worker, run_comm)
             worker = nothing
         else
+            if timeup[]
+                write_checkpoint(worker, run_comm)
+                time_last_checkpoint = Dates.now()
+            end
+
             @assert response.action == A_CONTINUE
             worker.task.target_sweeps = response.sweeps_until_comm
             @assert !is_done(worker.task)
