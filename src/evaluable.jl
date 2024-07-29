@@ -37,7 +37,7 @@ function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) w
     bias_corrected_mean =
         sample_count * complete_eval .- (sample_count - 1) * jacked_eval_mean
 
-    error = zero(complete_eval)
+    error = real.(zero(complete_eval))
     for k = 1:sample_count
         jacked_means = (
             (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) for
@@ -46,7 +46,7 @@ function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) w
         # use abs2 to give real number error for complex number variables
         error += abs2.(func(jacked_means...) - jacked_eval_mean)
     end
-    error = real.(sqrt.((sample_count - 1) .* error ./ sample_count))
+    error = sqrt.((sample_count - 1) .* error ./ sample_count)
 
     return vec(collect(bias_corrected_mean)), vec(collect(error))
 end
@@ -75,7 +75,7 @@ function ResultObservable(eval::Evaluable)
         eval.internal_bin_length,
         eval.rebin_length,
         eval.mean,
-        real.(eval.error),
+        eval.error,
         fill(NaN, size(eval.mean)...),
         eltype(eval.mean)[],
     )

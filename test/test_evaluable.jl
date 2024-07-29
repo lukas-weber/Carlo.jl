@@ -36,6 +36,7 @@ using Carlo
 
         means = ([1 + 0im, 1 + 1im, 1 + 2im], [2 - 0im, 2 - 1im, 2 - 2im])
         results = Carlo.jackknife(func3, means)
+        @test results[2][1] isa Real
         @test all(
             results .≈ ([0.2188235294117648 + 0.6847058823529415im], [0.3388562075744883]),
         )
