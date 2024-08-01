@@ -236,7 +236,7 @@ function controller_react_busy(
         sweeps_until_comm = clamp(
             (task.target_sweeps - task.sweeps) ÷ task.scheduled_runs,
             1,
-            task.target_sweeps ÷ controller.num_active_ranks,
+            max(1, task.target_sweeps ÷ controller.num_active_ranks),
         )
         MPI.Send(
             MPISchedulerBusyResponse(A_CONTINUE, sweeps_until_comm),
