@@ -36,7 +36,7 @@ end
         run_cmd("delete")
         @test !isfile(tmpdir * "/test.results.json")
 
-        run_cmd(`run`)
+        run_cmd("run")
 
         run_cmd("status")
         run_cmd("merge")
@@ -51,6 +51,7 @@ end
         tm.sweeps = 100
         tm.thermalization = 100
         tm.binsize = 10
+        task(tm)
         task(tm)
         task(tm)
 

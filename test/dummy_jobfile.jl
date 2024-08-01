@@ -14,6 +14,7 @@ task(tm)
 tm.thermalization = 100000
 tm.sweeps = 100000000000
 task(tm)
+task(tm)
 
 job = JobInfo(
     ARGS[1] * "/test",

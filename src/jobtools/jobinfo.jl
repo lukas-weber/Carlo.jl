@@ -108,7 +108,7 @@ function concatenate_results(job::JobInfo)
                     return JSON.parse(in)
                 end
             catch e
-                if !isa(e, Base.IOError)
+                if !isa(e, Base.SystemError)
                     rethrow()
                 end
                 return missing
