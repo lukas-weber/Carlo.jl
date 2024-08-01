@@ -102,12 +102,19 @@ result_filename(job::JobInfo) = "$(job.dir)/../$(job.name).results.json"
 
 function concatenate_results(job::JobInfo)
     open(result_filename(job), "w") do out
-        results = map(job.tasks) do task
-            open(task_dir(job, task) * "/results.json", "r") do in
-                return JSON.parse(in)
+        results = skipmissing(map(job.tasks) do task
+            try
+                open(task_dir(job, task) * "/results.json", "r") do in
+                    return JSON.parse(in)
+                end
+            catch e
+                if !isa(e, Base.IOError)
+                    rethrow()
+                end
+                return missing
             end
-        end
-        JSON.print(out, results, 1)
+        end)
+        JSON.print(out, collect(results), 1)
     end
     return nothing
 end
