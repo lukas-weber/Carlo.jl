@@ -9,7 +9,7 @@ end
 function Run{MC,RNG}(params::Dict, comm::MPI.Comm) where {MC<:AbstractMC,RNG<:AbstractRNG}
     seed_variation = MPI.Comm_rank(comm)
     context = MCContext{RNG}(params; seed_variation)
-    implementation = MC(params)
+    implementation = MC(merge(params, Dict(:_comm => comm)))
     init!(implementation, context, params, comm)
 
     return Run{MC,RNG}(context, implementation)
@@ -118,7 +118,7 @@ function read_checkpoint(
     end
 
     context = nothing
-    mc = MC(parameters)
+    mc = MC(merge(parameters, Dict(:_comm => comm)))
 
     if is_run_leader(comm)
         checkpoint_read_time = @elapsed begin

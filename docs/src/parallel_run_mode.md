@@ -25,4 +25,6 @@ For checkpointing, there is a similar catch.
 
 In these methods, only rank 0 receives an `HDF5.Group` and the other ranks need to communicate. Carlo does not use the collective writing mode of parallel HDF5.
 
+Sometimes, you also want to share work during the construction of `YourMC`. For this reason, Carlo will add the hidden parameter `_comm` to the parameter dictionary received by the constructor `YourMC(params::AbstractDict)`. `params[:_comm]` is then an MPI communicator similar to the `comm` argument of the functions above.
+
 Lastly, the `Carlo.register_evaluables` function remains the same as in the normal interface.
