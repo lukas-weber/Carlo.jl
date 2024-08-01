@@ -21,6 +21,11 @@ end
 
 function start(::Type{SingleScheduler}, job::JobInfo)
     MPI.Init()
+
+    if MPI.Comm_size(MPI.COMM_WORLD) > 1 && MPI.Comm_rank(MPI.COMM_WORLD) == 0
+        @info "started SingleScheduler running with multiple MPI ranks: running in parallel run mode!"
+    end
+
     JobTools.create_job_directory(job)
     scheduler = SingleScheduler(job)
     scheduler.time_start = Dates.now()
