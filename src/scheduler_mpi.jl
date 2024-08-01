@@ -128,6 +128,7 @@ end
 function start(::Type{MPISchedulerController}, job::JobInfo, run_leader_comm::MPI.Comm)
     controller = MPISchedulerController(job, MPI.Comm_size(run_leader_comm) - 1)
 
+    MPI.Barrier(run_leader_comm)
     while controller.num_active_ranks > 0
         react!(controller, run_leader_comm)
     end
@@ -290,6 +291,9 @@ function start(
     time_start = Dates.now()
     time_last_checkpoint = Dates.now()
 
+    if is_run_leader(run_comm)
+        MPI.Barrier(run_leader_comm)
+    end
     while true
         if worker === nothing
             response = worker_signal_idle(run_leader_comm, run_comm)
