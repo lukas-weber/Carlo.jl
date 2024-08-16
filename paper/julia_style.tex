@@ -1,0 +1,31 @@
+%%
+%% Julia definition (c) 2014 Jubobs
+%% adapted for Carlo
+%%
+\lstdefinelanguage{Julia}%
+  {morekeywords={abstract,break,case,catch,const,continue,do,else,elseif,%
+      end,export,false,for,function,immutable,import,importall,if,in,%
+      macro,module,mutable,struct,otherwise,quote,return,switch,true,try,type,typealias,%
+      using,while},%
+   sensitive=true,%
+   alsoother={$},%
+   morecomment=[l]\#,%
+   morecomment=[n]{\#=}{=\#},%
+   morestring=[s]{"}{"},%
+   morestring=[m]{'}{'},%
+}[keywords,comments,strings]%
+
+\lstset{%
+    language         = Julia,
+    basicstyle       = \ttfamily\small,
+	frame = lines,
+    keywordstyle     = \bfseries \color{scipostblue},
+    stringstyle      = \color{red!80!yellow!60!black},
+    commentstyle     = \color{black!70!white},
+    showstringspaces = false,
+}
+
+\newfloat{lstfloat}{htbp}{lop}
+\floatname{lstfloat}{Listing}
+\def\lstfloatautorefname{Listing}
+\crefalias{lstfloat}{listing}
