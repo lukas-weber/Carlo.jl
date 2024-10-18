@@ -5,6 +5,14 @@ using Measurements
 
 make_scalar(x) = x isa AbstractVector && size(x) == (1,) ? only(x) : x
 
+# JSON turns arrays into Vector{Any}s of Vector{Any}s. This function undoes this by recursively stacking the vectors.
+function recursive_stack(v)
+    if isnothing(v) || ndims(v) == 0 || any(isnothing, v)
+        return v
+    end
+    return stack(recursive_stack, v)
+end
+
 function measurement_from_obs(obsname, obs)
     if ismissing(obs)
         return missing
@@ -20,6 +28,9 @@ function measurement_from_obs(obsname, obs)
         mean = Complex(mean["re"], mean["im"])
     end
     error = obs["error"]
+
+    mean = recursive_stack(mean)
+    error = recursive_stack(error)
 
     sanitize(m, e) = (isnothing(m) || isnothing(e)) ? missing : m ± e
     sanitize(m::Complex, e) =

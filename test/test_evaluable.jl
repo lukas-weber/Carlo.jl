@@ -31,6 +31,18 @@ using Carlo
         )
     end
 
+    @testset "matrix" begin
+        func_vec = (x, y) -> x ./ y
+        func_mat = x -> x[:, 1] ./ x[:, 2]
+
+        means_vec = (rand(3, 5), rand(3, 5))
+        means_mat = (stack(means_vec, dims = 2),)
+
+        @test all(
+            Carlo.jackknife(func_mat, means_mat) .≈ Carlo.jackknife(func_vec, means_vec),
+        )
+    end
+
     @testset "ComplexScalar" begin
         func3 = (x::Complex, y::Complex) -> x / y
 
