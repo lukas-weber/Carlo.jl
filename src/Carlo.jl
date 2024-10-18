@@ -1,7 +1,7 @@
 module Carlo
 export AbstractMC,
     MCContext, measure!, is_thermalized, write_checkpoint, read_checkpoint!, read_checkpoint
-export Evaluator, evaluate!, start
+export AbstractEvaluator, Evaluator, evaluate!, start
 
 using Statistics
 

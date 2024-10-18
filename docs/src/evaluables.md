@@ -6,7 +6,7 @@ This presents two problems. First, estimating the errors of such quantities is n
 
 Luckily, Carlo can help you with this by letting you define such quantities – we call them *evaluables* – in the [`Carlo.register_evaluables(YourMC, eval, params)`](@ref) function.
 
-This function gets an `Evaluator` which can be used to
+This function gets an `AbstractEvaluator` which can be used to
 
 ```@docs
 evaluate!
@@ -22,7 +22,7 @@ struct YourMC <: AbstractMC end # hide
 
 function Carlo.register_evaluables(
     ::Type{YourMC},
-    eval::Evaluator,
+    eval::AbstractEvaluator,
     params::AbstractDict,
 )
 

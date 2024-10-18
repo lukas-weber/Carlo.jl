@@ -96,7 +96,7 @@ function read_checkpoint(::Type{T}, dump_file::HDF5.Group) where {T}
 end
 
 """
-    Carlo.register_evaluables(mc::Type{YourMC}, eval::Evaluator, params::AbstractDict)
+    Carlo.register_evaluables(mc::Type{YourMC}, eval::AbstractEvaluator, params::AbstractDict)
 
 This function is used to calculate postprocessed quantities from quantities that were measured during the simulation. Common examples are variances or ratios of observables.
 
