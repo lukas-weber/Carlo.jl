@@ -8,12 +8,12 @@ Holds the Carlo-internal state of the simulation and provides an interface to
 - **Measurements**: see [`measure!(::MCContext, ::Symbol, ::Any)`](@ref)
 - **Simulation state**: see [`is_thermalized`](@ref)
 """
-mutable struct MCContext{RNG<:Random.AbstractRNG}
+mutable struct MCContext{RNG<:Random.AbstractRNG,Measure}
     sweeps::Int64
     thermalization_sweeps::Int64
 
     rng::RNG
-    measure::Measurements
+    measure::Measure
 end
 
 """
@@ -46,7 +46,6 @@ end
 
 
 function write_measurements!(ctx::MCContext, meas_file::HDF5.Group)
-
     write_measurements!(ctx.measure, create_absent_group(meas_file, "observables"))
 
     return nothing

@@ -12,11 +12,11 @@ function tmp_hdf5_file(func::Function)
 end
 
 
-function test_checkpointing(obj)
+function test_checkpointing(obj; type = typeof(obj))
     return tmp_hdf5_file() do file
         group = create_group(file, "test")
         Carlo.write_checkpoint(obj, group)
-        obj2 = Carlo.read_checkpoint(typeof(obj), group)
+        obj2 = Carlo.read_checkpoint(type, group)
 
         return obj == obj2
     end

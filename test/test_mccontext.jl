@@ -16,5 +16,5 @@ using Carlo
         Carlo.write_measurements!(ctx, open_group(file, "/"))
     end
 
-    @test test_checkpointing(ctx)
+    @test test_checkpointing(ctx, type = Carlo.MCContext{Random.Xoshiro})
 end
