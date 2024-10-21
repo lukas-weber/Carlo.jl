@@ -153,7 +153,9 @@ function generate_autocorr()
         ) for i = 1:9000
     )
 
-    h5write("data/error_bench_autocorr.h5", "/energy_autocorr", corrs)
+    h5open("data/error_bench_autocorr.h5", "w") do file
+        file["/energy_autocorr", chunk = (100, 100), shuffle = (), deflate = 3] = corrs
+    end
 end
 
 function plot_autocorr!(ax, path, obsname)

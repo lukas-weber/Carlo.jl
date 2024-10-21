@@ -31,6 +31,7 @@ tests = [
     "test_merge.jl"
     "test_taskmaker.jl"
     "test_scheduler.jl"
+    "test_parallel_tempering.jl"
     "test_cli.jl"
 ]
 

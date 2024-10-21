@@ -14,6 +14,7 @@ makedocs(
             "rng.md",
             "parallel_run_mode.md",
         ],
+        "Extras" => ["parallel_tempering.md"],
     ],
 )
 

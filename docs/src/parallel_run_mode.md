@@ -6,6 +6,8 @@ Sometimes this kind of trivial parallelism is not satisfactory. For example, it 
 
 For these cases, Carlo features a *parallel run mode* where each Carlo run does not run on one but multiple MPI ranks. Parallel run mode is enabled in [`JobInfo`](@ref) by passing the `ranks_per_run` argument. 
 
+An example for how parallel run mode is used can be found in the implementation of [`ParallelTemperingMC`](@ref).
+
 ## Parallel `AbstractMC` interface
 
 In order to use parallel run mode, the Monte Carlo algorithm must implement a modified version of the [`AbstractMC`](@ref) interface including additional `MPI.Comm` arguments that allow coordination between the different ranks per run.

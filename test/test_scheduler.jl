@@ -19,67 +19,11 @@
     @test Carlo.get_new_task_id(tasks, nothing) === nothing
 end
 
-function make_test_job(
-    dir::AbstractString,
-    sweeps::Integer;
-    ranks_per_run = 1,
-    ntasks = 3,
-    kwargs...,
-)
-    tm = TaskMaker()
-    tm.sweeps = sweeps
-    tm.seed = 13245432
-    tm.thermalization = 14
-    tm.binsize = 1
-    for (k, v) in kwargs
-        setproperty!(tm, k, v)
-    end
-
-    for i = 1:ntasks
-        task(tm; i = i)
-    end
-
-    return JobInfo(
-        dir,
-        ranks_per_run == 1 ? TestMC : TestParallelRunMC;
-        tasks = make_tasks(tm),
-        checkpoint_time = "1:00",
-        run_time = "10:00",
-        ranks_per_run = ranks_per_run,
-    )
-end
-
-function run_test_job_mpi(job::JobInfo; num_ranks::Integer, silent::Bool = false)
-    JT.create_job_directory(job)
-    job_path = job.dir * "/jobfile"
-    serialize(job_path, job)
-
-    cmd = `$(mpiexec()) -n $num_ranks $(Base.julia_cmd()) test_scheduler_mpi.jl $(job_path)`
-    if silent
-        cmd = pipeline(cmd; stdout = devnull, stderr = devnull)
-    end
-    run(cmd)
-
-    return nothing
-end
-
-function compare_results(job1::JobInfo, job2::JobInfo)
-    results1 = ResultTools.dataframe(JT.result_filename(job1))
-    results2 = ResultTools.dataframe(JT.result_filename(job2))
-
-    for (task1, task2) in zip(results1, results2)
-        for key in keys(task1)
-            if !startswith(key, "_ll_")
-                @test (key, task1[key]) == (key, task2[key])
-            end
-        end
-    end
-end
-
 @testset "Task Scheduling" begin
     mktempdir() do tmpdir
         @testset "MPI parallel run mode" begin
-            job_2rank = make_test_job("$tmpdir/test2_2rank", 100, ranks_per_run = 2)
+            mc = TestParallelRunMC
+            job_2rank = make_test_job("$tmpdir/test2_2rank", 100; mc, ranks_per_run = 2)
 
             run_test_job_mpi(job_2rank; num_ranks = 5)
             tasks = JT.read_progress(job_2rank)
@@ -87,13 +31,16 @@ end
                 @test task.sweeps >= task.target_sweeps
             end
 
-            job_all_full = make_test_job("$tmpdir/test2_full", 200, ranks_per_run = :all)
+            job_all_full =
+                make_test_job("$tmpdir/test2_full", 200; mc, ranks_per_run = :all)
             run_test_job_mpi(job_all_full; num_ranks = 5)
 
             # test checkpointing by resetting the seed on a finished simulation
-            job_all_half = make_test_job("$tmpdir/test2_half", 100, ranks_per_run = :all)
+            job_all_half =
+                make_test_job("$tmpdir/test2_half", 100; mc, ranks_per_run = :all)
             run_test_job_mpi(job_all_half; num_ranks = 5)
-            job_all_half = make_test_job("$tmpdir/test2_half", 200, ranks_per_run = :all)
+            job_all_half =
+                make_test_job("$tmpdir/test2_half", 200; mc, ranks_per_run = :all)
             run_test_job_mpi(job_all_half; num_ranks = 5)
 
             compare_results(job_all_full, job_all_half)
@@ -107,6 +54,7 @@ end
             job_fail = make_test_job(
                 "$tmpdir/test2_fail",
                 100;
+                mc,
                 ranks_per_run = 2,
                 try_measure_on_nonroot = true,
             )

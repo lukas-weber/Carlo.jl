@@ -2,6 +2,7 @@ module Carlo
 export AbstractMC,
     MCContext, measure!, is_thermalized, write_checkpoint, read_checkpoint!, read_checkpoint
 export AbstractEvaluator, Evaluator, evaluate!, start
+export ParallelTemperingMC
 
 using Statistics
 
@@ -24,6 +25,8 @@ include("scheduler_task.jl")
 include("scheduler_single.jl")
 include("scheduler_mpi.jl")
 include("cli.jl")
+include("parallel_tempering.jl")
+
 include("precompile.jl")
 
 end
