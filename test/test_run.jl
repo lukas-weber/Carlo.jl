@@ -1,7 +1,3 @@
-using Random
-
-import Carlo
-
 @testset "Run" begin
     params = Dict(:thermalization => 100, :binsize => 13)
     MPI.Init()

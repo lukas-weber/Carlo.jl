@@ -1,5 +1,3 @@
-using Carlo
-
 @testset "Evaluable" begin
     @testset "scalar" begin
         func = (x::Real, y::Real) -> x / y

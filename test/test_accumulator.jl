@@ -1,5 +1,3 @@
-using Carlo
-
 @struct_equal Carlo.Accumulator
 
 @testset "Accumulator" begin

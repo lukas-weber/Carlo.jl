@@ -1,7 +1,3 @@
-using Carlo
-using Random
-using Statistics
-
 function create_mock_data(
     generator;
     runs::Integer,

@@ -1,6 +1,3 @@
-using HDF5
-using StructEquality
-
 function tmp_hdf5_file(func::Function)
     tmp = tempname(cleanup = true)
     res = try

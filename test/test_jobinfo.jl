@@ -1,8 +1,3 @@
-using JSON
-using Dates
-using Carlo.JobTools
-import Carlo.JobTools as JT
-
 @testset "JobInfo" begin
     tm = JT.TaskMaker()
     tm.thermalization = 100

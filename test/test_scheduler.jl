@@ -1,7 +1,3 @@
-using Serialization
-using Carlo.ResultTools
-using Logging
-
 @testset "Task Selection" begin
     @test Carlo.get_new_task_id(Carlo.SchedulerTask[], 0) === nothing
     @test Carlo.get_new_task_id_with_significant_work(Carlo.SchedulerTask[], 0) === nothing

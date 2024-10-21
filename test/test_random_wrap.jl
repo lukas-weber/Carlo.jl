@@ -1,6 +1,3 @@
-using Carlo
-using Random
-
 @struct_equal Random.Xoshiro
 
 @testset "Random wrapper" begin

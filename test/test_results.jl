@@ -1,7 +1,3 @@
-using Carlo
-using JSON
-using Carlo.ResultTools
-
 @testset "Results" begin
     result_obs = Carlo.ResultObservable(
         Int64(100),
