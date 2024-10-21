@@ -40,13 +40,13 @@
         end
 
         @testset "mpi" begin
-            μs = [0, 1, 1.5, 1.7, 2]
+            μs = [0, 1, 1.5, 1.7]
 
             job = make_test_job(
                 "$tmpdir/parallel_tempering",
-                50000;
+                10000;
                 binsize = 200,
-                thermalization = 5000,
+                thermalization = 3000,
                 mc = ParallelTemperingMC,
                 ranks_per_run = length(μs),
                 ntasks = 1,

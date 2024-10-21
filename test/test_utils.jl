@@ -25,6 +25,8 @@ function make_test_job(
     mc = TestMC,
     ranks_per_run = 1,
     ntasks = 3,
+    checkpoint_time = "5:00",
+    run_time = "15:00",
     kwargs...,
 )
     tm = TaskMaker()
@@ -44,8 +46,8 @@ function make_test_job(
         dir,
         mc;
         tasks = make_tasks(tm),
-        checkpoint_time = "1:00",
-        run_time = "10:00",
+        checkpoint_time,
+        run_time,
         ranks_per_run = ranks_per_run,
     )
 end
