@@ -12,3 +12,4 @@
 ### Fixed
 
 - handling of Matrix or higher rank observables by ResultTools
+- made `run -r` less likely to fail on distributed file systems

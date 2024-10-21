@@ -59,9 +59,11 @@ function cli_run(job::JobInfo, args::AbstractDict)
             cli_delete(job, Dict())
         end
     end
+    MPI.Init()
+    MPI.Barrier(MPI.COMM_WORLD)
 
     scheduler = args["single"] ? SingleScheduler : MPIScheduler
-    if scheduler == MPIScheduler && (MPI.Init(); MPI.Comm_size(MPI.COMM_WORLD)) == 1
+    if scheduler == MPIScheduler && MPI.Comm_size(MPI.COMM_WORLD) == 1
         @info "running with a single process: defaulting to --single scheduler"
         scheduler = SingleScheduler
     end
