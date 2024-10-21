@@ -23,5 +23,4 @@ using Pkg; Pkg.add("Carlo")
 ```
 
 The package itself does not include Monte Carlo algorithms. The quickest way to see how to implement one yourself is to check out the reference implementation for the [Ising](https://github.com/lukas-weber/Ising.jl) model.
-
-If you are a practitioner, stay tuned for a (not yet released) stochastic series expansion or auxiliary field quantum Monte Carlo packages–or let me know if you are interested in testing it pre-release!
+For a state-of-the-art Monte Carlo code, take a look at [StochasticSeriesExpansion.jl](https://github.com/lukas-weber/StochasticSeriesExpansion.jl).
