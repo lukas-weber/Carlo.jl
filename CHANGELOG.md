@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.1] - 2024-10-23
 
 ### Added
 - Added parallel tempering support through `ParallelTemperingMC` (#14).
