@@ -27,6 +27,12 @@
             mc.child_mc.μ = params[:parallel_tempering].values[2]
             mc.child_mc.x = 12
 
+            Carlo.add_sample!(mc.parallel_measure, :test, 1)
+            Carlo.add_sample!(mc.parallel_measure, :test, 2)
+            Carlo.add_sample!(mc.parallel_measure, :test2, [1, 2])
+            Carlo.add_sample!(mc.parallel_measure, :test, 3)
+            Carlo.add_sample!(mc.parallel_measure, :test2, [3, 4])
+
 
             h5open("$tmpdir/tmp.h5", "w") do f
                 Carlo.write_checkpoint(

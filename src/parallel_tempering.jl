@@ -64,6 +64,44 @@ function synchronize_measurements!(
     return nothing
 end
 
+function write_checkpoint(parallel_measure::ParallelMeasurements, out::HDF5.Group)
+    values = Dict{Symbol,Any}()
+    for (i, (name, val)) in enumerate(parallel_measure.queue)
+        push!(get!(() -> [], values, name), (i, val))
+    end
+
+    out["queue_length"] = length(parallel_measure.queue)
+
+    for (name, vals) in values
+        g = create_group(out, "names/$(name)")
+
+        g["order"] = first.(vals)
+        g["values"] = stack(last, vals)
+    end
+end
+
+function read_checkpoint(::Type{ParallelMeasurements}, in::HDF5.Group)
+    saved_values = read(in, "names")
+
+    queue = Vector{Tuple{Symbol,Any}}(
+        undef,
+        maximum(x -> maximum(x["order"]), values(saved_values)),
+    )
+
+    collapse_scalar(x) = x
+    collapse_scalar(x::AbstractArray{<:Any,0}) = x[]
+
+    for (name, vals) in saved_values
+        for (i, v) in
+            zip(vals["order"], eachslice(vals["values"]; dims = ndims(vals["values"])))
+            queue[i] = (Symbol(name), collapse_scalar(v))
+        end
+    end
+
+    return ParallelMeasurements(queue)
+end
+
+
 """
     ParallelTemperingMC <: AbstractMC
 
@@ -275,8 +313,13 @@ function Carlo.write_checkpoint(
     if MPI.Comm_rank(comm) == 0
         out["chain_permutation"] = chain_permutation
 
-        for (i, child_mc) in enumerate(child_mcs)
+        for (i, (child_mc, parallel_measure)) in
+            enumerate(zip(child_mcs, parallel_measures))
             Carlo.write_checkpoint(child_mc, create_group(out, "child_mcs/$i"))
+            Carlo.write_checkpoint(
+                parallel_measure,
+                create_group(out, "parallel_measures/$i"),
+            )
         end
     end
 
@@ -292,6 +335,10 @@ function Carlo.read_checkpoint!(
 
     if MPI.Comm_rank(comm) == 0
         chain_permutation = read(in, "chain_permutation")
+        parallel_measures = [
+            Carlo.read_checkpoint(ParallelMeasurements, in["parallel_measures/$i"]) for
+            i in eachindex(child_mcs)
+        ]
 
         for (i, child_mc) in enumerate(child_mcs)
             Carlo.read_checkpoint!(child_mc, in["child_mcs/$i"])
@@ -302,6 +349,8 @@ function Carlo.read_checkpoint!(
 
     mc.chain_idx = MPI.scatter(chain_permutation, comm)
     mc.child_mc = MPI.scatter(child_mcs, comm)
+
+    mc.parallel_measure = MPI.scatter(parallel_measures, comm)
 
     parallel_tempering_change_parameter!(
         mc.child_mc,
