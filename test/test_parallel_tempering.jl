@@ -1,5 +1,6 @@
 @struct_equal Carlo.ParallelTemperingMC
 @struct_equal TestTemperedMC
+@struct_equal Carlo.ParallelMeasurements
 
 
 @testset "ParallelTemperingMC" begin

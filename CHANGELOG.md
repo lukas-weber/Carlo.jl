@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- ParallelTemperingMC: measurements are now buffered, leading to less communication overhead and allowing measurements during Carlo.sweep!
+
 ## 0.2.2 - 2024-10-23
 
 ### Added

@@ -2,6 +2,68 @@
 const PT_WEIGHT_MSG = 4573792
 const PT_SWITCH_MSG = 4573793
 
+struct ParallelMeasurements
+    queue::Vector{Tuple{Symbol,Any}}
+end
+
+ParallelMeasurements() = ParallelMeasurements(Vector{Tuple{Symbol,Any}}())
+
+Carlo.add_sample!(measure::ParallelMeasurements, name::Symbol, value) =
+    push!(measure.queue, (name, value))
+
+function make_parallel_context(ctx::MCContext, parallel_measure::ParallelMeasurements)
+    return MCContext(ctx.sweeps, ctx.thermalization_sweeps, ctx.rng, parallel_measure)
+end
+
+function collect_parallel_measurements!(
+    parallel_measure::ParallelMeasurements,
+    comm::MPI.Comm,
+)
+    all_measurements = MPI.gather(parallel_measure.queue, comm)
+    empty!(parallel_measure.queue)
+
+    if MPI.Comm_rank(comm) == 0
+        if !allequal(first.(meas) for meas in all_measurements)
+            error("parallel measurements are out of order between different ranks")
+        end
+
+        merged_measurements = Tuple{Symbol,AbstractArray}[]
+        for (s, (obsname, _)) in enumerate(all_measurements[1])
+            push!(
+                merged_measurements,
+                (obsname, stack(meas[s][2] for meas in all_measurements)),
+            )
+        end
+
+        return merged_measurements
+    end
+    return nothing
+end
+
+function synchronize_measurements!(
+    ctx::MCContext,
+    parallel_measure::ParallelMeasurements,
+    chain_idx,
+    comm::MPI.Comm,
+)
+    measurements = collect_parallel_measurements!(parallel_measure, comm)
+    chain_permutation = MPI.gather(chain_idx, comm)
+
+    if MPI.Comm_rank(comm) == 0
+        chain_inv_permutation = invperm(chain_permutation)
+
+        for (obsname, sample) in measurements
+            measure!(
+                ctx,
+                obsname,
+                @view(sample[ntuple(_ -> :, ndims(sample) - 1)..., chain_inv_permutation]),
+            )
+        end
+    end
+
+    return nothing
+end
+
 """
     ParallelTemperingMC <: AbstractMC
 
@@ -17,6 +79,8 @@ mutable struct ParallelTemperingMC{T} <: AbstractMC
     parameter_values::Vector{T}
 
     tempering_interval::Int
+
+    parallel_measure::ParallelMeasurements
 
     chain_idx::Int
     child_mc::AbstractMC
@@ -53,6 +117,7 @@ function ParallelTemperingMC(params::AbstractDict)
         config.parameter,
         collect(config.values),
         config.interval,
+        ParallelMeasurements(),
         chain_idx,
         MC(modified_params),
     )
@@ -64,8 +129,6 @@ function Carlo.init!(
     params::AbstractDict,
     comm::MPI.Comm,
 )
-    mc.chain_idx = MPI.Comm_rank(comm) + 1
-
     modified_params = deepcopy(params)
     modified_params[mc.parameter_name] = mc.parameter_values[mc.chain_idx]
 
@@ -73,9 +136,10 @@ function Carlo.init!(
 end
 
 function Carlo.sweep!(mc::ParallelTemperingMC, ctx::MCContext, comm::MPI.Comm)
-    Carlo.sweep!(mc.child_mc, ctx)
+    Carlo.sweep!(mc.child_mc, make_parallel_context(ctx, mc.parallel_measure))
 
     if ctx.sweeps % mc.tempering_interval == 0
+        synchronize_measurements!(ctx, mc.parallel_measure, mc.chain_idx, comm)
         tempering_update!(mc, ctx, comm)
     end
     return nothing
@@ -108,7 +172,6 @@ function tempering_update!(mc::ParallelTemperingMC, ctx::MCContext, comm::MPI.Co
     if mc.chain_idx & 1 == pairing_offset
         partner_w = MPI.Recv(Float64, comm; source = partner_rank, tag = PT_WEIGHT_MSG)
 
-
         accept_switch = rand(ctx.rng) < exp(w + partner_w)
         MPI.Send(accept_switch, comm; dest = partner_rank, tag = PT_SWITCH_MSG)
     else
@@ -126,64 +189,12 @@ function tempering_update!(mc::ParallelTemperingMC, ctx::MCContext, comm::MPI.Co
     end
 end
 
-struct ParallelMeasurements
-    queue::Vector{Tuple{Symbol,Any}}
-end
-
-Carlo.add_sample!(measure::ParallelMeasurements, name::Symbol, value) =
-    push!(measure.queue, (name, value))
-
-function collect_parallel_measurements(func, ctx::MCContext, comm::MPI.Comm)
-    parallel_ctx = MCContext(
-        ctx.sweeps,
-        ctx.thermalization_sweeps,
-        ctx.rng,
-        ParallelMeasurements(Vector{Tuple{Symbol,Any}}()),
-    )
-
-    func(parallel_ctx)
-
-    all_measurements = MPI.gather(parallel_ctx.measure.queue, comm)
-
-    if MPI.Comm_rank(comm) == 0
-        if !allequal(first.(meas) for meas in all_measurements)
-            error("parallel measurements are out of order between different ranks")
-        end
-
-        merged_measurements = Tuple{Symbol,AbstractArray}[]
-        for (s, (obsname, _)) in enumerate(all_measurements[1])
-            push!(
-                merged_measurements,
-                (obsname, stack(meas[s][2] for meas in all_measurements)),
-            )
-        end
-
-        return merged_measurements
-    end
-    return nothing
-end
-
 function Carlo.measure!(mc::ParallelTemperingMC, ctx::MCContext, comm::MPI.Comm)
-    measurements = collect_parallel_measurements(ctx, comm) do parallel_ctx
-        Carlo.measure!(mc.child_mc, parallel_ctx)
-    end
+    parallel_ctx = make_parallel_context(ctx, mc.parallel_measure)
+    Carlo.measure!(mc.child_mc, parallel_ctx)
 
-    chain_permutation = MPI.gather(mc.chain_idx, comm)
-
-    if MPI.Comm_rank(comm) == 0
-        chain_inv_permutation = zero(chain_permutation)
-        chain_inv_permutation[chain_permutation] .= eachindex(chain_permutation)
-
-        for (obsname, sample) in measurements
-            measure!(
-                ctx,
-                obsname,
-                @view(sample[ntuple(_ -> :, ndims(sample) - 1)..., chain_inv_permutation]),
-            )
-        end
-        if ctx.sweeps % mc.tempering_interval == 0
-            measure!(ctx, :ParallelTemperingPermutation, chain_inv_permutation)
-        end
+    if ctx.sweeps % mc.tempering_interval == 0
+        Carlo.measure!(parallel_ctx, :ParallelTemperingPermutation, MPI.Comm_rank(comm) + 1)
     end
 end
 
@@ -259,6 +270,7 @@ function Carlo.write_checkpoint(
 )
     chain_permutation = MPI.Gather(mc.chain_idx, comm)
     child_mcs = MPI.gather(mc.child_mc, comm)
+    parallel_measures = MPI.gather(mc.parallel_measure, comm)
 
     if MPI.Comm_rank(comm) == 0
         out["chain_permutation"] = chain_permutation
