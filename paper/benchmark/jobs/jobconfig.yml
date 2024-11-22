@@ -1,0 +1,19 @@
+num_cores: 16
+mem_per_cpu: 1G
+mpirun: srun --cpu-bind=cores
+
+
+custom_cmds: |
+  #SBATCH --partition=ccq
+  #SBATCH --mail-type=FAIL,END
+  #SBATCH -C 'ib-genoa'
+  #SBATCH --export=ALL
+  module purge
+  module load slurm gcc/13.2.0 openmpi4 python3 hdf5
+  source ~/venvs/qmc/bin/activate
+
+
+mc_walltime: '56:00:00'
+mc_runtime: '55:00:00'
+mc_checkpoint_time: '30:00'
+mc_binary: ~/src/frust/build/src/frust

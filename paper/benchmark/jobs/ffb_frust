@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+
+# this is a job script for the C++ code StochasticSeriesExpansion.jl
+# is based on, available at https://github.com/lukas-weber/frust
+
+from loadleveller import taskmaker
+import numpy as np
+
+tm = taskmaker.TaskMaker(__file__, 'jobconfig.yml')
+tm.sweeps = 100000
+tm.thermalization = 10000
+tm.binsize = 100
+tm.lattice = 'bilayer'
+
+tm.measure = ['mag']
+
+tm.Jpar = 1
+tm.Jperp = 0.5
+
+βs = np.linspace(1,10,16)
+Ls = [30]
+
+for L in Ls:
+    for β in βs:
+        tm.init_opstring_cutoff = 160000*β/βs.max()
+        tm.init_num_worms = 8
+        tm.num_worms_attenuation_factor = 0.0
+        tm.T = 1/β
+        tm.Lx = L
+        tm.Ly = L
+        tm.task()
+
+tm.write()

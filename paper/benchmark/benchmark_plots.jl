@@ -1,4 +1,5 @@
 using CairoMakie
+using MakieCore
 using DelimitedFiles
 using DataFrames
 using LaTeXStrings
@@ -10,25 +11,31 @@ using Printf
 import Plots
 import Measurements: value, uncertainty
 
-default_theme() = Theme(
-    Axis = (xtickalign = 1, ytickalign = 1, xgridvisible = false, ygridvisible = false),
-)
+include("makie.jl")
 
-function plot_example()
-    df = DataFrame(ResultTools.dataframe("data/example_job.results.json"))
-
+function plots_defaults()
     Plots.default(
         linewidth = 2,
         framestyle = :box,
-        size = (350, 300),
+        size = (390, 280),
         label = nothing,
         grid = false,
         markerstrokecolor = :black,
         thickness_scaling = 1,
         tickfontsize = 8,
+        lw = 2,
         legendfontsize = 8,
         legendtitlefontsize = 10,
+        labelfontsize = 8,
+        palette = Plots.palette(Makie.wong_colors()),
     )
+end
+
+
+function plot_example()
+    df = DataFrame(ResultTools.dataframe("data/example_job.results.json"))
+
+    plots_defaults()
     Plots.plot(
         df.T,
         df.BinderRatio;
@@ -44,7 +51,7 @@ function plot_scaling()
     data = readdlm("data/benchmark.dat", ',')
 
     set_theme!(default_theme())
-    fig = Figure(size = (300, 250))
+    fig = Figure(size = (390, 280))
     ax = Axis(
         fig[1, 1],
         xscale = log10,
@@ -56,7 +63,7 @@ function plot_scaling()
 
     scatter!(ax, data[:, 1], data[:, 2])
     lines!(ax, data[:, 1], data[end, 2] * data[end, 1] ./ data[:, 1])
-    save("../figs/scaling.pdf", fig)
+    save("../figs/scaling.pdf", fig, pt_per_unit = 0.625)
     fig
 end
 
@@ -65,7 +72,7 @@ function plot_stats()
     data = DataFrame(ResultTools.dataframe("data/error_bench.results.json"))
 
 
-    fig = Figure(size = (500, 250))
+    fig = Figure(size = (600, 280))
 
     ax1 = Axis(fig[1, 1], xlabel = "Energy per spin", ylabel = "Probability density")
     ax2 = Axis(fig[1, 2], xlabel = "Binder ratio")
@@ -117,7 +124,7 @@ function plot_stats()
 
     # text!(ax2, 0.5, 0.75, space=:relative, align=(:center, :center), justification=:center, text = "T = 2.3\nL = 20")
 
-    save("../figs/stats.pdf", fig)
+    save("../figs/stats.pdf", fig, pt_per_unit = 0.625)
     fig
 end
 
@@ -181,4 +188,112 @@ function plot_autocorr!(ax, path, obsname)
     ylims!(ax, -0.05, 1.1)
 
     xlims!(ax, -30, 300)
+end
+
+function plot_language_comparison()
+    set_theme!(default_theme())
+    julia_data = DataFrame(ResultTools.dataframe("data/ffb.results.json"))
+    cpp_data = DataFrame(ResultTools.dataframe("data/ffb_frust.results.json"))
+
+    fig = Figure(size = (390, 280))
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"Inverse temperature $\fontfamily{TeXGyreHeros}J/T$",
+        ylabel = "Time per sweep (ms)",
+    )
+
+    colors = Makie.wong_colors()[1:2]
+
+    plot!(
+        ax,
+        1 ./ cpp_data.T,
+        color = colors[2],
+        marker = :rect,
+        value.(1000 * cpp_data._ll_sweep_time),
+        label = "sweep (C++)",
+    )
+    plot!(
+        ax,
+        1 ./ julia_data.T,
+        color = colors[1],
+        marker = :circle,
+        value.(1000 * julia_data._ll_sweep_time),
+        label = "sweep (Julia)",
+    )
+    plot!(
+        ax,
+        1 ./ cpp_data.T,
+        strokewidth = 1,
+        strokecolor = colors[2],
+        color = :white,
+        marker = :rect,
+        value.(1000 * cpp_data._ll_measurement_time),
+        label = "measure (C++)",
+    )
+    plot!(
+        ax,
+        1 ./ julia_data.T,
+        strokewidth = 1,
+        strokecolor = colors[1],
+        color = :white,
+        marker = :circle,
+        value.(1000 * julia_data._ll_measure_time),
+        label = "measure (Julia)",
+    )
+    ylims!(ax, -0.4, 10.99)
+
+    axislegend(ax, position = :lt)
+    save("../figs/language_comparison.pdf", fig, pt_per_unit = 0.625)
+    return fig
+end
+
+function plot_banivo()
+    df = DataFrame(ResultTools.dataframe("data/bani2v2o8.results.json"))
+
+    df.L = [lattice["size"][1] for lattice in df.lattice]
+    plots_defaults()
+
+    p = Plots.plot(
+        df.T,
+        df.MagChi,
+        group = df.L,
+        xlabel = L"Temperature $T/J$",
+        ylabel = L"Magnetic susceptibility $χ^z J$",
+        legend_title = "L",
+    )
+
+    Plots.savefig("../figs/bani2v2o8.pdf")
+end
+
+function plot_parallel_tempering()
+    df2 = filter(
+        :Lx => ==(64),
+        DataFrame(ResultTools.dataframe("data/parallel_tempering_comparison.results.json")),
+    )
+    df = filter(
+        :Lx => ==(64),
+        DataFrame(ResultTools.dataframe("data/parallel_tempering.results.json")),
+    )
+
+
+    set_theme!(default_theme())
+    fig = Figure(size = (390, 280))
+    ax = Axis(
+        fig[1, 1],
+        ylabel = L"\fontfamily{TeXGyreHeros}Specific Heat $C$",
+        xlabel = L"Temperature $\fontfamily{TeXGyreHeros}T/J$",
+    )
+
+    Ts = df.parallel_tempering[1]["values"]
+
+    measplot!(ax, df2.T, df2.SpecificHeat, label = "no parallel tempering")
+
+    for (L, SpecificHeat) in zip(df.Lx, df.SpecificHeat)
+        measplot!(ax, Ts, SpecificHeat, label = "parallel tempering", marker = :rect)
+    end
+
+    axislegend(ax)
+
+    save("../figs/parallel_tempering.pdf", fig, pt_per_unit = 0.625)
+
 end
