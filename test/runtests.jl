@@ -18,7 +18,6 @@ include("test_utils.jl")
 include("test_mc.jl")
 
 tests = [
-    "test_parallel_tempering.jl"
     "test_dump_compat.jl"
     "test_taskinfo.jl"
     "test_jobinfo.jl"
@@ -32,6 +31,7 @@ tests = [
     "test_merge.jl"
     "test_taskmaker.jl"
     "test_scheduler.jl"
+    "test_parallel_tempering.jl"
     "test_cli.jl"
 ]
 
