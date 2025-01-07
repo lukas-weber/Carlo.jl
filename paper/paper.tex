@@ -69,7 +69,7 @@ $\star$ \href{mailto:lweber@flatironinstitute.com}{\small lweber@flatironinstitu
 
 \section*{\color{scipostdeepblue}{Abstract}}
 {\boldmath\textbf{%
-Carlo.jl is a Monte Carlo simulation framework written in Julia. It provides MPI-parallel scheduling, organized storage of input, checkpoint, and output files, as well as statistical postprocessing. With a minimalist design, it aims to aid the development of high-quality Monte Carlo codes, especially for demanding applications in condensed matter and statistical physics. This hands-on user guide shows how to implement a simple code with Carlo.jl and provides benchmarks to show its efficacy.
+Carlo.jl is a Monte Carlo simulation framework written in Julia. It provides MPI-parallel scheduling (including parallel tempering), organized storage of input, checkpoint, and output files, as well as statistical postprocessing. With a minimalist design, it aims to aid the development of high-quality Monte Carlo codes, especially for demanding applications in condensed matter and statistical physics. This hands-on user guide shows how to implement a simple code with Carlo.jl, how to run an existing stochastic series expansion code based on Carlo.jl, and provides benchmarks to show its efficacy.
 }}
 
 \vspace{\baselineskip}
@@ -100,21 +100,20 @@ Carlo.jl is a Monte Carlo simulation framework written in Julia. It provides MPI
 \label{sec:intro}
 Monte Carlo methods have been a powerful computational tool since the very beginnings of the fields of statistical and condensed matter physics\cite{Metropolis1953}. Initially built to study the classical Boltzmann distribution, they perform well on a wide variety of high-dimensional integration problems due to their ability to break the curse of dimensionality. In quantum systems, where a probabilistic interpretation of the partition function is in general not possible, quantum Monte Carlo algorithms can exploit certain quantum-to-classical mappings to make powerful and accurate predictions for models that are out of reach of other state-of-the art methods~\cite{Gubernatis2016}. 
 
-In exchange for simulating high-dimensional problems, quantum Monte Carlo simulations in particular rely on efficient implementations making use of massive parallelism. In the course of a simulation, many random samples are produced that have to be stored and statistically postprocessed to arrive at results with reliable errorbars. These requirements typically necessitate some amount of ``bookkeeping'' code, unrelated to the Monte Carlo algorithm itself, but still crucial to its performance. This inspired the development of earlier frameworks such as the ones included in ALPS~\cite{ALPS} and the subsequent ALPSCore~\cite{ALPSCore} in C++.
+In exchange for simulating high-dimensional problems, quantum Monte Carlo simulations in particular rely on efficient implementations making use of massive parallelism. In the course of a simulation, many random samples are produced that have to be stored and statistically postprocessed to arrive at results with reliable error bars. These requirements typically necessitate some amount of ``bookkeeping'' code that is unrelated to the Monte Carlo algorithm itself, but still crucial to its performance. This inspired the development of earlier frameworks such as the ones included in ALPS~\cite{ALPS} and the subsequent ALPSCore~\cite{ALPSCore} in C++.
 
-The Julia programming language~\cite{Bezanson2012} is becoming increasingly popular as an alternative to traditional scientific computing languages such as C++ and Fortran. Its heavy reliance on type inference, dynamic dispatch, and just-in-time compilation allow it to provide both high performance and the flexibility of a high-level scripting language. Furthermore, its modern approach to dependency management greatly facilitates installing and reusing existing software.
+The Julia programming language~\cite{Bezanson2012} is becoming increasingly popular as an alternative to traditional scientific computing languages such as C++ and FORTRAN. Its heavy reliance on type inference, dynamic dispatch, and just-in-time compilation allow it to provide both high performance and the flexibility of a high-level scripting language. Furthermore, its modern approach to dependency management greatly facilitates installing and reusing existing software.
 
 The purpose of Carlo.jl is to help implementers of Monte Carlo codes in Julia to write high-quality, high-performance packages without worrying about the peripheral bookkeeping tasks that are common to all Monte Carlo simulations. Its features include (i) Monte Carlo aware parallel scheduling (including parallel tempering) (ii) organized and reproducible storage of simulation inputs, checkpoints, and results, as well as (iii) statistical postprocessing of autocorrelated Monte Carlo samples.
 
 In \cref{sec:features}, the features of Carlo.jl and their inner workings are explained in detail. \cref{sec:examples} contains three examples: an Ising code that provides a minimal skeleton for implementing Monte Carlo algorithms in Carlo.jl, a state-of-the-art stochastic series expansion Monte Carlo code~\cite{Sandvik1999}, and an example of the parallel tempering feature. Afterwards, in \cref{sec:benchmarks}, we show correctness and performance benchmarks of Carlo.jl, including a direct performance comparison of a Julia and a C++ implementation of the stochastic series expansion code. Finally, in \cref{sec:conclusion}, a short conclusion and outlook are given.
-
 Apart from this user guide, users may refer to the Carlo.jl documentation\footnote{The documentation can be viewed online on \href{https://github.com/lukas-weber/Carlo.jl.git}{GitHub}, built locally by running  \texttt{cd docs; julia ----project make.jl}, or accessed directly within the Julia REPL.} for more detailed descriptions of each component.
 
 \section{Features}
 \label{sec:features}
-The purpose of this section is to give a high-level overview of the way Carlo.jl works without descending too far into technical details and concrete usage instructions. For a more hands-on introduction into how to use Carlo.jl in practice, see \cref{sec:examples}.
+The purpose of this section is to give a high-level overview of the way Carlo.jl works without descending too far into technical details and concrete usage instructions. For a more hands-on introduction to the usage of Carlo.jl in practice, see \cref{sec:examples}.
 \subsection{Monte Carlo aware parallel scheduling}
-One useful property of Monte Carlo simulations is that they are embarrassingly parallel. An arbitrary number of random processes can be allocated to many workers in parallel, which, once thermalized, can all produce samples that are finally averaged together. Apart from this intrinsic parallelism, simulations are often run for a variety of different parameters in parallel.
+One useful property of Monte Carlo simulations is that they are embarrassingly parallel. An arbitrary number of random processes can be allocated to many workers simultaneously, which, once thermalized, can all produce samples that are finally averaged together. Apart from this intrinsic parallelism, simulations are often run for a variety of different parameters in parallel.
 \begin{figure}
 \includegraphics{figs/scheduling.pdf}
 \caption{\textbf{Parallelism in Monte Carlo simulations}. (a) Monte Carlo unaware parallelization over different parameters (e.g. system sizes, temperatures) can lead to suboptimal resource usage if tasks are not well balanced. (b) Carlo.jl parallelizes over different parameter sets but also takes advantage of the possibility to share work between different Monte Carlo processes for the same task. Each new process needs to thermalize first, which is a serial cost that can only be reduced by more fine-grained parallelization.}
@@ -126,12 +125,11 @@ Carlo.jl uses MPI.jl~\cite{Byrne2021} to orchestrate this kind of Monte Carlo aw
 
 On top of this model of trivial parallelism, Carlo.jl also supports nontrivial MPI parallelism: The work of each single run may optionally be shared by a team of MPI ranks. This advanced feature, called \textit{parallel run mode} allows the natural implementation of certain Monte Carlo meta-techniques such as parallel tempering, which will be illustrated in \cref{sec:parallel_tempering}. Another possible use case is the implementation of branching-random walk codes that propagate an population of walkers in parallel.
 \subsection{Organized storage of inputs, checkpoints and results}
-As mentioned in the previous section, large-scale Monte Carlo simulations can involve scanning large parameter spaces and produce large numbers of random samples. Long-running simulations should also implement some form of checkpointing so that valuable computation time is not wasted when an error occurs or the job runs out of its allocated runtime on a computing cluster. 
-
+As mentioned in the previous section, large-scale Monte Carlo simulations can involve scanning large parameter spaces and produce large numbers of random samples. In addition, long-running simulations should also implement checkpointing so that valuable computation time is not wasted when an error occurs or the job runs out of its allocated run time on a computing cluster. 
 These boundary conditions induce data management challenges at the beginning, during, and at the end of a simulation. This section explains how Carlo.jl handles these challenges for the user.
 
 \subsubsection{Input}
-Rather than specifying simulation parameters in traditional configuration files, Carlo.jl leverages the dynamic nature of Julia to set parameters programmatically. The recommended workflow for this is to write a job script as shown in \cref{code:input}. The job script can be split into three parts. First, the \texttt{TaskMaker} from \texttt{Carlo.JobTools} is used to procedurally generate a list of parameter sets. Then, this list is retrieved using \texttt{make\_{}tasks(tm)} and fed into the \texttt{JobInfo} alongside other options such as the maximum runtime limit and the checkpoint interval. Finally, \texttt{start(job, ARGS)} initiates the Carlo.jl command line interface (CLI) when the job script is executed.
+Rather than specifying simulation parameters in traditional configuration files, Carlo.jl leverages the dynamic nature of Julia to set parameters programmatically. The recommended workflow for this is to write a job script as shown in \cref{code:input}. The job script can be split into three parts. First, the \texttt{TaskMaker} from \texttt{Carlo.JobTools} is used to procedurally generate a list of parameter sets. Then, this list is retrieved using \texttt{make\_{}tasks(tm)} and fed into the \texttt{JobInfo} alongside other options such as the maximum run time limit and the checkpoint interval. Finally, \texttt{start(job, ARGS)} initiates the Carlo.jl command line interface (CLI) when the job script is executed.
 \begin{lstfloat}
 \begin{lstlisting}[language=julia]
 # example_job.jl
@@ -175,19 +173,19 @@ In a high-performance computing environment, calculations often run on limited t
 
 Checkpointing, i.e. saving the complete Monte Carlo configuration to disk at regular intervals, allows to gracefully recover from such situations and simply continue the calculation from the point it left off. Carlo provides a simple interface to save the configuration state to an HDF5~\cite{HDF5, HDF5jl} group. Internally, it makes sure that these checkpoints are never corrupted, even if the process is terminated in the middle of writing.\footnote{This works by writing to a temporary file first and then moving that file to the final location, overwriting the old file. Moving (as opposed to writing) is an atomic operation that cannot be interrupted.} Running a simulation as described in the previous subsection will automatically resume from checkpoints if they exist.
 
-While packages like JLD2.jl~\cite{JLD2} exist that allow automatically saving arbitrary Julia objects, the Carlo.jl checkpointing interface instead relies on manually choosing which data to save in what way. This can be helpful in reducing the checkpoint file size and encourages maintaining stable serialization interfaces.
+While packages like JLD2.jl~\cite{JLD2} exist that allow automatically saving arbitrary Julia objects, the Carlo.jl checkpointing interface instead requires developers to manually choose which data to save in what way. This can be helpful in reducing the checkpoint file size and encourages maintaining stable serialization interfaces.
 \subsubsection{Results}
-Like checkpoints, Carlo.jl stores simulation results in HDF5 files. Inspecting these files allows retrieving the entire Monte Carlo time series. In the postprocessing step that is described in \cref{sec:postproc}, these raw files are merged and averaged to produce means, statistically correct error bars and approximate autocorrelation times. These merged results are saved in a human-readable JSON file. The \texttt{Carlo.ResultTools} module provides a simple way to import these JSON files into a Julia Dataframe (e.g. from \texttt{DataFrames.jl}\cite{BouchetValat2023}).
+Like checkpoints, Carlo.jl stores simulation results in HDF5 files. Inspecting these files allows retrieving the entire Monte Carlo time series. In the postprocessing step that is described in \cref{sec:postproc}, these raw files are merged and averaged to produce means, statistically correct error bars and approximate autocorrelation times. The merged results are saved in a human-readable JSON file. For subsequent postprocessing, the \texttt{Carlo.ResultTools} module provides a simple way to import these JSON files into a Julia Dataframe (e.g. from \texttt{DataFrames.jl}\cite{BouchetValat2023}).
 
 To facilitate reproducibility, and conform with the best practices of research data management, the result files produced by Carlo.jl contain all parameters used to run the simulation as well as the version of Carlo.jl and of the package containing the Monte Carlo algorithm implementation.
 
 \subsection{Postprocessing}
 \label{sec:postproc}
-Monte Carlo time-series are in general autocorrelated. Carlo.jl performs postprocessing on measured observables to provide the user with statistically sound means and standard errors using a binning analysis.
+Monte Carlo time-series are in general autocorrelated. Carlo.jl performs postprocessing on measured observables to provide the user with statistically sound means and standard errors using a binning analysis. The binning analysis works in two steps.
 
-The binning analysis works in two steps. First, an \textit{internal binning} step is performed during the simulation before Monte Carlo measurements are written to disk. The bin size for this step is set by \texttt{binsize} in the task parameters. The purpose of internal binning is simply to reduce memory and disk-I/O overhead. As long as \texttt{binsize} is not big compared to the total number of samples, it does not influence the magnitude of the final errors computed by Carlo.jl.
+The first, \textit{internal binning} step is performed during the simulation before Monte Carlo measurements are written to disk. The bin size for this step is set by \texttt{binsize} in the task parameters. The purpose of internal binning is simply to reduce memory and disk-I/O overhead. As long as \texttt{binsize} is not big compared to the total number of samples, it does not influence the magnitude of the final errors computed by Carlo.jl.
 
-Once the simulation is complete, for a given task, there will be multiple files containing measurement results from different independent runs that were scheduled by Carlo.jl (\cref{fig:mcsched}(b)). In the second step of the binning analysis, these internally binned Monte Carlo time series are concatenated and binned further. The purpose of this ``rebinning'' step is to produce sufficiently large bins to recover uncorrelated statistics that allow extracting the statistical errors using the standard estimator
+The second binning step happens once the simulation is complete. For a given task, there will be multiple files containing measurement results from different independent runs that were scheduled by Carlo.jl (\cref{fig:mcsched}(b)). These internally binned Monte Carlo time series are concatenated and binned further. The purpose of this ``rebinning'' step is to produce sufficiently large bins to recover uncorrelated statistics that allow extracting the statistical errors using the standard estimator
 
 \begin{equation}
 \sigma_A = \sqrt{\frac{1}{N_\text{rebin}(N_\text{rebin}-1)} \sum_n \qty(\overline{A}_n-\overline{A})^2},
@@ -197,7 +195,7 @@ By default, the number of “rebins” $N_\text{rebin}$ is chosen using the heur
 \begin{equation}
 N_\text{rebin}(N) = N_\text{rebin}^\text{min} + \max\{0, \sqrt[3]{N-N_\text{rebin}^\text{min}}\}
 \end{equation}
-where $N$ is the total number of measured bins and $N_\text{rebin}^\text{min}=10$ is a minimum in case there are only few bins in the simulation. Choosing a cube-root scaling is a simple way to ensure that both $N_\text{rebin}$ and the length of each rebin, $N/N_\text{rebin}$, approach infinity for increasing $N$, while devoting more resources to the latter. The default value of $N_\text{rebin}$ can be overriden using the task parameter \texttt{rebin\_{}length} in the job script.
+where $N$ is the total number of measured bins and $N_\text{rebin}^\text{min}=10$ is a minimum in case there are only few bins in the simulation. Choosing a cube-root scaling is a simple way to ensure that both $N_\text{rebin}$ and the length of each rebin, $N/N_\text{rebin}$, approach infinity for increasing $N$, while devoting more resources to the latter. The default value of $N_\text{rebin}$ can be overridden using the task parameter \texttt{rebin\_{}length} in the job script.
 
 A rough estimate for the autocorrelation time $\tau_\text{auto}$ is calculated based on the ratio of the rebinned error $\sigma_A$ and naive error computed without any rebinning, $\tilde{\sigma}_A$,~\cite{Ambegaokar2010}
 \begin{equation}
@@ -245,7 +243,7 @@ end
 \end{lstlisting}
 The type \texttt{MC} holds two fields: the temperature \texttt{T} and a matrix of integers representing the spins on the square lattice.
 
-The constructor of \texttt{MC} should accept a dictionary of parameters that are defined in the jobscript (see \cref{code:input}).
+The constructor of \texttt{MC} should accept a dictionary of parameters that are defined in the job script (see \cref{code:input}).
 \begin{lstlisting}[language=julia]
 function MC(params::AbstractDict)
     Lx = params[:Lx]
@@ -264,9 +262,7 @@ function Carlo.init!(mc::MC, ctx::MCContext, params::AbstractDict)
     return nothing
 end
 \end{lstlisting}
-The \texttt{Carlo.init!} function is called to initialize the Monte Carlo configuration at the beginning of a new simulation (but not when restarting from a checkpoint).
-
-In addition to the \texttt{MC} object, it receives a \texttt{MCContext}, which is our handle to interact with Carlo.jl's functionality. Here, we use the integrated random number generator \texttt{ctx.rng} to generate a spin configuration. It is important to always use \texttt{ctx.rng} for random numbers to maintain reproducibility from a given random seed.\footnote{The seed can be set in the jobscript via the parameter \texttt{seed}.}
+The \texttt{Carlo.init!} function is called to initialize the Monte Carlo configuration at the beginning of a new simulation (but not when restarting from a checkpoint). In addition to the \texttt{MC} object, it receives a \texttt{MCContext}, which is our handle to interact with Carlo.jl's functionality. Here, we use the integrated random number generator \texttt{ctx.rng} to generate a spin configuration. It is important to always use \texttt{ctx.rng} for random numbers to maintain reproducibility from a given random seed.\footnote{The seed can be set in the job script via the parameter \texttt{seed}.}
 
 Next we implement the Monte Carlo updates or sweeps.
 \begin{lstlisting}[language=julia]
@@ -398,7 +394,7 @@ Next, we write the job script from \cref{code:input}. The meanings of the parame
 \end{description}
 There are more optional parameters that are explained in greater detail in the documentation for \texttt{TaskInfo} and \texttt{JobInfo}.
 
-Using the given system sizes and temperatures, we generate a collection of tasks. Then, all information about the job is fed to the \texttt{JobInfo} constructor, which additionally takes the job name, here \texttt{"example\_{}job"}, the Monte Carlo type we implemented, \texttt{Ising.MC}, as well as the total runtime and the interval between checkpoints.
+Using the given system sizes and temperatures, we generate a collection of tasks. Then, all information about the job is fed to the \texttt{JobInfo} constructor, which additionally takes the job name (here \texttt{"example\_{}job"}) the Monte Carlo type we implemented (\texttt{Ising.MC}), as well as the total run time and the interval between checkpoints.
 
 Finally, \texttt{start(job, ARGS)} invokes the Carlo.jl CLI, which we can run from the shell as follows.
 \begin{lstlisting}
@@ -409,7 +405,7 @@ The first line gives an overview over the CLI, the second line starts the simula
 For long-running simulations, the commands \texttt{status} and \texttt{merge} are helpful to check the progress and postprocess those results that are already available, respectively.
 
 After the simulation has completed, we should see a directory \texttt{example\_{}job.data}, which contains raw data and check points, and a file \texttt{example\_{}job.results.json}, which contains the postprocessed results of our simulation.
-The submodule \texttt{Carlo.ResultTools} provides tools for reading these results back into Julia.
+The submodule \texttt{Carlo.ResultTools} provides tools for reading these results back into Julia as follows:
 \begin{lstlisting}[language=julia]
 using Plots
 using DataFrames
@@ -425,7 +421,7 @@ plot(df.T, df.BinderRatio;
 \end{lstlisting}
 The output of this snippet can be seen in \cref{fig:binder}.
 
-To inspect a raw Monte Carlo time series, we can read it directly the respective HDF5 file. For example, for the first temperature and system size, we could do
+To inspect a raw Monte Carlo time series, we can read it directly from the respective HDF5 file. For example, for the first temperature and system size,
 \begin{lstlisting}[language=julia]
 using HDF5
 
@@ -434,7 +430,7 @@ samples = h5read(
     "observables/Energy/samples",
 )
 \end{lstlisting}
-to retrieve a vector containing each recorded sample of the energy.
+retrieves a vector containing each recorded sample of the energy.
 \begin{figure}
 \begin{center}
 \includegraphics[scale=0.625]{figs/binder_ratio.pdf}
@@ -472,7 +468,7 @@ While this arbitrary model capability requires some code to specify the Hamilton
 \label{eq:heisenberg}
 H = \sum_{\braket{i,j}} J_{ij} \qty(\vb S_i \cdot \vb S_j + d_{ij} S^z_i S^z_j) + \sum_i h_i^z S^z_i + D^x_i (S^x_i)^2 + D^z_i (S^z_i)^2,
 \end{equation}
-where $\braket{i,j}$ sums over the bonds of an arbitrary lattice. As long as the signs of $J_{ij}$ in combination with the bonds of the lattice do not imply magnetic frustration, the model is sign-problem free. This is the case, e.g., for $J_{ij} > 0$ on a bipartite lattice.
+where $\braket{i,j}$ sums over the bonds of an arbitrary lattice. As long as the signs of $J_{ij}$ and $D^x_i$ in combination with the bonds of the lattice do not imply magnetic frustration, the model is sign-problem free. This is the case, e.g., for $J_{ij} > 0$ on a bipartite lattice if $D^x_i$ does not change sign throughout the lattice.
 
 As a registered package, we can install StochasticSeriesExpansion.jl (and Carlo.jl if we have not already) from the Julia REPL.
 \begin{lstlisting}
@@ -523,15 +519,15 @@ start(job, ARGS)
 The meanings of the StochasticSeriesExpansion.jl-specific parameters are the following
 \begin{description}
 \item[\texttt{model}] the model to simulate, here \texttt{MagnetModel} which corresponds to \cref{eq:heisenberg}.
-\item[\texttt{S}] the spin magnitude
-\item[\texttt{T}] the temperature
+\item[\texttt{S}] the spin magnitude.
+\item[\texttt{T}] the temperature.
 \item[\texttt{J,d,h,Dx,Dz}] correspond to the parameters in \cref{eq:heisenberg}. Can also be made site-dependent, see StochasticSeriesExpansion.jl documentation.
-\item[\texttt{lattice}] the unitcell and the dimensions of the supercell. Honeycomb and other popular ones are predefined. Otherwise, an instance of \texttt{UnitCell} can be passed.
+\item[\texttt{lattice}] the unit cell and the dimensions of the supercell. Honeycomb and other popular ones are predefined. Otherwise, an instance of \texttt{UnitCell} can be passed.
 \item[\texttt{measure}] specifies the observables to be measured (on top of the energy and specific heat). Here, just measure uniform magnetization-related quantities. \texttt{:staggered\_{}magnetization} would additionally compute the staggered magnetization. There is an operator string estimator interface for implementing custom observable estimators.
 \end{description}
 For details, the reader is referred to the StochasticSeriesExpansion.jl documentation.
 
-Even though the runtime scaling of stochastic series expansion is linear in system size and inverse temperature, this example takes more computational effort than the previous one for the Ising model. It is therefore recommended to run it with MPI.
+Even though the run time scaling of stochastic series expansion is linear in system size and inverse temperature, this example takes more computational effort than the previous one for the Ising model. It is therefore recommended to run it with MPI.
 \begin{lstlisting}
 $ mpirun -n $ncores julia example_job.jl run
 \end{lstlisting}
@@ -543,7 +539,6 @@ Nevertheless, it is still tractable within a few minutes on a workstation or str
 \caption{\textbf{Example calculation with StochasticSeriesExpansion.jl}. The magnetic susceptibility perpendicular to the easy plane, $\chi^z$, of an effective model for \banivo, as a function of the temperature $T$.}
 \label{fig:susceptibility}
 \end{figure}
-
 We observe the dip feature that is caused by the easy-plane anisotropy $D^z$ and is also observed in experiment~\cite{Klyushina2021}. However, this feature is not quite converged with system size at $L=20$ and larger systems should be simulated in practice.
 
 This concludes the present example, which showcases the effectiveness of a state-of-the-art Monte Carlo code built on Carlo.jl. Since this code was ported from an earlier C++ version, it also gives us an opportunity to directly compare the performance between the two languages, which we will do in \cref{sec:benchmarks}.
@@ -553,7 +548,7 @@ Parallel tempering~\cite{Earl2005} is a technique that allows speeding up autoco
 
 Carlo supports parallel tempering through the \texttt{ParallelTemperingMC} wrapper, which is a meta-implementation of the \texttt{AbstractMC} interface that allows to run other implementations with parallel tempering. We will first illustrate its usage with an example that is of interest to readers planning to use parallel tempering. Afterwards, we sketch its implementation as an example for implementing new algorithms with the parallel run mode feature in Carlo.jl.
 \subsubsection{Usage}
-Parallel tempering can be used with any implementation of the \texttt{AbstractMC} interface as long as it implements two additional functions,
+Parallel tempering can be used with any implementation of the \texttt{AbstractMC} interface as long as the following methods are implemented:
 \begin{lstlisting}[language=julia]
 Carlo.parallel_tempering_log_weight_ratio(
     mc::MC, parameter::Symbol, new_value
@@ -637,16 +632,16 @@ As shown in \cref{fig:parallel_tempering}, in this case, parallel tempering grea
 \begin{center}
 \includegraphics{figs/parallel_tempering.pdf}
 \end{center}
-\caption{\textbf{Parallel tempering in the Ising model.} The specific heat of the $64 \times 64$ square lattice Ising model as a function of the temperature, simulated with and without parallel tempering. Both simulations are perfored with 20000 measurement sweeps and 2000 thermalization sweeps.}
+\caption{\textbf{Parallel tempering in the Ising model.} The specific heat of the $64 \times 64$ square lattice Ising model as a function of the temperature, simulated with and without parallel tempering. Both simulations are performed with 20000 measurement sweeps and 2000 thermalization sweeps.}
 \label{fig:parallel_tempering}
 \end{figure}
 
 \subsubsection{Implementation}
-In the last subsection, we explained the usage of the parallel tempering feature. Now, we will now sketch its underlying implementation as an example of writing an algorithm with the parallel run mode feature of Carlo.jl.
+In the last subsection, we explained the usage of the parallel tempering feature. We now sketch its underlying implementation as an example of writing an algorithm with the parallel run mode feature of Carlo.jl.
 
 In general, introducing parallel tempering into a simulation greatly increases the complexity of the parallel scheduling, since multiple simulations need to be orchestrated to run in lock step. However, Carlo.jl already supports this kind of parallelism through its parallel run mode. Parallel tempering (and similar meta-algorithms) can therefore be implemented as a thin layer on top of parallel run mode. 
 
-To use parallel run mode, algorithms have to implement an alternative version of the \texttt{AbstractMC} interface, which essentially receives an additional MPI communicator (\cref{tab:parallelinterface}) that spans a team of MPI ranks that are collaborating on a single Carlo.jl run (that is, a single bar in \cref{fig:mcsched}).
+To use parallel run mode, algorithms have to implement an alternative version of the \texttt{AbstractMC} interface, which essentially receives an additional MPI communicator (\cref{tab:parallelinterface}) spanning a team of MPI ranks that are collaborating on a single Carlo.jl run (that is, a single bar in \cref{fig:mcsched}).
 \begin{table}
 \begin{tabular}{l}
 \hline
@@ -688,7 +683,7 @@ end
 \end{lstlisting}
 The name of the tempered parameter is stored in \texttt{parameter\_{}name} with the values stored in \texttt{parameter\_{}values}. Tempering updates are performed every \texttt{tempering\_{}interval} sweeps, and \texttt{ParallelMeasurements} is a helper object for performing distributed measurements. Each instance of \texttt{ParallelTemperingMC} corresponds to one link in the parallel tempering chain and a single parameter value. \texttt{chain\_{}idx} stores the current position of the link and \texttt{child\_{}mc} stores a child Monte Carlo implementation that does the simulation between the tempering updates.
 
-Most of the implementation work is then to implement the interface functions and calling the respective function of the child implementation, making it believe that it is running normally. In the constructor and the initialization function, we retrieve the configuration and inject the current value of the tempering parameter into the normal parameter set before passing it on tho the child.
+Most of the implementation work is then to implement the interface functions and calling the respective function of the child implementation, making it believe that it is running normally. In the constructor and the initialization function, we retrieve the configuration and inject the current value of the tempering parameter into the normal parameter set before passing it on to the child.
 \begin{lstlisting}[language=julia]
 function ParallelTemperingMC(params::AbstractDict)
     config = params[:parallel_tempering]
@@ -743,7 +738,7 @@ end
 The function \verb+make_parallel_context+ creates a modified \texttt{MCContext} that reroutes possible measurements using \verb+mc.parallel_measure+.
 
 Then, periodically,
-\verb+synchronize_measurements!+ performs the necessary communications that collects these measurements from different ranks and combines them into vectors in the correct order. This is necessary because in parallel run mode, only the zeroth rank of the \texttt{comm} is allowed to do measurements.
+\verb+synchronize_measurements!+ performs the necessary communications that collect these measurements from different ranks and combine them into vectors in the correct order. This is necessary because in parallel run mode, only the zeroth rank of the \texttt{comm} is allowed to do measurements.
 Afterwards, \texttt{tempering\_{}update!} implements a standard neighbor swapping update~\cite{Earl2005} calling the functions \verb+parallel_tempering_log_weight_ratio+ to compare weight ratios and, if accepted, \verb+parallel_tempering_change_parameter!+ to switch the tempering parameter values. For further details, the interested reader is referred to the source code (\texttt{src/parallel\_{}tempering.jl}).
 
 For the measurements, analogously, we call the \texttt{Carlo.measure!} function on the child.
@@ -756,9 +751,9 @@ function Carlo.measure!(
     )
 end
 \end{lstlisting}
-The \texttt{register\_{}evaluables} function works the same in single run and parallel run mode. There is no MPI communication as this function is called only once per run in the postprocessing phase, after the actual simulation is already done. For the parallel tempering implementation, this still takes some bookkeeping, as we need to string together the evaluables from the child implementations in a similar way as the measurements. We will skip these details here for the sake of brevity.
+The \texttt{register\_{}evaluables} function works the same in single run and parallel run mode. There is no MPI communication as this function is called only once per run in the postprocessing phase, after the actual simulation is already done. For the parallel tempering implementation, this still takes some bookkeeping, as we need to string together the evaluables from the child implementations in a similar way as the measurements. We will skip these details here for brevity.
 
-Finally, the checkpointing functions require some more MPI communication. The second argument in both of them is \texttt{nothing} on any rank except the zeroth rank of \texttt{comm}. We therefore communicate the state, given by the chain permutation, the parallel measurement object, and the internal state of the child implementations, before reading from or writing to the HDF5 file.
+Finally, the checkpointing functions require some more MPI communication. The second argument in both of them is \texttt{nothing} on any rank except the 0th rank of \texttt{comm}. We therefore communicate the state, given by the chain permutation, the parallel measurement object, and the internal state of the child implementations, before reading from or writing to the HDF5 file.
 \begin{lstlisting}[language=julia]
 function Carlo.write_checkpoint(
     mc::ParallelTemperingMC,
@@ -826,7 +821,7 @@ This concludes the implementation of \texttt{ParallelTemperingMC} as an example 
 \begin{center}
 \includegraphics{figs/scaling.pdf}
 \end{center}
-\caption{\textbf{Runtime scaling with number of CPUs} of the example job script from \cref{code:input}, with the replacements \texttt{Ls = [100, 200, 300, 500]} and \texttt{sweeps = 200000}. The solid line shows the ideal linear speedup.}
+\caption{\textbf{Run time scaling with number of CPUs} of the example job script from \cref{code:input}, with the replacements \texttt{Ls = [100, 200, 300, 500]} and \texttt{sweeps = 200000}. The solid line shows the ideal linear speedup.}
 \label{fig:benchmark}
 \end{figure}
 \begin{figure}
@@ -836,10 +831,10 @@ This concludes the implementation of \texttt{ParallelTemperingMC} as an example 
 \caption{\textbf{Binning analysis benchmark} using the $20\times 20$ square-lattice Ising model at temperature $T=2.3$, close to the critical point. The same simulation with 20000 sweeps and 4000 thermalization sweeps is repeated 9000 times. We then compare the distribution of these results to the distribution predicted by the binning analysis. (a) Histogram of the energy per spin compared to a Gaussian distribution with the average mean and standard deviation predicted from the binning analysis. (b) Histogram of the Binder ratio compared to a Gaussian distribution with the average mean and standard deviation predicted from jackknifing. (c) The energy autocorrelation function, averaged over all runs, compared to the autocorrelation time $\tau_\text{auto}$ predicted by Carlo.jl.}
 \label{fig:statistics}
 \end{figure}
-In this section, we provide benchmarks to show (i) the runtime scaling of the parallel scheduler and (ii) the validity of the statistical postprocessing in the face of strongly autocorrelated data. For both, we use the Ising example code implemented in \cref{sec:ising}. Finally, we (iii) directly compare the performance of the Julia and the C++ versions of the stochastic series expansion code.
+In this section, we provide benchmarks to show (i) the run time scaling of the parallel scheduler and (ii) the validity of the statistical postprocessing in the face of strongly autocorrelated data. For both, we use the Ising example code implemented in \cref{sec:ising}. Finally, we (iii) directly compare the performance of the Julia and C++ versions of the stochastic series expansion code.
 
-\subsection{Scheduler runtime scaling}
-For the runtime scaling, we consider a workload inspired by \cref{code:input}, where we make the replacements \texttt{Ls = [100, 200, 300, 500]} and \texttt{sweeps = 200000} to increase the computational effort. Since the Ising code scales quadratically with the linear system size \texttt{Lx}, the tasks of this workload are quite imbalanced, comparable to the situation in \cref{fig:mcsched}. Nevertheless, we observe nearly linear scaling of the runtime with number CPUs used~(\cref{fig:benchmark}). We expect that the deviation from perfect scaling in this case is dominated by the serial cost of thermalization, which, based on the number of sweeps, is about 1\% of the total serial runtime.
+\subsection{Scheduler run time scaling}
+For the run time scaling, we consider a workload inspired by \cref{code:input}, where we make the replacements \texttt{Ls = [100, 200, 300, 500]} and \texttt{sweeps = 200000} to increase the computational effort. Since the Ising code scales quadratically with the linear system size \texttt{Lx}, the tasks of this workload are quite imbalanced, comparable to the situation in \cref{fig:mcsched}. Nevertheless, we observe nearly linear scaling of the run time with number CPUs used~(\cref{fig:benchmark}). We expect that the deviation from perfect scaling in this case is dominated by the serial cost of thermalization, which, based on the number of sweeps, is about 1\% of the total serial run time.
 
 \subsection{Validity of the postprocessing}
 To confirm the accuracy of the statistical postprocessing, we consider the Ising model with $L=20$ and $T=2.3$, close to the critical point. In this region, the local updates of the Metropolis algorithm that we implemented are quite inefficient, leading to long autocorrelation times that require a careful analysis to retrieve the correct statistics.
@@ -847,9 +842,9 @@ To confirm the accuracy of the statistical postprocessing, we consider the Ising
 To obtain the statistics of this model, there are two ways. The first one is to run many identical, independent simulations and create a histogram of the results. The second, more practical approach is to run a single simulation and perform a binning analysis on the correlated time series. By comparing the histogram of many independent simulations with the average results from the binning analysis implemented in Carlo.jl (\cref{fig:statistics}(a)), we confirm that the binning procedure outlined in \cref{sec:postproc} yields the correct errors for observables. As an example for the jackknifing feature, the Binder ratio (\cref{fig:statistics}(b)) also shows correct statistics. Finally, in \cref{fig:statistics}(c) we show the autocorrelation function for the energy per spin. We find that the autocorrelation time estimated from the binning analysis using~\cref{eq:autocorr} is a good estimate for the true decay of the autocorrelations.
 
 \subsection{Performance comparison between Julia and C++}
-The StochasticSeriesExpansion.jl package mentioned in \cref{sec:sse} is a Julia translation of the earlier C++ code~\cite{WeberFrust2024} that was used in Refs.~\cite{Jimenez2021,Weber2022,WeberCluster2022,WeberThermal2022,weber_cavityrenormalized_2023}. Since many of its inner workings are identical and both codes have seen a similar amount of optimization efforts, they provide an ideal opportunity for benchmarking the performance of Julia for quantum Monte Carlo applications, which we do in the following.
+The StochasticSeriesExpansion.jl package mentioned in \cref{sec:sse} is a Julia translation of the earlier C++ code~\cite{WeberFrust2024} that was used in Refs.~\cite{Jimenez2021,Weber2022,WeberCluster2022,WeberThermal2022,weber_cavityrenormalized_2023}. Since many of their inner workings are identical and both codes have seen a similar amount of optimization efforts, they provide an ideal opportunity for benchmarking the performance of Julia for quantum Monte Carlo applications, which we do in the following.
 
-Although the codes behave identically at the core, a number of details need to be taken into account for a quantitative performance comparison. Firstly, the models implemented for use with them are not the same. For example, the anisotropic magnet from \cref{sec:sse} is not implemented in the C++ code. A model that is implemented for both is the spin-1/2 fully-frustrated bilayer~\cite{MullerHartmannExact2000,Alet2016} in the interlayer dimer basis, which we therefore use here (accessible through the \texttt{ClusterModel} in StochasticSeriesExpansion.jl). Another, more technical intricacy are the length of the SSE operator string and the number of worm updates. Both are parameters that are automatically tuned by the algorithm during its thermalization phase. Both codes use exactly the same controller logic for this, however the result is subject to noise. To eliminate this noise, we set both of them to the same values, predetermined by an earlier simulation. Lastly, the C++ version used a custom implementation of the mt19937 Mersenne Twister~\cite{Matsumoto1998}. Carlo.jl uses Julia’s \texttt{Random.Xoshiro} by default, which for this comparison, we replace by \texttt{Random.MersenneTwister}. All of these settings are implemented in the job script from \cref{lst:language_comparison}. The C++ code was compiled with GCC 12.2.0 with \texttt{-march=znver4 -ffast-math} and link-time optimization enabled. The Julia version was 1.11.1. The two simulations were carried out on AMD EPYC 9474F CPUs with 16 MPI ranks at a time.
+Although the codes behave identically at the core, a number of details need to be taken into account for a quantitative performance comparison. Firstly, the models implemented for use with them are not the same. For example, the anisotropic magnet from \cref{sec:sse} is not implemented in the C++ code. A model that is implemented for both codes is the spin-1/2 fully-frustrated bilayer~\cite{MullerHartmannExact2000,Alet2016} in the interlayer dimer basis, which we therefore use here. It is accessible through the \texttt{ClusterModel} in StochasticSeriesExpansion.jl. Another, more technical intricacy are the length of the SSE operator string and the number of worm updates. Both are parameters that are automatically tuned by the algorithm during its thermalization phase. Both codes use exactly the same controller logic for this, however the result is subject to noise. To eliminate this noise, we set both of them to the same values, predetermined by an earlier simulation. Lastly, the C++ version used a custom implementation of the mt19937 Mersenne Twister~\cite{Matsumoto1998}. Carlo.jl uses Julia’s \texttt{Random.Xoshiro} by default, which for this comparison, we replace by \texttt{Random.MersenneTwister}. All of these settings are implemented in the job script from \cref{lst:language_comparison}. The C++ code was compiled with GCC 12.2.0 with \texttt{-march=znver4 -ffast-math} and link-time optimization enabled. The Julia version was 1.11.1. The two simulations were carried out on AMD EPYC 9474F CPUs with 16 MPI ranks at a time.
 \begin{figure}
 \begin{center}
 \includegraphics{figs/language_comparison.pdf}
@@ -922,10 +917,10 @@ Despite these technical details that make performance comparisons of this kind h
 \label{sec:conclusion}
 Carlo.jl is a framework for writing Monte Carlo simulation codes in Julia. It features a Monte Carlo aware parallel scheduler with parallel tempering support, organized storage of input, checkpoint, and result files, as well as statistical postprocessing of the Monte Carlo results.
 
-We have illustrated these features and the general usage of the framework by providing examples for the Ising model, the SSE QMC algorithm and parallel tempering. Our benchmarks show the efficient runtime scaling of the scheduler and the correctness of the statistical postprocessing. Additionally, since the SSE QMC code is based on an earlier C++ implementation, we performed a language performance comparison, in which the Julia version was faster, demonstrating the applicability of Julia for Monte Carlo workloads.
+We have illustrated these features and the general usage of the framework by providing examples for the Ising model, the SSE QMC algorithm, and parallel tempering. Our benchmarks show the efficient run time scaling of the scheduler and the correctness of the statistical postprocessing. Additionally, since the SSE QMC code is based on an earlier C++ implementation, we performed a language performance comparison, in which the Julia version was faster, demonstrating the applicability of Julia for Monte Carlo workloads.
 
 Based on these features and properties, the availability of a framework like Carlo.jl should enable the quick development of new user-friendly high-performance Monte Carlo codes in Julia.
-\section*{Acknowledgements}
+\section*{Acknowledgments}
 Carlo.jl is inspired by an earlier C++ code~\cite{loadleveller} written by the author, which in turn was inspired by a legacy code used in Stefan Wessel's group.
 All plots except \cref{fig:binder} and \cref{fig:susceptibility} were created using Makie.jl~\cite{DanischKrumbiegel2021}.
 
