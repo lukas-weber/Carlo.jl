@@ -34,10 +34,13 @@
 end
 
 @testset "Parse Duration" begin
+    @test_throws ErrorException JT.parse_duration("1-10")
+    @test_throws ErrorException JT.parse_duration("1-10:00")
     @test_throws ErrorException JT.parse_duration("10:")
     @test_throws ErrorException JT.parse_duration("10::00")
     @test_throws ErrorException JT.parse_duration("a:2:00")
-    @test JT.parse_duration("10:00") == Dates.Second(60 * 10)
-    @test JT.parse_duration("100") == Dates.Second(100)
-    @test JT.parse_duration("5:32:10") == Dates.Second(5 * 60 * 60 + 32 * 60 + 10)
+    @test JT.parse_duration("10:00") == Minute(10)
+    @test JT.parse_duration("100") == Second(100)
+    @test JT.parse_duration("5:32:10") == Hour(5) + Minute(32) + Second(10)
+    @test JT.parse_duration("100-12:04:31") == Day(100) + Hour(12) + Minute(4) + Second(31)
 end

@@ -4,16 +4,22 @@ using Random
 
 """Parse a duration of the format `[[hours:]minutes]:seconds`."""
 function parse_duration(duration::AbstractString)::Dates.Period
-    m = match(r"^(((?<hours>\d+):)?(?<minutes>\d+):)?(?<seconds>\d+)$", duration)
+    m = match(
+        r"^((((?<days>\d+)-)?(?<hours>\d+):)?(?<minutes>\d+):)?(?<seconds>\d+)$",
+        duration,
+    )
     if isnothing(m)
         error("$duration does not match [[HH:]MM:]SS")
     end
 
-    conv(period, x) =
-        isnothing(x) ? Dates.Second(0) : convert(Dates.Second, period(parse(Int32, x)))
-    return conv(Dates.Hour, m[:hours]) +
-           conv(Dates.Minute, m[:minutes]) +
-           conv(Dates.Second, m[:seconds])
+    conv(x) = parse(UInt, something(x, "0"))
+    return convert(
+        Dates.Second,
+        Day(conv(m[:days])) +
+        Hour(conv(m[:hours])) +
+        Minute(conv(m[:minutes])) +
+        Second(conv(m[:seconds])),
+    )
 end
 
 parse_duration(duration::Dates.Period) = duration
@@ -22,8 +28,8 @@ parse_duration(duration::Dates.Period) = duration
     JobInfo(
         job_directory_prefix::AbstractString,
         mc::Type;
-        checkpoint_time::Union{AbstractString, Dates.Second},
-        run_time::Union{AbstractString, Dates.Second},
+        checkpoint_time::Union{AbstractString, Dates.Period},
+        run_time::Union{AbstractString, Dates.Period},
         tasks::Vector{TaskInfo},
         rng::Type = Random.Xoshiro,
         ranks_per_run::Union{Integer, Symbol} = 1,
@@ -60,8 +66,8 @@ function JobInfo(
     job_file_name::AbstractString,
     mc::Type;
     rng::Type = Random.Xoshiro,
-    checkpoint_time::Union{AbstractString,Dates.Second},
-    run_time::Union{AbstractString,Dates.Second},
+    checkpoint_time::Union{AbstractString,Dates.Period},
+    run_time::Union{AbstractString,Dates.Period},
     tasks::Vector{TaskInfo},
     ranks_per_run::Union{Integer,Symbol} = 1,
 )
