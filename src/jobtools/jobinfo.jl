@@ -2,7 +2,7 @@ using JSON
 using Dates
 using Random
 
-"""Parse a duration of the format `[[hours:]minutes]:seconds`."""
+"""Parse a duration of the format `[[[days-]hours:]minutes]:seconds`."""
 function parse_duration(duration::AbstractString)::Dates.Period
     m = match(
         r"^((((?<days>\d+)-)?(?<hours>\d+):)?(?<minutes>\d+):)?(?<seconds>\d+)$",
