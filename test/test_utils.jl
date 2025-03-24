@@ -52,10 +52,15 @@ function make_test_job(
     )
 end
 
-function run_test_job_mpi(job::JobInfo; num_ranks::Integer, silent::Bool = false)
+function run_test_job_mpi(
+    job::JobInfo;
+    num_ranks::Integer,
+    silent::Bool = false,
+    scheduler = Carlo.MPIScheduler,
+)
     JT.create_job_directory(job)
     job_path = job.dir * "/jobfile"
-    serialize(job_path, job)
+    serialize(job_path, (job, scheduler))
 
     cmd = `$(mpiexec()) -n $num_ranks $(Base.julia_cmd()) test_scheduler_mpi.jl $(job_path)`
     if silent

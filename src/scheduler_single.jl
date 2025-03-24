@@ -101,8 +101,10 @@ function write_checkpoint(scheduler::SingleScheduler)
     scheduler.time_last_checkpoint = Dates.now()
     rundir = run_dir(scheduler.tasks[scheduler.task_id], 1)
     write_checkpoint!(scheduler.run, rundir, MPI.COMM_WORLD)
-    write_checkpoint_finalize(rundir)
-    @info "checkpointing $rundir"
+    if is_run_leader(MPI.COMM_WORLD)
+        write_checkpoint_finalize(rundir)
+        @info "checkpointing $rundir"
+    end
 
     return nothing
 end
