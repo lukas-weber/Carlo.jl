@@ -74,7 +74,9 @@ function start(::Type{SingleScheduler}, job::JobInfo)
     JobTools.concatenate_results(scheduler.job)
 
     all_done = scheduler.task_id === nothing
-    @info "stopping due to $(all_done ? "completion" : "time limit")"
+    if MPI.Comm_rank(MPI.COMM_WORLD) == 0
+        @info "stopping due to $(all_done ? "completion" : "time limit")"
+    end
 
     MPI.Barrier(MPI.COMM_WORLD)
     return !all_done
