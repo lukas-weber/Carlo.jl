@@ -143,10 +143,15 @@ function parallel_tempering_log_weight_ratio end
 function ParallelTemperingMC(params::AbstractDict)
     config = params[:parallel_tempering]
     MC = config.mc
-    tempering_interval = config.interval
 
     comm = params[:_comm]
     chain_idx = MPI.Comm_rank(comm) + 1
+
+    if length(config.values) != MPI.Comm_size(comm)
+        error(
+            "parallel tempering chain length ($(length(config.values))) != $(MPI.Comm_size(comm))",
+        )
+    end
 
     modified_params = deepcopy(params)
     modified_params[config.parameter] = config.values[chain_idx]

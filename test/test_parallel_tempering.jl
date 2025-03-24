@@ -3,10 +3,19 @@
 @struct_equal Carlo.ParallelMeasurements
 
 
+struct FakeComm
+    size::Int
+    rank::Int
+end
+
+MPI.Comm_size(f::FakeComm) = f.size
+MPI.Comm_rank(f::FakeComm) = f.rank
+
 @testset "ParallelTemperingMC" begin
 
     mktempdir() do tmpdir
         @testset "checkpointing" begin
+
             params = Dict(
                 :sweeps => 1000,
                 :thermalization => 100,
@@ -17,9 +26,10 @@
                     values = [0, 1, 1.5, 1.7, 2],
                     interval = 100,
                 ),
-                :_comm => MPI.COMM_SELF,
+                :_comm => FakeComm(5, 2),
             )
             MPI.Init()
+
             mc = ParallelTemperingMC(params)
             mc2 = ParallelTemperingMC(params)
 
