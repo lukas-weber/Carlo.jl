@@ -100,6 +100,24 @@ function task_dir(job::JobInfo, task::TaskInfo)
 end
 
 """
+    run_time_from_slurm(;grace_factor=0.95, default=Hour(24))
+
+When running inside a Slurm job, returns the remaining wall-clock time based on the environment variable `SLURM_JOB_END_TIME`. The result is multiplied by `grace_factor` to allow for a small period for wrapping up the calculation and saving the final results.
+
+The result of this function can be used for the `run_time` parameter of the [`JobInfo`](@ref) struct.
+
+If `SLURM_JOB_END_TIME` is not set, `default` is returned.
+"""
+function run_time_from_slurm(; grace_factor = 0.95, default = Hour(24))
+    if !haskey(ENV, "SLURM_JOB_END_TIME")
+        return default
+    end
+
+    remaining_time = unix2datetime(parse(Int, ENV["SLURM_JOB_END_TIME"])) - now()
+    return Millisecond(round(Int64, grace_factor * (remaining_time / Millisecond(1))))
+end
+
+"""
     result_filename(job::JobInfo)
 
 Returns the filename of the `.results.json` file containing the merged results of the calculation of `job`.

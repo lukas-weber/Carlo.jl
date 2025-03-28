@@ -5,6 +5,7 @@ This submodule contains tools to specify or read job information necessary to ru
 JobInfo
 TaskInfo
 result_filename
+run_time_from_slurm
 start(job::JobInfo,::AbstractVector{<:AbstractString})
 ```
 

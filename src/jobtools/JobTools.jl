@@ -1,5 +1,12 @@
 module JobTools
-export JobInfo, TaskInfo, TaskMaker, task, make_tasks, result_filename, current_task_name
+export JobInfo,
+    TaskInfo,
+    TaskMaker,
+    task,
+    make_tasks,
+    result_filename,
+    current_task_name,
+    run_time_from_slurm
 
 using Statistics
 
