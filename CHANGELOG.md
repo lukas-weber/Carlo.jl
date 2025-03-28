@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.4 - [Unreleased]
+
+### Added
+
+- Added `run_time_from_slurm` to conveniently set the run time to match that of a surrounding slurm job.
+
+### Changed
+
+- Allow specifying days in run time and checkpoint time formats: `days-hours:months:seconds` (#24).
+
+### Fixed
+
+- When using `SingleScheduler` with MPI to execute a parallel-run mode job one run at a time, files are now written out correctly.
+
 ## 0.2.3 - 2024-11-22
 
 ### Changed
