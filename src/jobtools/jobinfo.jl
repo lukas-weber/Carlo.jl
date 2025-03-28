@@ -89,8 +89,8 @@ function JobInfo(
         mc,
         rng,
         tasks,
-        parse_duration(checkpoint_time),
-        parse_duration(run_time),
+        round(parse_duration(checkpoint_time), Second),
+        round(parse_duration(run_time), Second),
         ranks_per_run,
     )
 end
