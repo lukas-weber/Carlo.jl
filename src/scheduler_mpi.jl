@@ -108,7 +108,7 @@ function start(::Type{MPIScheduler}, job::JobInfo)
 
     if rank == 0
         @info "starting job '$(job.name)'"
-        @info "running for at most $(job.run_time) with checkpoints every $(job.checkpoint_time)"
+        @info "running for at most $(canonicalize(job.run_time)) with checkpoints every $(canonicalize(job.checkpoint_time))"
         if ranks_per_run != 1
             @info "running in parallel run mode with $(ranks_per_run) ranks per run"
         end

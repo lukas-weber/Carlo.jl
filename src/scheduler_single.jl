@@ -27,7 +27,7 @@ function start(::Type{SingleScheduler}, job::JobInfo)
     end
 
     @info "starting job '$(job.name)'"
-    @info "running for at most $(job.run_time) with checkpoints every $(job.checkpoint_time)"
+    @info "running for at most $(canonicalize(job.run_time)) with checkpoints every $(canonicalize(job.checkpoint_time))"
 
     JobTools.create_job_directory(job)
     scheduler = SingleScheduler(job)
