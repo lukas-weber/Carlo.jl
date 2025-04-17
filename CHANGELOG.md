@@ -5,6 +5,7 @@
 ### Added
 
 - Added `run_time_from_slurm` to conveniently set the run time to match that of a surrounding slurm job.
+- Some additional log messages that show the run time
 
 ### Changed
 
@@ -13,6 +14,7 @@
 ### Fixed
 
 - When using `SingleScheduler` with MPI to execute a parallel-run mode job one run at a time, files are now written out correctly.
+- Performance improvements when merging results
 
 ## 0.2.3 - 2024-11-22
 

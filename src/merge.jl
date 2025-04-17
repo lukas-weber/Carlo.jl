@@ -17,14 +17,16 @@ function calc_rebin_length(total_sample_count, rebin_length)
 end
 
 """
+    iterate_measfile_observables(func, filenames, args...)
+
 This helper function consecutively opens all ".meas.h5" files of a task. For each
 observable in the file, it calls
 
-    states[obs_key] = func(obs_key, obs, get(states, obs_key, nothing))
+    states[obs_key] = func(obs, get(states, obs_key, nothing), getindex.(args, obs_key)...)
 
 Finally the dictionary `states` is returned. This construction allows `func` to only care about a single observable, simplifying the merging code.
 """
-function iterate_measfile_observables(func::Func, filenames) where {Func}
+function iterate_measfile_observables(func::Func, filenames, args...) where {Func}
     states = Dict{Symbol,Any}()
     for filename in filenames
         h5open(filename, "r") do meas_file
@@ -40,7 +42,12 @@ function iterate_measfile_observables(func::Func, filenames) where {Func}
                     end
                     rethrow(err)
                 end
-                states[obs_key] = func(obs_key, obs, get(states, obs_key, nothing))
+
+                states[obs_key] = func(
+                    obs,
+                    get(states, obs_key, nothing),
+                    getindex.(args, obs_key)...,
+                )
             end
         end
     end
@@ -72,12 +79,28 @@ function merge_results(
     return nothing
 end
 
+struct ObservableType{T,N}
+    internal_bin_length::Int64
+    shape::NTuple{N,Int64}
+    total_sample_count::Int64
+end
+
+get_type(::ObservableType{T}) where {T} = T
+
+function add_samples!(acc, acc², samples, sample_skip)
+    for value in Iterators.drop(eachslice(samples; dims = ndims(samples)), sample_skip)
+        add_sample!(acc, value)
+        add_sample!(abs2, acc², value)
+    end
+    return nothing
+end
+
 function merge_results(
     filenames::AbstractArray{<:AbstractString};
     rebin_length::Union{Integer,Nothing},
     sample_skip::Integer = 0,
 )
-    obs_types = iterate_measfile_observables(filenames) do _, obs_group, state
+    obs_types = iterate_measfile_observables(filenames) do obs_group, state
         internal_bin_length = read(obs_group, "bin_length")
         sample_size = size(obs_group["samples"])
 
@@ -94,44 +117,39 @@ function merge_results(
         type = eltype(obs_group["samples"])
 
         if isnothing(state)
-            return (; T = type, internal_bin_length, shape, total_sample_count = nsamples)
+            return ObservableType{type,length(shape)}(internal_bin_length, shape, nsamples)
         end
         if shape != state.shape
             error("Observable shape ($shape) does not agree between runs ($(state.shape))")
         end
 
-        return (;
-            T = promote_type(state.T, type),
-            internal_bin_length = state.internal_bin_length,
-            shape = state.shape,
-            total_sample_count = state.total_sample_count + nsamples,
+        return ObservableType{promote_type(get_type(state), type),length(state.shape)}(
+            state.internal_bin_length,
+            state.shape,
+            state.total_sample_count + nsamples,
         )
     end
 
-    binned_obs = iterate_measfile_observables(filenames) do obs_name, obs_group, state
-        obs_type = obs_types[obs_name]
+    binned_obs =
+        iterate_measfile_observables(filenames, obs_types) do obs_group, state, obs_type
+            if state === nothing
+                binsize = calc_rebin_length(obs_type.total_sample_count, rebin_length)
+                state = (;
+                    acc = Accumulator{get_type(obs_type)}(binsize, obs_type.shape),
+                    acc² = Accumulator{real(get_type(obs_type))}(binsize, obs_type.shape),
+                )
+            end
 
-        if state === nothing
-            binsize = calc_rebin_length(obs_type.total_sample_count, rebin_length)
-            state = (;
-                acc = Accumulator{obs_type.T}(binsize, obs_type.shape),
-                acc² = Accumulator{real(obs_type.T)}(binsize, obs_type.shape),
-            )
+            samples = read(obs_group, "samples")
+            # TODO: compat for v0.1.5 format. Remove in v0.3
+            if !haskey(attributes(obs_group["samples"]), "v0.2_format")
+                samples = reshape(samples, obs_type.shape..., :)
+            end
+
+            add_samples!(state.acc, state.acc², samples, sample_skip)
+
+            return state
         end
-
-        samples = read(obs_group, "samples")
-        # TODO: compat for v0.1.5 format. Remove in v0.3
-        if !haskey(attributes(obs_group["samples"]), "v0.2_format")
-            samples = reshape(samples, obs_type.shape..., :)
-        end
-
-        for value in Iterators.drop(eachslice(samples; dims = ndims(samples)), sample_skip)
-            add_sample!(state.acc, value)
-            add_sample!(state.acc², abs2.(value))
-        end
-
-        return state
-    end
 
     return Dict{Symbol,ResultObservable}(
         obs_name => begin

@@ -33,7 +33,9 @@ bins(acc::Accumulator) = Array(@view acc.bins[axes(acc.bins)[1:end-1]..., 1:end-
 shape(acc::Accumulator) = size(acc.bins)[1:end-1]
 num_bins(acc::Accumulator) = size(acc.bins)[end] - 1
 
-function add_sample!(acc::Accumulator, value)
+add_sample!(acc::Accumulator, value) = add_sample!(identity, acc, value)
+
+function add_sample!(func::Func, acc::Accumulator, value) where {Func}
     if size(value) != shape(acc)
         error(
             "size of added value ($(length(value))) does not size of accumulator ($(shape(acc)))",
@@ -42,8 +44,8 @@ function add_sample!(acc::Accumulator, value)
 
     current_bin = @view acc.bins[axes(acc.bins)[1:end-1]..., end:end]
     # this one avoids some allocations
-    for i in eachindex(value)
-        current_bin[i] += value[i]
+    @inbounds for i in eachindex(value)
+        current_bin[i] += func(value[i])
     end
 
     acc.current_filling += 1

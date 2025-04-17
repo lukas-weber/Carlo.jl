@@ -26,6 +26,9 @@ function start(::Type{SingleScheduler}, job::JobInfo)
         @info "started SingleScheduler running with multiple MPI ranks: running in parallel run mode!"
     end
 
+    @info "starting job '$(job.name)'"
+    @info "running for at most $(job.run_time) with checkpoints every $(job.checkpoint_time)"
+
     JobTools.create_job_directory(job)
     scheduler = SingleScheduler(job)
     scheduler.time_start = Dates.now()
