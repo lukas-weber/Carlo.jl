@@ -43,11 +43,8 @@ function iterate_measfile_observables(func::Func, filenames, args...) where {Fun
                     rethrow(err)
                 end
 
-                states[obs_key] = func(
-                    obs,
-                    get(states, obs_key, nothing),
-                    getindex.(args, obs_key)...,
-                )
+                states[obs_key] =
+                    func(obs, get(states, obs_key, nothing), getindex.(args, obs_key)...)
             end
         end
     end
@@ -143,7 +140,7 @@ function merge_results(
             samples = read(obs_group, "samples")
             # TODO: compat for v0.1.5 format. Remove in v0.3
             if !haskey(attributes(obs_group["samples"]), "v0.2_format")
-                samples = reshape(samples, obs_type.shape..., :)
+                samples = reshape(samples, Int.(obs_type.shape)..., :)
             end
 
             add_samples!(state.acc, state.acc², samples, sample_skip)
