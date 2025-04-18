@@ -114,13 +114,10 @@ function start(::Type{MPIScheduler}, job::JobInfo)
         end
 
         rc = start(MPISchedulerController, job, run_leader_comm)
-        @info "controller: concatenating results"
-        JobTools.concatenate_results(job)
     else
         start(MPISchedulerWorker, job, run_leader_comm, run_comm)
     end
 
-    MPI.Barrier(comm)
     # MPI.Finalize()
 
     return rc
@@ -135,6 +132,9 @@ function start(::Type{MPISchedulerController}, job::JobInfo, run_leader_comm::MP
     end
 
     all_done = controller.task_id === nothing
+    MPI.Barrier(run_leader_comm)
+    @info "controller: concatenating results"
+    JobTools.concatenate_results(job)
     @info "controller: stopping due to $(all_done ? "completion" : "time limit")"
 
     return !all_done
@@ -339,7 +339,8 @@ function start(
 
         if JobTools.is_end_time(job, time_start)
             worker_signal_timeup(run_leader_comm, run_comm)
-            @info "exits: time up"
+            write_checkpoint(worker, run_comm)
+            @info "rank $(MPI.Comm_rank(MPI.COMM_WORLD)): exits after time limit reached"
             break
         end
 
@@ -376,6 +377,9 @@ function start(
             worker.task.target_sweeps = response.sweeps_until_comm
             @assert !is_done(worker.task)
         end
+    end
+    if is_run_leader(run_comm)
+        MPI.Barrier(run_leader_comm)
     end
 end
 

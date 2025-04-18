@@ -15,6 +15,7 @@
 
 - When using `SingleScheduler` with MPI to execute a parallel-run mode job one run at a time, files are now written out correctly.
 - Performance improvements when merging results
+- Ensure writing out data after timeout (#23)
 
 ## 0.2.3 - 2024-11-22
 
@@ -25,6 +26,7 @@
 ## 0.2.2 - 2024-10-23
 
 ### Added
+
 - Added parallel tempering support through `ParallelTemperingMC` (#14).
 
 ### Changed
