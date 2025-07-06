@@ -23,7 +23,7 @@ function measurement_from_obs(obsname, obs)
         @warn "$obsname: autocorrelation time longer than rebin length. Results may be unreliable."
     end
 
-    mean = obs["mean"]
+    mean = make_scalar(obs["mean"])
     if mean isa AbstractDict
         mean = Complex(mean["re"], mean["im"])
     end
