@@ -6,8 +6,19 @@ using Measurements
 make_scalar(x) = x isa AbstractVector && size(x) == (1,) ? only(x) : x
 
 # JSON turns arrays into Vector{Any}s of Vector{Any}s. This function undoes this by recursively stacking the vectors.
-function recursive_stack(v)
-    if isnothing(v) || ndims(v) == 0 || any(isnothing, v)
+recursive_stack(v) = v
+
+# this converts all Vector{AbstractDict} to Vector{Complex}
+function recursive_stack(v::AbstractDict)
+    if haskey(v, "re") && haskey(v, "im")
+        return Complex(v["re"], v["im"])
+    else
+        throw("Expected a JSON object with 're' and 'im' keys, got: $v")
+    end
+end
+
+function recursive_stack(v::AbstractArray)
+    if ndims(v) == 0 || any(isnothing, v)
         return v
     end
     return stack(recursive_stack, v)
@@ -23,10 +34,7 @@ function measurement_from_obs(obsname, obs)
         @warn "$obsname: autocorrelation time longer than rebin length. Results may be unreliable."
     end
 
-    mean = make_scalar(obs["mean"])
-    if mean isa AbstractDict
-        mean = Complex(mean["re"], mean["im"])
-    end
+    mean = obs["mean"]
     error = obs["error"]
 
     mean = recursive_stack(mean)
@@ -35,8 +43,6 @@ function measurement_from_obs(obsname, obs)
     sanitize(m, e) = (isnothing(m) || isnothing(e)) ? missing : m ± e
     sanitize(m::Complex, e) =
         (isnothing(m) || isnothing(e)) ? missing : Complex(real(m) ± e, imag(m))
-    sanitize(m::AbstractDict, e) =
-        (isnothing(m) || isnothing(e)) ? missing : Complex(m["re"] ± e, m["im"])
     return make_scalar(sanitize.(mean, error))
 end
 

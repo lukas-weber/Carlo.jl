@@ -21,4 +21,24 @@ end
         @test ResultTools.recursive_stack(nothing) === nothing
         @test ResultTools.recursive_stack([nothing, nothing]) == [nothing, nothing]
     end
+    @testset "recursive_stack_Dict" begin
+        dict_complex = Dict("re" => 1.5, "im" => -2.0)
+        @test ResultTools.recursive_stack(dict_complex) == Complex(1.5, -2.0)
+
+        dict_bad = Dict("real" => 1.5, "imaginary" => -2.0)
+        @test_throws String ResultTools.recursive_stack(dict_bad)
+
+        v_dict = [Dict("re" => 1, "im" => 2), Dict("re" => 3, "im" => 4)]
+        @test ResultTools.recursive_stack(v_dict) == [Complex(1, 2), Complex(3, 4)]
+
+        v_nested_dict = [
+            [Dict("re" => 1, "im" => 1), Dict("re" => 2, "im" => 2)],
+            [Dict("re" => 3, "im" => 3), Dict("re" => 4, "im" => 4)]
+        ]
+        expected_matrix = [
+            Complex(1, 1) Complex(2, 2)
+            Complex(3, 3) Complex(4, 4)
+        ]
+        @test permutedims(ResultTools.recursive_stack(v_nested_dict)) == expected_matrix
+    end
 end
