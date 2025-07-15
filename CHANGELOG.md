@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.5 - 2025-07-15
+
+### Fixed
+
+- Support for complex vector and higher rank observables (#25)
+
 ## 0.2.4 - 2025-04-25
 
 ### Added
