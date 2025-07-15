@@ -33,7 +33,7 @@ end
 
         v_nested_dict = [
             [Dict("re" => 1, "im" => 1), Dict("re" => 2, "im" => 2)],
-            [Dict("re" => 3, "im" => 3), Dict("re" => 4, "im" => 4)]
+            [Dict("re" => 3, "im" => 3), Dict("re" => 4, "im" => 4)],
         ]
         expected_matrix = [
             Complex(1, 1) Complex(2, 2)
