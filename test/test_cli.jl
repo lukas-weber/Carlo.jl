@@ -1,5 +1,5 @@
 function test_binning_properties(result_file)
-    results = JSON.parsefile(result_file)
+    results = JSON.parsefile(result_file; allownan = true)
 
     for result in results
         sweeps = result["parameters"]["sweeps"]
