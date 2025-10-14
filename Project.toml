@@ -37,7 +37,7 @@ Serialization = "1.7"
 Statistics = "1.7"
 StructEquality = "2.1.0"
 Test = "1.7"
-julia = "1.9"
+julia = "1.10"
 
 [extras]
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
