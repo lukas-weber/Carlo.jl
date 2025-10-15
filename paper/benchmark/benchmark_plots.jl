@@ -166,7 +166,7 @@ function generate_autocorr()
 end
 
 function plot_autocorr!(ax, path, obsname)
-    json = JSON.parsefile(path * ".results.json")
+    json = JSON.parsefile(path * ".results.json"; allownan = true)
 
     autocorrs = map(x -> x["results"][obsname]["autocorr_time"], json)
 

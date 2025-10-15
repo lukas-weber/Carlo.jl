@@ -129,7 +129,7 @@ function concatenate_results(job::JobInfo)
         results = skipmissing(map(job.tasks) do task
             try
                 open(task_dir(job, task) * "/results.json", "r") do in
-                    return JSON.parse(in)
+                    return JSON.parse(in; allownan = true)
                 end
             catch e
                 if !isa(e, Base.SystemError)
@@ -138,7 +138,7 @@ function concatenate_results(job::JobInfo)
                 return missing
             end
         end)
-        JSON.print(out, collect(results), 1)
+        JSON.json(out, collect(results); pretty = 1, allownan = true)
     end
     return nothing
 end

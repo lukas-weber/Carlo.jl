@@ -32,15 +32,14 @@ function write_results(
     version::Version,
 )
     open(filename, "w") do file
-        JSON.print(
+        JSON.json(
             file,
             Dict(
                 "task" => taskdir,
                 "parameters" => parameters,
                 "results" => observables,
                 "version" => to_dict(version),
-            ),
-            1,
+            ); pretty = 1, allownan = true
         )
     end
     return nothing
