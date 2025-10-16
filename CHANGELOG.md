@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6 - 2025-10-16
+
+### Fixed
+
+- Update to PrettyTables v3 and JSON v1 (#26) Thanks, @hz-xiaz!
+
 ## 0.2.5 - 2025-07-15
 
 ### Fixed
