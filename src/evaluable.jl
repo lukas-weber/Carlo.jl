@@ -1,14 +1,39 @@
 
-struct Evaluable{T<:Number,R<:Real}
+struct Evaluable{T<:Number,R<:Real,N,M}
     internal_bin_length::Int64
     rebin_length::Int64
     rebin_count::Int64
 
-    mean::Vector{T}
-    error::Vector{R}
+    mean::Array{T,N}
+    error::Array{R,N}
+    covariance::Union{Array{T,M},Nothing}
+
+    function Evaluable(
+        internal_bin_length::Int64,
+        rebin_length::Int64,
+        rebin_count::Int64,
+
+        mean::Array{T,N},
+        error::Array{R,N},
+        covariance::Array{T,M},
+    ) where {T<: Number, R<:Real, N,M}
+        new{T,R,N,M}(internal_bin_length,rebin_length,rebin_count,mean,error,covariance)
+    end
+
+    function Evaluable(
+        internal_bin_length::Int64,
+        rebin_length::Int64,
+        rebin_count::Int64,
+
+        mean::Array{T,N},
+        error::Array{R,N},
+        covariance::Nothing,
+    ) where {T<: Number, R<:Real, N}
+        new{T,R,N,0}(internal_bin_length,rebin_length,rebin_count,mean,error,nothing)
+    end
 end
 
-function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) where {N}
+function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}, estimate_covariance::Bool) where {N}
     sample_count = minimum(x -> last(size(x)), sample_set)
 
     # truncate sample counts to smallest
@@ -20,40 +45,54 @@ function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}) w
     # evaluation based on complete dataset (truncated to the lowest sample_count)
     complete_eval = func((sums ./ sample_count)...)
 
-    # evaluation on the jacked datasets    
-    jacked_eval_mean = zero(complete_eval)
-    for k = 1:sample_count
-        jacked_means = (
-            (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) for
-            (sum, samples) in zip(sums, sample_set)
-        )
-        jacked_eval_mean += func(jacked_means...)
-    end
-    jacked_eval_mean /= sample_count
+    # Compute and store all jacked evaluations
+    jacked_evals = [
+        let jacked_means = (
+                (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) 
+                for (sum, samples) in zip(sums, sample_set)
+            )
+            func(jacked_means...)
+        end
+        for k in 1:sample_count
+    ]
 
-    @assert length(complete_eval) == length(jacked_eval_mean)
+    jacked_eval_mean = sum(jacked_evals) / sample_count
+    @assert size(complete_eval) == size(jacked_eval_mean)
 
-    # mean and error
+    #mean
     bias_corrected_mean =
         sample_count * complete_eval .- (sample_count - 1) * jacked_eval_mean
 
-    error = real.(zero(complete_eval))
-    for k = 1:sample_count
-        jacked_means = (
-            (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) for
-            (sum, samples) in zip(sums, sample_set)
-        )
-        # use abs2 to give real number error for complex number variables
-        error += abs2.(func(jacked_means...) - jacked_eval_mean)
-    end
+    #error
+    error = sum(abs2.(je - jacked_eval_mean) for je in jacked_evals)
     error = sqrt.((sample_count - 1) .* error ./ sample_count)
 
-    return vec(collect(bias_corrected_mean)), vec(collect(error))
+    #covariance
+    covariance = if estimate_covariance && length(complete_eval)>1
+        obs_shape = size(jacked_eval_mean)
+        cov_tensor = zeros(eltype(jacked_eval_mean), obs_shape..., obs_shape...)
+        prefactor = (sample_count - 1) / sample_count
+        for idx1 in CartesianIndices(obs_shape)
+            for idx2 in CartesianIndices(obs_shape)
+                cov_sum = sum(
+                    (je[idx1] - jacked_eval_mean[idx1]) * conj(je[idx2] - jacked_eval_mean[idx2])
+                    for je in jacked_evals
+                )
+                cov_tensor[idx1, idx2] = prefactor * cov_sum
+            end
+        end
+        collect(cov_tensor)
+    else
+        nothing
+    end
+
+    return collect(bias_corrected_mean), collect(error), covariance
 end
 
 function evaluate(
     evaluation::Func,
     used_observables::NTuple{N,ResultObservable},
+    estimate_covariance::Bool
 )::Union{Evaluable,Nothing} where {Func,N}
     internal_bin_length = minimum(obs -> obs.internal_bin_length, used_observables)
     rebin_length = minimum(obs -> obs.rebin_length, used_observables)
@@ -66,7 +105,7 @@ function evaluate(
         internal_bin_length,
         rebin_length,
         bin_count,
-        jackknife(evaluation, map(obs -> obs.rebin_means, used_observables))...,
+        jackknife(evaluation, map(obs -> obs.rebin_means, used_observables),estimate_covariance)...,
     )
 end
 
@@ -76,6 +115,7 @@ function ResultObservable(eval::Evaluable)
         eval.rebin_length,
         eval.mean,
         eval.error,
+        eval.covariance,
         fill(NaN, size(eval.mean)...),
         eltype(eval.mean)[],
     )
@@ -86,10 +126,11 @@ abstract type AbstractEvaluator end
 struct Evaluator <: AbstractEvaluator
     observables::Dict{Symbol,ResultObservable}
     evaluables::Dict{Symbol,Evaluable}
+    estimate_covariance::Bool
 end
 
-Evaluator(observables::Dict{Symbol,ResultObservable}) =
-    Evaluator(observables, Dict{Symbol,Evaluable}())
+Evaluator(observables::Dict{Symbol,ResultObservable},estimate_covariance::Bool) =
+    Evaluator(observables, Dict{Symbol,Evaluable}(),estimate_covariance)
 
 """
     evaluate!(func::Function, eval::AbstractEvaluator, name::Symbol, (ingredients::Symbol...))
@@ -108,6 +149,6 @@ function evaluate!(
         return nothing
     end
     eval.evaluables[name] =
-        evaluate(evaluation, tuple((eval.observables[i] for i in ingredients)...))
+        evaluate(evaluation, tuple((eval.observables[i] for i in ingredients)...),eval.estimate_covariance)
     return nothing
 end

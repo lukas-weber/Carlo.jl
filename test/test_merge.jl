@@ -146,3 +146,139 @@ end
         end
     end
 end
+
+@testset "Covariance estimation" begin
+    runs = 2
+    internal_binsize = 1
+    samples_per_run = 10000
+    
+    @testset "2D vector observable - known covariance" begin
+        rng = Xoshiro(314)
+        true_cov = [2.0 0.5; 0.5 1.0] 
+        L = cholesky(true_cov).L
+        
+        filenames, _ = create_mock_data(;
+            runs = runs,
+            obsname = :corr_vec,
+            samples_per_run = samples_per_run,
+            internal_binsize = internal_binsize,
+        ) do idx
+            # this trick generates correlated samples
+            z = randn(rng, 2)
+            return L * z
+        end
+        
+        results_no_cov = Carlo.merge_results(filenames; rebin_length = 100)
+        @test isnothing(results_no_cov[:corr_vec].covariance)
+        
+        results_with_cov = Carlo.merge_results(
+            filenames; 
+            rebin_length = 100, 
+            estimate_covariance = true
+        )
+        cov_obs = results_with_cov[:corr_vec]
+        
+        @test !isnothing(cov_obs.covariance)
+        @test size(cov_obs.covariance) == (2, 2)
+        
+        @test cov_obs.covariance[1, 1] ≈ cov_obs.error[1]^2
+        @test cov_obs.covariance[2, 2] ≈ cov_obs.error[2]^2
+        @test cov_obs.covariance[1, 2] ≈ cov_obs.covariance[2, 1]
+        
+        # note that Carlo computes cov of mean not "true_cov"
+        N_samples = Carlo.rebin_count(cov_obs) * cov_obs.rebin_length
+        expected_cov_of_mean = true_cov / N_samples
+        for i in 1:2, j in 1:2
+            @test isapprox(
+                cov_obs.covariance[i, j], 
+                expected_cov_of_mean[i, j], 
+                rtol = 0.3
+            )
+        end
+    end
+    
+    @testset "Matrix observable covariance" begin
+        rng = Xoshiro(456)
+        
+        filenames, _ = create_mock_data(;
+            runs = runs,
+            obsname = :matrix_obs,
+            samples_per_run = samples_per_run,
+            internal_binsize = internal_binsize,
+        ) do idx
+            return randn(rng, 2, 2)
+        end
+        
+        results = Carlo.merge_results(
+            filenames; 
+            rebin_length = 50, 
+            estimate_covariance = true
+        )
+        mat_obs = results[:matrix_obs]
+        
+        @test !isnothing(mat_obs.covariance)
+        @test size(mat_obs.covariance) == (2, 2, 2, 2)
+
+        for i in 1:2, j in 1:2
+            @test mat_obs.covariance[i, j, i, j] ≈ mat_obs.error[i, j]^2
+        end
+
+        for i in 1:2, j in 1:2, k in 1:2, l in 1:2
+            @test mat_obs.covariance[i, j, k, l] ≈ mat_obs.covariance[k, l, i, j]
+        end
+    end
+
+    @testset "Scalar observable covariance" begin
+        filenames, _ = create_mock_data(;
+            runs = runs,
+            obsname = :scalar_obs,
+            samples_per_run = 5000,
+            internal_binsize = internal_binsize,
+        ) do idx
+            return idx / 100.0
+        end
+        
+        results = Carlo.merge_results(
+            filenames; 
+            rebin_length = 10, 
+            estimate_covariance = true
+        )
+        scalar_obs = results[:scalar_obs]
+        
+        @test isnothing(scalar_obs.covariance)
+    end
+
+    @testset "Uncorrelated components" begin
+        rng = Xoshiro(789)
+        
+        filenames, _ = create_mock_data(;
+            runs = runs,
+            obsname = :uncorr_vec,
+            samples_per_run = 50000,
+            internal_binsize = internal_binsize,
+        ) do idx
+            # 3D vector with independent components
+            return randn(rng, 3)
+        end
+        
+        results = Carlo.merge_results(
+            filenames; 
+            rebin_length = 500, 
+            estimate_covariance = true
+        )
+        uncorr_obs = results[:uncorr_vec]
+        
+        @test !isnothing(uncorr_obs.covariance)
+        @test size(uncorr_obs.covariance) == (3, 3)
+        
+        # correlation coefficient ρ_{ij} = cov(X,Y) / (σ_X * σ_Y)
+        # we test that this is small for the uncorrelated data
+        for i in 1:3, j in 1:3
+            if i != j
+                corr_coef = uncorr_obs.covariance[i, j] / 
+                           sqrt(uncorr_obs.covariance[i, i] * uncorr_obs.covariance[j, j])
+                @test abs(corr_coef) < 0.15 
+            end
+        end
+    end
+end

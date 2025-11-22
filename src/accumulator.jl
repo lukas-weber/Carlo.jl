@@ -29,6 +29,33 @@ std_of_mean(acc::Accumulator) = dropdims(
     std(bins(acc); dims = ndims(acc.bins)) / sqrt(num_bins(acc));
     dims = ndims(acc.bins),
 )
+
+function cov_of_mean(acc::Accumulator)
+    bins_data = bins(acc)
+    mean_val = mean(acc)
+
+    n = num_bins(acc)
+    obs_shape = shape(acc)
+
+    if prod(obs_shape) <= 1
+        return nothing
+    end
+
+    cov_tensor = zeros(eltype(mean_val),obs_shape...,obs_shape...)
+
+    for idx1 in CartesianIndices(obs_shape)
+        for idx2 in CartesianIndices(obs_shape)
+            # Compute covariance between components at idx1 and idx2
+            cov_sum = sum((bins_data[idx1, j] - mean_val[idx1]) * 
+                          conj(bins_data[idx2, j] - mean_val[idx2]) 
+                          for j in 1:n)
+            cov_tensor[idx1, idx2] = cov_sum / (n * (n - 1))
+        end
+    end
+
+    return cov_tensor
+end
+
 bins(acc::Accumulator) = Array(@view acc.bins[axes(acc.bins)[1:end-1]..., 1:end-1])
 shape(acc::Accumulator) = size(acc.bins)[1:end-1]
 num_bins(acc::Accumulator) = size(acc.bins)[end] - 1

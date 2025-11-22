@@ -57,14 +57,16 @@ function merge_results(
     parameters::Dict{Symbol,Any},
     rebin_length::Union{Integer,Nothing} = get(parameters, :rebin_length, nothing),
     sample_skip::Integer = get(parameters, :rebin_sample_skip, 0),
+    estimate_covariance::Bool = get(parameters, :estimate_covariance,false)
 ) where {MC<:AbstractMC}
     merged_results = merge_results(
         JobTools.list_run_files(taskdir, "meas\\.h5");
         rebin_length,
         sample_skip,
+        estimate_covariance
     )
 
-    evaluator = Evaluator(merged_results)
+    evaluator = Evaluator(merged_results,get(parameters,:estimate_covariance,false))
     register_evaluables(MC, evaluator, parameters)
 
     results = merge(
@@ -96,6 +98,7 @@ function merge_results(
     filenames::AbstractArray{<:AbstractString};
     rebin_length::Union{Integer,Nothing},
     sample_skip::Integer = 0,
+    estimate_covariance::Bool = false,
 )
     obs_types = iterate_measfile_observables(filenames) do obs_group, state
         internal_bin_length = read(obs_group, "bin_length")
@@ -152,6 +155,7 @@ function merge_results(
         obs_name => begin
             μ = mean(obs.acc)
             σ = std_of_mean(obs.acc)
+            Σ = estimate_covariance ? cov_of_mean(obs.acc) : nothing
 
             no_rebinning_σ =
                 sqrt.(
@@ -169,6 +173,7 @@ function merge_results(
                 obs.acc.bin_length,
                 μ,
                 σ,
+                Σ,
                 ensure_array(autocorrelation_time),
                 bins(obs.acc),
             )
