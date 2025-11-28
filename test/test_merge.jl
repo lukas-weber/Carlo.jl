@@ -134,8 +134,9 @@ end
 
             expected_mean = 0.0
             expected_std = ar1_sigma / sqrt(1 - ar1_alpha^2)
-            expected_autocorrtime = -1 / log(ar1_alpha)
-            expected_autocorrtime = 0.5 * (1 + 2 * ar1_alpha / (1 - ar1_alpha))
+            # note we changed the definition to 
+            # τ_int = ∑_d=1^∞ ρ(d) = ∑_d=1^∞ α^d = α/(1-α)
+            expected_autocorrtime = (ar1_alpha)/(1-ar1_alpha)
 
             @test abs(ar1_obs.mean[1] - expected_mean) < 4 * ar1_obs.error[1]
             @test isapprox(
@@ -144,6 +145,139 @@ end
                 rtol = 0.1,
             )
         end
+    end
+end
+@testset "Rotated AR(1)" begin
+    # Two independent AR(1) processes
+    α1 = 0.5
+    α2 = 0.9
+    σ1_stat = 1 / (1 - α1^2)
+    σ2_stat = 1 / (1 - α2^2)
+
+    # Rotate by 45 degrees
+    θ = π/4
+    R = [cos(θ) -sin(θ); sin(θ) cos(θ)]
+    
+    # After rotation: y = R*z
+    # y1 = (z1 + z2)/√2
+    # y2 = (-z1 + z2)/√2
+    # lag-d
+    # Cov(y1(t), y1(t+d)) = Cov((z1+z2)/√2, (z1+z2)/√2) at lag d
+    #                     = (1/2)[Cov(z1(t),z1(t+d)) + Cov(z2(t),z2(t+d))]
+    #                     = (1/2)[σ1²*α1^d + σ2²*α2^d]
+    # "naive" integrated autocorrelation time would use:
+    # τ_naive = Σ_d (Cov(d)/Cov(0)) 
+    #         = Σ_d [(σ1²*α1^d + σ2²*α2^d) / (σ1² + σ2²)]
+    #         = [σ1²*α1/(1-α1) + σ2²*α2/(1-α2)] / (σ1² + σ2²)
+    
+    tau1_original = α1 / (1 - α1)
+    tau2_original = α2 / (1 - α2)
+    
+    # naive autocorrelation time for y1 (as calculated above)
+    tau_y1_analytical = (σ1_stat * α1/(1-α1) + σ2_stat * α2/(1-α2)) / (σ1_stat + σ2_stat)
+    tau_y2_analytical = tau_y1_analytical  # By symmetry
+    
+    runs = 2
+    samples_per_run = 500000
+    
+    rng = Xoshiro(599)
+    z1 = randn(rng) * sqrt(σ1_stat)
+    z2 = randn(rng) * sqrt(σ2_stat)
+    
+    filenames, _ = create_mock_data(;
+        runs = runs,
+        obsname = :rotated_ar1_analytical,
+        samples_per_run = samples_per_run,
+        internal_binsize = 1,
+    ) do idx
+        z1 = α1 * z1 + randn(rng)
+        z2 = α2 * z2 + randn(rng)
+        z = [z1, z2]
+        y = R * z
+        return y
+    end
+    
+    results_naive = Carlo.merge_results(filenames; rebin_length = 100, sample_skip = 2000)
+    naive_obs = results_naive[:rotated_ar1_analytical]
+    
+    results_decorr = Carlo.merge_results(
+        filenames; 
+        rebin_length = 100,
+        sample_skip = 2000,
+        estimate_covariance = true
+    )
+    decorr_obs = results_decorr[:rotated_ar1_analytical]
+    decorr_sorted = sort(decorr_obs.autocorrelation_time[:])
+
+    # naive matches analytical prediction
+    @test isapprox(naive_obs.autocorrelation_time[1], tau_y1_analytical, rtol=0.1)
+    @test isapprox(naive_obs.autocorrelation_time[2], tau_y2_analytical, rtol=0.1)
+
+    # decorr recovers original values
+    @test isapprox(decorr_sorted[1], tau1_original, rtol=0.2)
+    @test isapprox(decorr_sorted[2], tau2_original, rtol=0.2)
+end
+
+@testset "Multidim AR(1) with one slow mode" begin
+    runs = 2
+    samples_per_run = 500000
+    n_fast = 5
+
+    α_slow = 0.95  # slow mode
+    α_fast = 0.3   # fast modes
+
+    τ_slow = α_slow / (1 - α_slow)
+    τ_fast = α_fast / (1 - α_fast)
+
+    rng = Xoshiro(678)
+
+    slow = 0.0
+    fast = zeros(n_fast)
+    mixing_matrix = nothing
+    filenames, _ = create_mock_data(;
+        runs = runs,
+        obsname = :high_dim,
+        samples_per_run = samples_per_run,
+        internal_binsize = 1,
+    ) do idx
+        if idx == 1
+            slow = randn(rng)
+            for i in 1:n_fast
+                fast[i] = randn(rng)
+            end
+            # create random (orthogonal) mixing matrix 
+            Q, _ = qr(randn(rng, n_fast + 1, n_fast + 1))
+            mixing_matrix = Matrix(Q)
+        else
+            # Update slow mode
+            slow = α_slow * slow + randn(rng)
+            # Update fast modes
+            for i in 1:n_fast
+                fast[i] = α_fast * fast[i] + randn(rng)
+            end
+        end
+        
+        # Mix them together
+        z = vcat(slow, fast)
+        return mixing_matrix * z
+    end
+    
+    results_decorr = Carlo.merge_results(
+        filenames; 
+        rebin_length = 500,
+        sample_skip = 2000,
+        estimate_covariance = true
+    )
+    decorr_obs = results_decorr[:high_dim]
+
+    τ_sorted = sort(decorr_obs.autocorrelation_time[:])
+
+    # test slow mode
+    @test isapprox(τ_sorted[end], τ_slow, rtol=0.2)
+
+    # test all fast modes
+    for i in 1:n_fast
+        @test isapprox(mean(τ_sorted[i]), τ_fast, rtol=0.2)
     end
 end
 

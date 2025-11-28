@@ -1,4 +1,5 @@
 using Logging
+using LinearAlgebra
 
 """Determine the number of bins in the rebin procedure. Rebinning will not be performed if the number of samples is smaller than `min_bin_count`."""
 function calc_rebin_count(sample_count::Integer, min_bin_count::Integer = 10)::Integer
@@ -86,12 +87,54 @@ end
 
 get_type(::ObservableType{T}) where {T} = T
 
-function add_samples!(acc, acc², samples, sample_skip)
+function add_samples!(acc, acc², samples, sample_skip; acc_cross=nothing)
     for value in Iterators.drop(eachslice(samples; dims = ndims(samples)), sample_skip)
         add_sample!(acc, value)
         add_sample!(abs2, acc², value)
+        if !isnothing(acc_cross)
+            obs_shape = shape(acc)
+            value_flat = vec(value)
+            cross_product = reshape(value_flat * conj(value_flat)', obs_shape..., obs_shape...)
+            add_sample!(acc_cross, cross_product)
+        end
     end
     return nothing
+end
+
+function compute_regular_autocorr_time(acc, acc², μ, σ)
+    M = acc.bin_length * num_bins(acc)
+    no_rebinning_σ = sqrt.(max.(0, mean(acc²) .- abs2.(μ)) ./ (M - 1))
+    return max.(0.0,0.5 .* ((σ ./ no_rebinning_σ) .^ 2 .- 1))
+end
+
+function compute_decorrelated_autocorr_time(acc, acc_cross, μ, binned_Σ;tolerance=1e-10)
+    obs_shape = shape(acc)
+    D = prod(obs_shape)
+    M = acc.bin_length * num_bins(acc)
+
+    # we flatten tensors and reshape them only back at the end
+    μ_flat = vec(μ)
+    mean_cross_flat = reshape(mean(acc_cross), D, D)
+    binned_Σ_flat = reshape(binned_Σ, D, D)
+
+    μ_outer_flat = μ_flat * conj(μ_flat)'
+    Σ_unbinned_flat = Hermitian(mean_cross_flat - μ_outer_flat) * M / (M-1)
+
+    eig = eigen(Σ_unbinned_flat)
+    Q = eig.vectors
+
+    # transform Y = Λ^(-1/2) Q^T X 
+    # Cov(Y) = Λ^(-1/2) Q^T Σ Q Λ^(-1/2) = I (unit variance)
+    Λ_inv_sqrt = Diagonal([ λ > tolerance ?  1/sqrt(λ) : zero(λ)  for λ in eig.values])
+    transform = Λ_inv_sqrt * Q'
+
+    # transform binned covariance
+    Σ_binned_decorr = transform * Hermitian(binned_Σ_flat) * transform'
+
+    binned_variances_decorr = real.(diag(Σ_binned_decorr))
+    correlation_times = max.(0.0, 0.5 .* (M .* binned_variances_decorr .- 1))
+
+    return reshape(correlation_times, obs_shape)
 end
 
 function merge_results(
@@ -137,6 +180,9 @@ function merge_results(
                 state = (;
                     acc = Accumulator{get_type(obs_type)}(binsize, obs_type.shape),
                     acc² = Accumulator{real(get_type(obs_type))}(binsize, obs_type.shape),
+                    acc_cross = estimate_covariance ? 
+                        Accumulator{get_type(obs_type)}(binsize, (obs_type.shape..., obs_type.shape...)) : 
+                        nothing,
                 )
             end
 
@@ -146,7 +192,7 @@ function merge_results(
                 samples = reshape(samples, Int.(obs_type.shape)..., :)
             end
 
-            add_samples!(state.acc, state.acc², samples, sample_skip)
+            add_samples!(state.acc, state.acc², samples, sample_skip,acc_cross=state.acc_cross)
 
             return state
         end
@@ -157,12 +203,11 @@ function merge_results(
             σ = std_of_mean(obs.acc)
             Σ = estimate_covariance ? cov_of_mean(obs.acc) : nothing
 
-            no_rebinning_σ =
-                sqrt.(
-                    max.(0, mean(obs.acc²) .- abs2.(μ)) ./
-                    (obs.acc.bin_length * num_bins(obs.acc) - 1)
-                )
-            autocorrelation_time = 0.5 .* (σ ./ no_rebinning_σ) .^ 2
+            autocorrelation_time = if estimate_covariance && prod(shape(obs.acc)) > 1
+                compute_decorrelated_autocorr_time(obs.acc, obs.acc_cross, μ, Σ)
+            else
+                compute_regular_autocorr_time(obs.acc, obs.acc², μ, σ)
+            end
 
             # broadcasting promotes 0-dim arrays to scalar, which we do not want
             ensure_array(x::Number) = fill(x)
