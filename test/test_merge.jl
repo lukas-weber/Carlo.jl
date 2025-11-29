@@ -233,33 +233,25 @@ end
 
     slow = 0.0
     fast = zeros(n_fast)
-    mixing_matrix = nothing
+    # create random (orthogonal) mixing matrix 
+    Q, _ = qr(randn(rng, n_fast + 1, n_fast + 1))
+    rotation_matrix = Matrix(Q)
     filenames, _ = create_mock_data(;
         runs = runs,
         obsname = :high_dim,
         samples_per_run = samples_per_run,
         internal_binsize = 1,
     ) do idx
-        if idx == 1
-            slow = randn(rng)
-            for i in 1:n_fast
-                fast[i] = randn(rng)
-            end
-            # create random (orthogonal) mixing matrix 
-            Q, _ = qr(randn(rng, n_fast + 1, n_fast + 1))
-            mixing_matrix = Matrix(Q)
-        else
-            # Update slow mode
-            slow = α_slow * slow + randn(rng)
-            # Update fast modes
-            for i in 1:n_fast
-                fast[i] = α_fast * fast[i] + randn(rng)
-            end
+        # Update slow mode
+        slow = α_slow * slow + randn(rng)
+        # Update fast modes
+        for i in 1:n_fast
+            fast[i] = α_fast * fast[i] + randn(rng)
         end
         
         # Mix them together
         z = vcat(slow, fast)
-        return mixing_matrix * z
+        return rotation_matrix * z
     end
     
     results_decorr = Carlo.merge_results(
@@ -277,7 +269,7 @@ end
 
     # test all fast modes
     for i in 1:n_fast
-        @test isapprox(mean(τ_sorted[i]), τ_fast, rtol=0.2)
+        @test isapprox(τ_sorted[i], τ_fast, rtol=0.2)
     end
 end
 

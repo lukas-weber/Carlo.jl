@@ -41,14 +41,15 @@ function cov_of_mean(acc::Accumulator)
         return nothing
     end
 
-    cov_tensor = zeros(eltype(mean_val),obs_shape...,obs_shape...)
+    cov_tensor = zeros(eltype(mean_val), obs_shape..., obs_shape...)
 
     for idx1 in CartesianIndices(obs_shape)
         for idx2 in CartesianIndices(obs_shape)
             # Compute covariance between components at idx1 and idx2
-            cov_sum = sum((bins_data[idx1, j] - mean_val[idx1]) * 
-                          conj(bins_data[idx2, j] - mean_val[idx2]) 
-                          for j in 1:n)
+            cov_sum = sum(
+                (bins_data[idx1, j] - mean_val[idx1]) *
+                conj(bins_data[idx2, j] - mean_val[idx2]) for j = 1:n
+            )
             cov_tensor[idx1, idx2] = cov_sum / (n * (n - 1))
         end
     end
