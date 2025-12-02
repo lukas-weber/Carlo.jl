@@ -91,7 +91,11 @@ function cli_status(job::JobInfo, ::AbstractDict)
             ),
         )
         header = ["task", "sweeps", "target", "runs", "thermalized"]
-        pretty_table(data; column_labels = header, table_format = TextTableFormat(; @text__no_vertical_lines))
+        pretty_table(
+            data;
+            column_labels = header,
+            table_format = TextTableFormat(; @text__no_vertical_lines),
+        )
         return all(map(x -> x.sweeps >= x.target_sweeps, tasks))
     catch err
         if isa(err, Base.IOError)

@@ -9,7 +9,11 @@ struct Evaluable{T<:Number,R<:Real,N,C<:Union{<:AbstractArray, Nothing}}
     covariance::C
 end
 
-function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}, estimate_covariance::Bool) where {N}
+function jackknife(
+    func::Function,
+    sample_set::Tuple{Vararg{AbstractArray,N}},
+    estimate_covariance::Bool,
+) where {N}
     sample_count = minimum(x -> last(size(x)), sample_set)
 
     # truncate sample counts to smallest
@@ -24,35 +28,30 @@ function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}, e
     # Compute and store all jacked evaluations
     jacked_evals = [
         let jacked_means = (
-                (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) 
-                for (sum, samples) in zip(sums, sample_set)
+                (sum .- view(samples, axes(samples)[1:end-1]..., k)) ./ (sample_count - 1) for (sum, samples) in zip(sums, sample_set)
             )
             func(jacked_means...)
-        end
-        for k in 1:sample_count
+        end for k = 1:sample_count
     ]
 
     jacked_eval_mean = sum(jacked_evals) / sample_count
     @assert size(complete_eval) == size(jacked_eval_mean)
 
-    #mean
     bias_corrected_mean =
         sample_count * complete_eval .- (sample_count - 1) * jacked_eval_mean
 
-    #error
     error = sum(abs2.(je - jacked_eval_mean) for je in jacked_evals)
     error = sqrt.((sample_count - 1) .* error ./ sample_count)
 
-    #covariance
-    covariance = if estimate_covariance && length(complete_eval)>1
+    covariance = if estimate_covariance && length(complete_eval) > 1
         obs_shape = size(jacked_eval_mean)
         cov_tensor = zeros(eltype(jacked_eval_mean), obs_shape..., obs_shape...)
         prefactor = (sample_count - 1) / sample_count
         for idx1 in CartesianIndices(obs_shape)
             for idx2 in CartesianIndices(obs_shape)
                 cov_sum = sum(
-                    (je[idx1] - jacked_eval_mean[idx1]) * conj(je[idx2] - jacked_eval_mean[idx2])
-                    for je in jacked_evals
+                    (je[idx1] - jacked_eval_mean[idx1]) *
+                    conj(je[idx2] - jacked_eval_mean[idx2]) for je in jacked_evals
                 )
                 cov_tensor[idx1, idx2] = prefactor * cov_sum
             end
@@ -68,7 +67,7 @@ end
 function evaluate(
     evaluation::Func,
     used_observables::NTuple{N,ResultObservable},
-    estimate_covariance::Bool
+    estimate_covariance::Bool,
 )::Union{Evaluable,Nothing} where {Func,N}
     internal_bin_length = minimum(obs -> obs.internal_bin_length, used_observables)
     rebin_length = minimum(obs -> obs.rebin_length, used_observables)
@@ -81,7 +80,11 @@ function evaluate(
         internal_bin_length,
         rebin_length,
         bin_count,
-        jackknife(evaluation, map(obs -> obs.rebin_means, used_observables),estimate_covariance)...,
+        jackknife(
+            evaluation,
+            map(obs -> obs.rebin_means, used_observables),
+            estimate_covariance,
+        )...,
     )
 end
 
@@ -105,8 +108,8 @@ struct Evaluator <: AbstractEvaluator
     estimate_covariance::Bool
 end
 
-Evaluator(observables::Dict{Symbol,ResultObservable},estimate_covariance::Bool) =
-    Evaluator(observables, Dict{Symbol,Evaluable}(),estimate_covariance)
+Evaluator(observables::Dict{Symbol,ResultObservable}, estimate_covariance::Bool) =
+    Evaluator(observables, Dict{Symbol,Evaluable}(), estimate_covariance)
 
 """
     evaluate!(func::Function, eval::AbstractEvaluator, name::Symbol, (ingredients::Symbol...))
@@ -124,7 +127,10 @@ function evaluate!(
         @warn "Evaluable '$name': ingredients $notfound not found. Skipping..."
         return nothing
     end
-    eval.evaluables[name] =
-        evaluate(evaluation, tuple((eval.observables[i] for i in ingredients)...),eval.estimate_covariance)
+    eval.evaluables[name] = evaluate(
+        evaluation,
+        tuple((eval.observables[i] for i in ingredients)...),
+        eval.estimate_covariance,
+    )
     return nothing
 end

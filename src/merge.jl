@@ -94,9 +94,9 @@ function add_samples!(acc, acc², samples, sample_skip; acc_outer = nothing)
         if !isnothing(acc_outer)
             obs_shape = shape(acc)
             value_flat = vec(value)
-            cross_product =
+            outer_product =
                 reshape(value_flat * conj(value_flat)', obs_shape..., obs_shape...)
-            add_sample!(acc_outer, cross_product)
+            add_sample!(acc_outer, outer_product)
         end
     end
     return nothing
@@ -105,7 +105,11 @@ end
 function compute_regular_autocorr_time(acc, acc², μ, σ)
     M = acc.bin_length * num_bins(acc)
     no_rebinning_σ = sqrt.(max.(0, mean(acc²) .- abs2.(μ)) ./ (M - 1))
-    return max.(0.0, 0.5 .* ((σ ./ no_rebinning_σ) .^ 2 .- 1))
+    autocorrelation_time = max.(0.0, 0.5 .* ((σ ./ no_rebinning_σ) .^ 2 .- 1))
+    # broadcasting promotes 0-dim arrays to scalar, which we do not want
+    ensure_array(x::Number) = fill(x)
+    ensure_array(x::AbstractArray) = x
+    return ensure_array(autocorrelation_time)
 end
 
 function compute_decorrelated_autocorr_time(acc, acc_outer, μ, binned_Σ; tolerance = 1e-10)
@@ -210,17 +214,16 @@ function merge_results(
         obs_name => begin
             μ = mean(obs.acc)
             σ = std_of_mean(obs.acc)
-            Σ = estimate_covariance ? cov_of_mean(obs.acc) : nothing
 
-            autocorrelation_time = if estimate_covariance && prod(shape(obs.acc)) > 1
-                compute_decorrelated_autocorr_time(obs.acc, obs.acc_outer, μ, Σ)
+            if estimate_covariance && length(shape(obs.acc)) > 0
+                Σ = cov_of_mean(obs.acc)
+                autocorrelation_time =
+                    compute_decorrelated_autocorr_time(obs.acc, obs.acc_outer, μ, Σ)
             else
-                compute_regular_autocorr_time(obs.acc, obs.acc², μ, σ)
+                Σ = nothing
+                autocorrelation_time =
+                    compute_regular_autocorr_time(obs.acc, obs.acc², μ, σ)
             end
-
-            # broadcasting promotes 0-dim arrays to scalar, which we do not want
-            ensure_array(x::Number) = fill(x)
-            ensure_array(x::AbstractArray) = x
 
             ResultObservable(
                 obs_types[obs_name].internal_bin_length,
@@ -228,7 +231,7 @@ function merge_results(
                 μ,
                 σ,
                 Σ,
-                ensure_array(autocorrelation_time),
+                autocorrelation_time,
                 bins(obs.acc),
             )
         end for (obs_name, obs) in binned_obs if num_bins(obs.acc) > 0

@@ -41,7 +41,9 @@ function write_results(
                 "parameters" => parameters,
                 "results" => observables,
                 "version" => to_dict(version),
-            ); pretty = 1, allownan = true
+            );
+            pretty = 1,
+            allownan = true,
         )
     end
     return nothing

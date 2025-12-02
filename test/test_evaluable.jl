@@ -71,12 +71,12 @@
         @test size(error) == (2, 2)
         @test size(cov) == (2, 2, 2, 2)
 
-        for i in 1:2, j in 1:2
+        for i = 1:2, j = 1:2
             @test cov[i, j, i, j] ≈ error[i, j]^2
         end
 
         # symmetry: Cov(X_ij, X_kl) == Cov(X_kl, X_ij)
-        for i in 1:2, j in 1:2, k in 1:2, l in 1:2
+        for i = 1:2, j = 1:2, k = 1:2, l = 1:2
             @test cov[i, j, k, l] ≈ cov[k, l, i, j]
         end
     end
@@ -84,14 +84,15 @@
     @testset "covariance complex vector" begin
         # Complex vector output
         func = (x, y) -> [x / y, x * y]
-        means = ([1.0+1im, 2.0+0.5im, 1.5+1.5im], [2.0-0.5im, 1.5-1im, 2.5-0.5im])
+        means =
+            ([1.0 + 1im, 2.0 + 0.5im, 1.5 + 1.5im], [2.0 - 0.5im, 1.5 - 1im, 2.5 - 0.5im])
 
         mean, error, cov = Carlo.jackknife(func, means, true)
 
         @test size(cov) == (2, 2)
         # diagonal (variances) should be real
-        @test imag(cov[1, 1]) ≈ 0 atol=1e-14
-        @test imag(cov[2, 2]) ≈ 0 atol=1e-14
+        @test imag(cov[1, 1]) ≈ 0 atol = 1e-14
+        @test imag(cov[2, 2]) ≈ 0 atol = 1e-14
         # symmetry: Cov[i,j] == conj(Cov[j,i])
         @test cov[1, 2] ≈ conj(cov[2, 1])
     end
