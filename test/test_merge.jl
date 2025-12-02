@@ -275,9 +275,9 @@ end
 end
 
 @testset "Covariance estimation" begin
-    runs = 2
+    runs = 4
     internal_binsize = 1
-    samples_per_run = 10000
+    samples_per_run = 40000
 
     @testset "2D vector observable - known covariance" begin
         rng = Xoshiro(314)
@@ -312,7 +312,7 @@ end
         N_samples = Carlo.rebin_count(cov_obs) * cov_obs.rebin_length
         expected_cov_of_mean = true_cov / N_samples
         for i = 1:2, j = 1:2
-            @test isapprox(cov_obs.covariance[i, j], expected_cov_of_mean[i, j], rtol = 0.3)
+            @test isapprox(cov_obs.covariance[i, j], expected_cov_of_mean[i, j], rtol = 0.1)
         end
     end
 
