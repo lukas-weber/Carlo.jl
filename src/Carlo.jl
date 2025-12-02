@@ -1,6 +1,12 @@
 module Carlo
 export AbstractMC,
-    MCContext, measure!, is_thermalized, write_checkpoint, read_checkpoint!, read_checkpoint
+    MCContext,
+    measure!,
+    is_thermalized,
+    write_checkpoint,
+    read_checkpoint!,
+    read_checkpoint,
+    register_observable!
 export AbstractEvaluator, Evaluator, evaluate!, start
 export ParallelTemperingMC
 

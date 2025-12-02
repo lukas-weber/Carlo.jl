@@ -25,4 +25,5 @@ The `MCContext` type, passed to your code by some of the functions above enables
 MCContext
 is_thermalized
 measure!(::MCContext, ::Symbol, ::Any)
+register_observable!
 ```

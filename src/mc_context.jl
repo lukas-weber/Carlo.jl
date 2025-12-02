@@ -24,7 +24,7 @@ Measure a sample for the observable named `name`. The sample `value` may be eith
 measure!(ctx::MCContext, name::Symbol, value) = add_sample!(ctx.measure, name, value)
 
 """
-    is_thermalized(ctx::MCContext)::Bool
+    is_thermalized(ctx::MCContext) -> Bool
 
 Returns true if the simulation is thermalized.
 """
@@ -44,6 +44,26 @@ function MCContext{RNG}(parameters::AbstractDict; seed_variation::Integer = 0) w
     return MCContext(Int64(0), Int64(parameters[:thermalization]), rng, measure)
 end
 
+"""
+    register_observable!(
+        ctx::MCContext,
+        obsname::Symbol;
+        binsize::Integer,
+        shape::Tuple{Vararg{Integer}} = (),
+        T = Float64
+    )
+
+Allows pre-registering an observable named `obsname` with custom `binsize`, fixed dimensions `shape` and type `T`. Usually this is unnecessary: Carlo will simply do it for you when you [`measure!`](@ref) the first sample.
+
+Manual registration allows you, however, to override the internal `binsize` of the observable, which would otherwise be set by the `tm.binsize` task parameter. This is useful, for example, when you want to form the histogram of a specific observable, or when you measure a specific observable less frequently than others.
+"""
+register_observable!(
+    ctx::MCContext,
+    obsname::Symbol;
+    binsize::Integer,
+    shape::Tuple{Vararg{Integer}} = (),
+    T::Type{<:Number} = Float64,
+) = register_observable!(ctx.measure, obsname, binsize, shape, T)
 
 function write_measurements!(ctx::MCContext, meas_file::HDF5.Group)
     write_measurements!(ctx.measure, create_absent_group(meas_file, "observables"))

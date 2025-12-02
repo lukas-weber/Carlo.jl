@@ -6,6 +6,7 @@
 
 - Added estimators for the covariance matrix. (#28) Thanks, @nils-caci!
 - Added support for array-valued evaluables. (#28) Thanks, @nils-caci!
+- Exported `register_observable!` which allows manually preregistering observables to set per-observable internal binsize
 
 ### Changed
 
