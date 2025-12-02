@@ -37,10 +37,6 @@ function cov_of_mean(acc::Accumulator)
     n = num_bins(acc)
     obs_shape = shape(acc)
 
-    if prod(obs_shape) <= 1
-        return nothing
-    end
-
     cov_tensor = zeros(eltype(mean_val), obs_shape..., obs_shape...)
 
     for idx1 in CartesianIndices(obs_shape)
