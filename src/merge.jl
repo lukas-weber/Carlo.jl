@@ -106,10 +106,8 @@ function compute_regular_autocorr_time(acc, acc², μ, σ)
     M = acc.bin_length * num_bins(acc)
     no_rebinning_σ = sqrt.(max.(0, mean(acc²) .- abs2.(μ)) ./ (M - 1))
     autocorrelation_time = max.(0.0, 0.5 .* ((σ ./ no_rebinning_σ) .^ 2 .- 1))
-    # broadcasting promotes 0-dim arrays to scalar, which we do not want
-    ensure_array(x::Number) = fill(x)
-    ensure_array(x::AbstractArray) = x
-    return ensure_array(autocorrelation_time)
+    # broadcasting promotes 0-dim arrays to scalar, collect turns it back into 0-dim array
+    return collect(autocorrelation_time)
 end
 
 function compute_decorrelated_autocorr_time(acc, acc_outer, μ, binned_Σ; tolerance = 1e-10)
