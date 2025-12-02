@@ -56,9 +56,7 @@ function dataframe(result_json::AbstractString)
 
     obsnames = unique(Iterators.flatten(keys(t["results"]) for t in json))
     flattened_json = map(json) do t
-        task = Dict{String,Any}(
-            "task" => basename(t["task"]),
-        )
+        task = Dict{String,Any}("task" => basename(t["task"]))
         for (name, param) in t["parameters"]
             task[name] = param
         end
@@ -72,7 +70,7 @@ function dataframe(result_json::AbstractString)
 
                 covariance = get(results[obsname], "covariance", nothing)
                 if !isnothing(covariance)
-                    task[obsname * "_cov"] = recursive_stack(covariance)
+                    task[obsname*"_cov"] = recursive_stack(covariance)
                 end
             end
         end

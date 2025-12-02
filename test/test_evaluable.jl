@@ -89,6 +89,7 @@
 
         mean, error, cov = Carlo.jackknife(func, means, true)
 
+        @test diag(cov) ≈ error .^ 2
         @test size(cov) == (2, 2)
         # diagonal (variances) should be real
         @test imag(cov[1, 1]) ≈ 0 atol = 1e-14

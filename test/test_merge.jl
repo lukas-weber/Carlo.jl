@@ -305,8 +305,7 @@ end
         @test !isnothing(cov_obs.covariance)
         @test size(cov_obs.covariance) == (2, 2)
 
-        @test cov_obs.covariance[1, 1] ≈ cov_obs.error[1]^2
-        @test cov_obs.covariance[2, 2] ≈ cov_obs.error[2]^2
+        @test diag(cov_obs.covariance) ≈ cov_obs.error .^ 2
         @test cov_obs.covariance[1, 2] ≈ cov_obs.covariance[2, 1]
 
         # note that Carlo computes cov of mean not "true_cov"

@@ -1,5 +1,5 @@
 
-struct Evaluable{T<:Number,R<:Real,N,C<:Union{<:AbstractArray, Nothing}}
+struct Evaluable{T<:Number,R<:Real,N,C<:Union{<:AbstractArray,Nothing}}
     internal_bin_length::Int64
     rebin_length::Int64
     rebin_count::Int64
