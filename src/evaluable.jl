@@ -43,7 +43,7 @@ function jackknife(
     error = sum(abs2.(je - jacked_eval_mean) for je in jacked_evals)
     error = sqrt.((sample_count - 1) .* error ./ sample_count)
 
-    covariance = if estimate_covariance && length(complete_eval) > 1
+    if estimate_covariance && ndims(complete_eval) >= 1
         obs_shape = size(jacked_eval_mean)
         cov_tensor = zeros(eltype(jacked_eval_mean), obs_shape..., obs_shape...)
         prefactor = (sample_count - 1) / sample_count
@@ -56,9 +56,9 @@ function jackknife(
                 cov_tensor[idx1, idx2] = prefactor * cov_sum
             end
         end
-        collect(cov_tensor)
+        covariance = cov_tensor
     else
-        nothing
+        covariance = nothing
     end
 
     return collect(bias_corrected_mean), collect(error), covariance
