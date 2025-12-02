@@ -1,36 +1,12 @@
 
-struct Evaluable{T<:Number,R<:Real,N,M}
+struct Evaluable{T<:Number,R<:Real,N,C<:Union{<:AbstractArray, Nothing}}
     internal_bin_length::Int64
     rebin_length::Int64
     rebin_count::Int64
 
     mean::Array{T,N}
     error::Array{R,N}
-    covariance::Union{Array{T,M},Nothing}
-
-    function Evaluable(
-        internal_bin_length::Int64,
-        rebin_length::Int64,
-        rebin_count::Int64,
-
-        mean::Array{T,N},
-        error::Array{R,N},
-        covariance::Array{T,M},
-    ) where {T<: Number, R<:Real, N,M}
-        new{T,R,N,M}(internal_bin_length,rebin_length,rebin_count,mean,error,covariance)
-    end
-
-    function Evaluable(
-        internal_bin_length::Int64,
-        rebin_length::Int64,
-        rebin_count::Int64,
-
-        mean::Array{T,N},
-        error::Array{R,N},
-        covariance::Nothing,
-    ) where {T<: Number, R<:Real, N}
-        new{T,R,N,0}(internal_bin_length,rebin_length,rebin_count,mean,error,nothing)
-    end
+    covariance::C
 end
 
 function jackknife(func::Function, sample_set::Tuple{Vararg{AbstractArray,N}}, estimate_covariance::Bool) where {N}
