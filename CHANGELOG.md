@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3 - [Unreleased]
+
+### Added
+
+- Added estimators for the covariance matrix. (#28) Thanks, @nils-caci!
+- Added support for array-valued evaluables. (#28) Thanks, @nils-caci!
+
+### Changed
+
+- The definition of the autocorrelation time has been shifted by -0.5 to make it vanish in the case of uncorrelated data.
+
 ## 0.2.6 - 2025-10-16
 
 ### Fixed

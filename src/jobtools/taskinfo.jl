@@ -19,6 +19,7 @@ While `params` can hold any kind of parameter, some are special and used to conf
 - `seed`: *optional*. Optionally run calculations with a fixed seed. Useful for debugging.
 - `rebin_length`: *optional*. Override the automatic rebinning length chosen by Carlo (⚠ do not set without knowing what you are doing).
 - `rebin_sample_skip`: *optional*. Skip the first ``N`` internal bins of each run when performing the rebinning analysis. Useful if `thermalization` was not set high enough at the start of the simulation.
+- `estimate_covariance`: *optional*. Estimate the covariance matrix of all array-valued observables and evaluables.
 
 - `max_runs_per_task`: *optional*. If set, puts a limit on the maximum number of runs that will be scheduled for this task.
 

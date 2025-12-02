@@ -12,6 +12,7 @@ using Random
 using Serialization
 using Statistics
 using StructEquality
+using LinearAlgebra
 using Test
 
 include("test_utils.jl")
