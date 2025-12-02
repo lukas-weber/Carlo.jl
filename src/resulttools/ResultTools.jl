@@ -55,17 +55,29 @@ function dataframe(result_json::AbstractString)
     json = JSON.parsefile(result_json; allownan = true)
 
     obsnames = unique(Iterators.flatten(keys(t["results"]) for t in json))
-    flattened_json = Dict{String,Any}[
-        Dict(
+    flattened_json = map(json) do t
+        task = Dict{String,Any}(
             "task" => basename(t["task"]),
-            t["parameters"]...,
-            Dict(
-                obsname =>
-                    measurement_from_obs(obsname, get(t["results"], obsname, missing))
-                for obsname in obsnames
-            )...,
-        ) for t in json
-    ]
+        )
+        for (name, param) in t["parameters"]
+            task[name] = param
+        end
+        results = t["results"]
+
+        for obsname in obsnames
+            if !haskey(results, obsname)
+                task[obsname] = missing
+            else
+                task[obsname] = measurement_from_obs(obsname, results[obsname])
+
+                covariance = get(results[obsname], "covariance", nothing)
+                if !isnothing(covariance)
+                    task[obsname * "_cov"] = recursive_stack(covariance)
+                end
+            end
+        end
+        return task
+    end
 
     return flattened_json
 end
