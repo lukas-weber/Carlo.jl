@@ -20,7 +20,3 @@ function compat_job(versions; dir)
         run_time = "00:10",
     )
 end
-
-function gen_compat_data()
-    start(Carlo.SingleScheduler, compat_job([(VERSION, pkgversion(Carlo))]))
-end

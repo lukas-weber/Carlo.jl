@@ -1,12 +1,15 @@
 include("compat_job.jl")
 
 @testset "Checkpoint compatibility" begin
-
     mktempdir() do tmpdir
         cp("dump_compat.data", tmpdir * "/dump_compat.data")
-        cp("dump_compat.results.json", tmpdir * "/dump_compat.results.json")
 
-        job = compat_job([(v"1.10.2", v"0.1.5")]; dir = tmpdir)
+        versions = map(filter(!endswith("json"), readdir("dump_compat.data"))) do task
+            m = match(r"julia(?<juliaver>[\d\.]+)-(?<carlover>[\d\.]+$)", task)
+            return VersionNumber.((m["juliaver"], m["carlover"]))
+        end
+
+        job = compat_job(versions; dir = tmpdir)
         progress = JobTools.read_progress(job)
 
         obs_names = Set([
@@ -31,7 +34,7 @@ include("compat_job.jl")
                     task.params,
                     MPI.COMM_WORLD,
                 )
-                for i = 1:10
+                for i = 1:100
                     Carlo.step!(run, MPI.COMM_WORLD)
                 end
                 Carlo.write_measurements(
@@ -45,7 +48,7 @@ include("compat_job.jl")
                 )
 
                 @test run.context.sweeps - run.context.thermalization_sweeps ==
-                      progress[i].sweeps + 10
+                      progress[i].sweeps + 100
 
 
                 Carlo.merge_results(
@@ -57,6 +60,22 @@ include("compat_job.jl")
         end
         JobTools.concatenate_results(job)
         df = ResultTools.dataframe("$tmpdir/dump_compat.results.json")
-        @test issubset(obs_names, Symbol.(keys(only(df))))
+
+        dfs = reduce(
+            vcat,
+            [
+                ResultTools.dataframe(
+                    "dump_compat.data/julia$juliaver-$carlover.results.json",
+                ) for (juliaver, carlover) in versions
+            ],
+        )
+
+        for (tasknew, taskold) in zip(df, dfs)
+            for obs_name in string.(obs_names)
+                @test tasknew[obs_name] ≈ taskold[obs_name]
+            end
+        end
+
+
     end
 end
