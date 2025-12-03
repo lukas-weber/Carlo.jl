@@ -62,7 +62,7 @@ add_sample!(acc::Accumulator, value) = add_sample!(identity, acc, value)
 function add_sample!(func::Func, acc::Accumulator, value) where {Func}
     if size(value) != shape(acc)
         error(
-            "size of added value ($(length(value))) does not size of accumulator ($(shape(acc)))",
+            "size of added value ($(length(value))) does not match size of accumulator ($(shape(acc)))",
         )
     end
 
