@@ -11,6 +11,8 @@
 ### Changed
 
 - The definition of the autocorrelation time has been shifted by -0.5 to make it vanish in the case of uncorrelated data.
+- Dropped compatibility with dump.h5 and meas.h5 files from Carlo <= v0.1.5. If you are a very early adopter and have such a file,
+  you can convert to the new format manually by removing the singleton second dimension of each scalar observable `samples` dataset in the file.
 
 ## 0.2.6 - 2025-10-16
 
