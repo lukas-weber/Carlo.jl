@@ -1,7 +1,6 @@
 name = "Carlo"
 uuid = "780c37f4-4e5a-43de-9e79-65c261e525a4"
-version = "0.2.6"
-authors = ["Lukas Weber"]
+version = "0.3.0"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
