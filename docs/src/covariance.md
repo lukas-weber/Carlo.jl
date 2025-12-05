@@ -64,3 +64,15 @@ Another application of the covariance matrix is the [control variates](https://e
 ## Alternative approaches
 
 Alternatively to measuring the covariance matrix, users may also choose to perform their own [bootstrapping](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)) on the raw measurement data in the `.meas.h5` files.
+
+## Autocorrelation time
+
+When observables are strongly correlated, hidden autocorrelations can appear that are scrambled between different components. The resulting autocorrelation time may be underestimated by the standard estimator based on the rebinned error. When covariance estimation is enabled, Carlo will automatically use the covariance matrix to improve the estimate of the autocorrelation time by rotating to its eigenbasis:
+
+```math
+τ = \frac{1}{2} \max_i \left[Λ^{-\frac{1}{2}} U^\dagger Σ_{\overline{X}} U Λ^{-\frac{1}{2}} - 1\right]_{ii}
+```
+
+where ``Σ_{\overline{X}}`` is the covariance matrix of the mean of observable ``X`` (obtained from rebinning) and ``Σ_X = U Λ U^\dagger`` is the eigendecomposition of the covariance matrix of ``X`` without rebinning.
+
+Just like without covariance estimation, this autocorrelation time is in units of the internal binsize. Furthermore, this estimator may still be inaccurate in cases where ``Σ_{\overline{X}}`` and ``Σ_{X}`` have very different eigenbases.
