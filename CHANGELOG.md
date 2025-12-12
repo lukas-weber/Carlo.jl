@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 - [Unreleased]
+
+### Changed
+- Remove PrettyTables dependency
+
 ## 0.3 - 2025-12-04
 
 ### Added

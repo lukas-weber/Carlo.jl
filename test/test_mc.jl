@@ -1,8 +1,8 @@
-import Carlo
+using Carlo
 using HDF5
 using MPI
 
-struct TestMC <: AbstractMC end
+struct TestMC <: Carlo.AbstractMC end
 
 TestMC(params::AbstractDict) = TestMC()
 

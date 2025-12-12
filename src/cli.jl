@@ -1,6 +1,5 @@
 using ArgParse
 using PrecompileTools
-using PrettyTables
 
 """
     start(job::JobInfo, ARGS)
@@ -77,25 +76,24 @@ function cli_status(job::JobInfo, ::AbstractDict)
     try
         tasks = JobTools.read_progress(job)
 
+        if isempty(tasks)
+            return true
+        end
+
         data = permutedims(
-            hcat(
-                (
-                    [
-                        basename(x.dir),
-                        x.sweeps,
-                        x.target_sweeps,
-                        x.num_runs,
-                        "$(round(Int,100*x.thermalization_fraction))%",
-                    ] for x in tasks
-                )...,
+            reduce(
+                hcat,
+                [
+                    basename(x.dir),
+                    x.sweeps,
+                    x.target_sweeps,
+                    x.num_runs,
+                    "$(round(Int,100*x.thermalization_fraction))%",
+                ] for x in tasks
             ),
         )
-        header = ["task", "sweeps", "target", "runs", "thermalized"]
-        pretty_table(
-            data;
-            column_labels = header,
-            table_format = TextTableFormat(; @text__no_vertical_lines),
-        )
+        column_labels = ["task", "sweeps", "target", "runs", "thermalized"]
+        print_table(string.(data); column_labels)
         return all(map(x -> x.sweeps >= x.target_sweeps, tasks))
     catch err
         if isa(err, Base.IOError)
@@ -120,4 +118,29 @@ function cli_merge(job::JobInfo, ::AbstractDict)
     end
     JobTools.concatenate_results(job)
     return nothing
+end
+
+function print_table(data::AbstractMatrix{<:AbstractString}; column_labels)
+    column_widths = map(column_labels, eachcol(data)) do label, col
+        return max(length(label), maximum(length, col))
+    end
+
+    divider = repeat("─", sum(column_widths) + 2 * length(column_widths))
+
+    println(divider)
+    println(
+        " " * join(
+            (lpad(label, width) for (label, width) in zip(column_labels, column_widths)),
+            "  ",
+        ),
+    )
+    println(divider)
+
+    for row in eachrow(data)
+        println(
+            " " *
+            join((lpad(label, width) for (label, width) in zip(row, column_widths)), "  "),
+        )
+    end
+    println(divider)
 end
