@@ -3,7 +3,6 @@ uuid = "780c37f4-4e5a-43de-9e79-65c261e525a4"
 version = "0.3.0"
 
 [deps]
-ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 ElasticArrays = "fdbdab4c-e67f-52f5-8c3f-e7b388dad3d4"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
@@ -19,7 +18,6 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-ArgParse = "1.1.4"
 Dates = "1.7"
 ElasticArrays = "1.2.11"
 HDF5 = "0.17.1"

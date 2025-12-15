@@ -4,8 +4,9 @@
 
 ### Changed
 - Remove PrettyTables dependency
+- Remove ArgParse dependency
 
-## 0.3 - 2025-12-04
+## 0.3.0 - 2025-12-04
 
 ### Added
 

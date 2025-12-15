@@ -1,5 +1,6 @@
-using ArgParse
 using PrecompileTools
+
+include("tinyargparse.jl")
 
 """
     start(job::JobInfo, ARGS)
@@ -11,36 +12,45 @@ If for any reason you do not want to use job scripts, you can directly schedule 
     start(Carlo.MPIScheduler, job)
 """
 function start(job::JobInfo, args::AbstractVector{<:AbstractString})
-    s = ArgParseSettings()
-    @add_arg_table! s begin
-        "run", "r"
-        help = "Starts a simulation"
-        action = :command
-        "status", "s"
-        help = "Check the progress of a simulation"
-        action = :command
-        "merge", "m"
-        help = "Merge results of an incomplete simulation"
-        action = :command
-        "delete", "d"
-        help = "Clean up a simulation directory"
-        action = :command
+    AP = TinyArgParse
+    commands = [
+        AP.Command(
+            "run",
+            "r",
+            "Starts a simulation",
+            [
+                AP.Option("single", "s", "Run in single core mode"),
+                AP.Option("restart", "r", "Delete existing files and start from scratch"),
+                AP.help(),
+            ],
+        ),
+        AP.Command("status", "s", "Check the progress of a simulation", [AP.help()]),
+        AP.Command("merge", "m", "Merge results of an incomplete simulation", [AP.help()]),
+        AP.Command("delete", "d", "Clean up a simulation directory", [AP.help()]),
+    ]
+    general_args = [AP.help()]
+
+    cmd, general, specific = nothing, nothing, nothing
+    try
+        cmd, general, specific = AP.parse(commands, general_args, args)
+    catch e
+        if e isa AP.Error
+            showerror(stderr, e)
+            return nothing
+        else
+            rethrow(e)
+        end
     end
 
-    @add_arg_table! s["run"] begin
-        "--single", "-s"
-        help = "run in single core mode"
-        action = :store_true
-        "--restart", "-r"
-        help = "delete existing files and start from scratch"
-        action = :store_true
-    end
-
-    parsed_args = parse_args(args, s)
-    if isnothing(parsed_args)
+    if AP.handle_help(cmd, general, specific)
         return nothing
     end
-    cmd = parsed_args["%COMMAND%"]
+    if isnothing(cmd)
+        println(stderr, "No command given")
+        AP.print_help(stdout, commands, general_args)
+        return nothing
+    end
+
 
     cmd_funcs = Dict(
         "run" => cli_run,
@@ -49,19 +59,19 @@ function start(job::JobInfo, args::AbstractVector{<:AbstractString})
         "delete" => cli_delete,
     )
 
-    return cmd_funcs[cmd](job, parsed_args[cmd])
+    return cmd_funcs[cmd](job, specific)
 end
 
 function cli_run(job::JobInfo, args::AbstractDict)
-    if args["restart"]
-        if args["single"] || (MPI.Init(); MPI.Comm_rank(MPI.COMM_WORLD)) == 0
+    if haskey(args, "restart")
+        if haskey(args, "single") || (MPI.Init(); MPI.Comm_rank(MPI.COMM_WORLD)) == 0
             cli_delete(job, Dict())
         end
     end
     MPI.Init()
     MPI.Barrier(MPI.COMM_WORLD)
 
-    scheduler = args["single"] ? SingleScheduler : MPIScheduler
+    scheduler = haskey(args, "single") ? SingleScheduler : MPIScheduler
     if scheduler == MPIScheduler && MPI.Comm_size(MPI.COMM_WORLD) == 1
         @info "running with a single process: defaulting to --single scheduler"
         scheduler = SingleScheduler

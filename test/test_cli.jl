@@ -20,6 +20,54 @@ function test_binning_properties(result_file)
     end
 end
 
+@testset "TinyArgParse" begin
+    AP = Carlo.TinyArgParse
+    commands = [
+        AP.Command(
+            "run",
+            "r",
+            "Run fast",
+            [
+                AP.Option("single", "s", "Run in single core mode"),
+                AP.Option("restart", "r", "Delete existing files and start from scratch"),
+                AP.help(),
+            ],
+        ),
+        AP.Command("walk", "w", "Walk around", [AP.help()]),
+    ]
+
+    general_args = [AP.Option("test", "t", "Test"), AP.help()]
+
+    @test_throws AP.Error AP.parse(commands, general_args, ["-a"])
+    @test_throws AP.Error AP.parse(commands, general_args, ["run", "-a"])
+    @test_throws AP.Error AP.parse(commands, general_args, ["r", "-a"])
+    @test_throws AP.Error AP.parse(commands, general_args, ["r", "--all"])
+    @test_throws AP.Error AP.parse(commands, general_args, ["r", "-h", "r"])
+    @test_throws AP.Error AP.parse(commands, general_args, ["runa"])
+
+    cmd, general, specific = AP.parse(commands, general_args, ["r", "-r", "-s"])
+    @test cmd == "run"
+    @test specific["single"]
+    @test specific["restart"]
+    @test length(keys(specific)) == 2
+    cmd, general, specific = AP.parse(commands, general_args, ["r", "--help", "-r", "-s"])
+    @test cmd == "run"
+    @test specific["single"]
+    @test specific["restart"]
+    @test specific["help"]
+    @test length(keys(specific)) == 3
+    cmd, general, specific = AP.parse(commands, general_args, ["run", "-rs"])
+    @test cmd == "run"
+    @test specific["single"]
+    @test specific["restart"]
+    @test length(keys(specific)) == 2
+    cmd, general, specific = AP.parse(commands, general_args, ["--test", "run", "-h"])
+    @test only(pairs(general)) == ("test" => true)
+    @test length(keys(general)) == 1
+    @test cmd == "run"
+    @test only(pairs(specific)) == ("help" => true)
+end
+
 @testset "CLI" begin
     mktempdir() do tmpdir
         dummy_jobfile = joinpath(tmpdir, "dummy_jobfile.jl")
