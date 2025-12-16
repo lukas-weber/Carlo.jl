@@ -30,7 +30,8 @@ function Error(name::AbstractString, type::AbstractString, help_args::Tuple)
     return Error(name, type, String(take!(io)))
 end
 
-Base.showerror(io::IO, e::Error) = print(io, "Unknown $(e.type) '$(e.name)'!\n$(e.help)")
+Base.showerror(io::IO, e::Error) =
+    print(io, "Error: Unknown $(e.type) '$(e.name)'!\n$(e.help)")
 
 """
     parse(options::AbstractVector{Option}, args::AbstractVector{String}) -> Tuple{Dict{String,Any}, Vector{String}}
@@ -121,24 +122,38 @@ function parse(
     return command.name, general, specific
 end
 
-function handle_help(cmd::AbstractString, general::AbstractDict, specific::AbstractDict)
+function handle_help(
+    commands::AbstractVector,
+    general_options::AbstractVector,
+    cmd,
+    general,
+    specific,
+)
     if haskey(general, "help") || (!isnothing(specific) && haskey(specific, "help"))
         if isnothing(cmd)
-            AP.print_help(stdout, commands, general_args)
+            print_help(stdout, commands, general_options)
         else
             command = commands[findfirst(c -> c.name == cmd, commands)]
-            AP.print_help(stdout, command)
+            print_help(stdout, command)
         end
         return true
     end
     return false
 end
 
+function get_program_name()
+    if !isempty(PROGRAM_FILE)
+        return PROGRAM_FILE
+    end
+
+    return "PROGRAM_FILE"
+end
+
 function print_help(
     io::IO,
     command::AbstractVector{Command},
     general_options::AbstractVector{Option};
-    program_name = PROGRAM_FILE,
+    program_name = get_program_name(),
 )
     println(io, "Usage: $program_name [OPTIONS] {$(join((c.name for c in command), "|"))}")
     args_width = maximum(s -> length(s.long), general_options)
@@ -153,7 +168,7 @@ function print_help(
     print_help(io, general_options)
 end
 
-function print_help(io::IO, command::Command; program_name = PROGRAM_FILE)
+function print_help(io::IO, command::Command; program_name = get_program_name())
     println(io, "Usage: $program_name $(command.name) [OPTIONS]")
     println(io, "\n$(command.description)\n")
     print_help(io, command.options)

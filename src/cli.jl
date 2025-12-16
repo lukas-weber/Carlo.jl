@@ -28,11 +28,11 @@ function start(job::JobInfo, args::AbstractVector{<:AbstractString})
         AP.Command("merge", "m", "Merge results of an incomplete simulation", [AP.help()]),
         AP.Command("delete", "d", "Clean up a simulation directory", [AP.help()]),
     ]
-    general_args = [AP.help()]
+    general_options = [AP.help()]
 
     cmd, general, specific = nothing, nothing, nothing
     try
-        cmd, general, specific = AP.parse(commands, general_args, args)
+        cmd, general, specific = AP.parse(commands, general_options, args)
     catch e
         if e isa AP.Error
             showerror(stderr, e)
@@ -42,7 +42,7 @@ function start(job::JobInfo, args::AbstractVector{<:AbstractString})
         end
     end
 
-    if AP.handle_help(cmd, general, specific)
+    if AP.handle_help(commands, general_options, cmd, general, specific)
         return nothing
     end
     if isnothing(cmd)
