@@ -108,7 +108,7 @@ function cli_status(job::JobInfo, ::AbstractDict)
     catch err
         if isa(err, Base.IOError)
             @error "Could not read job progress. Not run yet?"
-            exit(1)
+            return false
         else
             rethrow(err)
         end
@@ -123,11 +123,20 @@ function cli_delete(job::JobInfo, ::AbstractDict)
 end
 
 function cli_merge(job::JobInfo, ::AbstractDict)
-    for task in job.tasks
-        merge_results(job.mc, JobTools.task_dir(job, task); parameters = task.params)
+    try
+        for task in job.tasks
+            merge_results(job.mc, JobTools.task_dir(job, task); parameters = task.params)
+        end
+        JobTools.concatenate_results(job)
+        return true
+    catch err
+        if isa(err, Base.IOError)
+            @error "Could not read job data. Not run yet?"
+            return false
+        else
+            rethrow(err)
+        end
     end
-    JobTools.concatenate_results(job)
-    return nothing
 end
 
 function print_table(data::AbstractMatrix{<:AbstractString}; column_labels)
