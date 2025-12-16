@@ -68,117 +68,110 @@ end
     @test only(pairs(specific)) == ("help" => true)
 end
 
+function capture_output(func)
+    original_stdout = stdout
+    original_stderr = stderr
+    (readout, writeout) = redirect_stdout()
+    (readerr, writeerr) = redirect_stderr()
+
+    try
+        func()
+    finally
+        redirect_stdout(original_stdout)
+        redirect_stderr(original_stderr)
+        close(writeout)
+        close(writeerr)
+    end
+
+    return read(readout, String), read(readerr, String)
+end
+
+
 @testset "CLI" begin
     mktempdir() do tmpdir
-        dummy_jobfile = joinpath(tmpdir, "dummy_jobfile.jl")
-        test_mc_path = abspath("test_mc.jl")
-        write(
-            dummy_jobfile,
-            """
-    using Carlo
-    using Carlo.JobTools
-    include("$test_mc_path")
 
-    tm = TaskMaker()
-    tm.binsize = 2
+        tm = TaskMaker()
+        tm.binsize = 200
 
-    tm.rebin_sample_skip = 1000
-    tm.rebin_length = 1000
+        tm.rebin_sample_skip = 1000
+        tm.rebin_length = 1000
 
-    tm.sweeps = 10
-    tm.thermalization = 0
-    task(tm)
-    tm.thermalization = 100000
-    tm.sweeps = 100000000000
-    task(tm)
-    task(tm)
+        tm.sweeps = 10
+        tm.thermalization = 0
+        task(tm)
+        tm.thermalization = 100
+        tm.sweeps = 100000000000
+        task(tm)
+        task(tm)
 
-    job = JobInfo(
-        "$tmpdir/test",
-        TestMC;
-        tasks = make_tasks(tm),
-        checkpoint_time = "00:05",
-        run_time = "00:10",
-    )
-
-    Carlo.start(job, ARGS)
-""",
+        job = JobInfo(
+            "$tmpdir/test",
+            TestMC;
+            tasks = make_tasks(tm),
+            checkpoint_time = "00:10",
+            run_time = "00:00",
         )
 
-        run_cmd(cmd; quiet = false) = read(
-            pipeline(
-                `$(Base.julia_cmd()) $dummy_jobfile $cmd`,
-                stderr = quiet ? devnull : stderr,
-            ),
-        )
+        @test contains(capture_output() do
+            start(job, ["status"])
+        end[2], "Error")
+        @test contains(capture_output() do
+            start(job, ["merge"])
+        end[2], "Error")
+        start(job, ["delete"])
 
-        @test_throws ProcessFailedException run_cmd("status"; quiet = true)
-        @test_throws ProcessFailedException run_cmd("merge"; quiet = true)
-        run_cmd("delete")
+
+        @test contains(capture_output(() -> start(job, ["a"]))[2], "Error")
+        @test contains(capture_output(() -> start(job, ["--help"]))[1], "Usage")
+        @test contains(capture_output(() -> start(job, ["r", "--help"]))[1], "Usage")
+        @test contains(capture_output(() -> start(job, ["s", "--help"]))[1], "Usage")
+        @test contains(capture_output(() -> start(job, ["m", "--help"]))[1], "Usage")
+
         @test !isfile(tmpdir * "/test.results.json")
 
-        run_cmd("run")
-
-        run_cmd("status")
-        run_cmd("merge")
+        start(job, ["r"])
+        start(job, ["s"])
+        start(job, ["m"])
         @test isfile(tmpdir * "/test.results.json")
 
         test_binning_properties(tmpdir * "/test.results.json")
-        run_cmd("delete")
+        start(job, ["d"])
         @test !isfile(tmpdir * "/test.results.json")
         @test !isdir(tmpdir * "/test")
 
-        write(
-            dummy_jobfile,
-            """
-    using Carlo
-    using Carlo.JobTools
-    include("$test_mc_path")
-
-    tm = TaskMaker()
-    tm.sweeps = 1
-    tm.thermalization = 1
-    tm.binsize = 10
-    for _ = 1:100
-        task(tm)
-    end
-    job = JobInfo(
-        "$tmpdir/test",
-        TestMC;
-        tasks = make_tasks(tm),
-        checkpoint_time = "00:05",
-        run_time = "00:10",
-    )
-
-    Carlo.start(job, ARGS)
-""",
+        tm = TaskMaker()
+        tm.sweeps = 1
+        tm.thermalization = 1
+        tm.binsize = 10
+        for _ = 1:100
+            task(tm)
+        end
+        job = JobInfo(
+            "$tmpdir/test",
+            TestMC;
+            tasks = make_tasks(tm),
+            checkpoint_time = "00:10",
+            run_time = "00:00",
         )
 
-        run_cmd(`run -s`)
-        text = String(run_cmd("status"))
+        start(job, ["run", "-s"])
+        io = IOBuffer()
+
+        text = capture_output() do
+            start(job, ["status"])
+        end[1]
 
         for i = 1:100
             @test occursin(string(i), text)
         end
-        write(
-            dummy_jobfile,
-            """
-    using Carlo
-    using Carlo.JobTools
-    include("$test_mc_path")
-
-    tm = TaskMaker()
-    job = JobInfo(
-        "$tmpdir/test",
-        TestMC;
-        tasks = make_tasks(tm),
-        checkpoint_time = "00:05",
-        run_time = "00:10",
-    )
-
-    Carlo.start(job, ARGS)
-""",
+        job = JobInfo(
+            "$tmpdir/test",
+            TestMC;
+            tasks = TaskInfo[],
+            checkpoint_time = "00:05",
+            run_time = "00:10",
         )
-        run_cmd("status")
+
+        Carlo.start(job, ["status"])
     end
 end
