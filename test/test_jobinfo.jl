@@ -39,6 +39,7 @@ end
     @test_throws ErrorException JT.parse_duration("10:")
     @test_throws ErrorException JT.parse_duration("10::00")
     @test_throws ErrorException JT.parse_duration("a:2:00")
+    @test JT.parse_duration("00:00") == Second(0)
     @test JT.parse_duration("10:00") == Minute(10)
     @test JT.parse_duration("100") == Second(100)
     @test JT.parse_duration("5:32:10") == Hour(5) + Minute(32) + Second(10)

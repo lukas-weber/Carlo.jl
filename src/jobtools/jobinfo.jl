@@ -3,7 +3,7 @@ using Dates
 using Random
 
 """Parse a duration of the format `[[[days-]hours:]minutes]:seconds`."""
-function parse_duration(duration::AbstractString)::Dates.Period
+function parse_duration(duration::AbstractString)::Period
     m = match(
         r"^((((?<days>\d+)-)?(?<hours>\d+):)?(?<minutes>\d+):)?(?<seconds>\d+)$",
         duration,
@@ -13,12 +13,14 @@ function parse_duration(duration::AbstractString)::Dates.Period
     end
 
     conv(x) = parse(UInt, something(x, "0"))
-    return convert(
-        Dates.Second,
-        Day(conv(m[:days])) +
-        Hour(conv(m[:hours])) +
-        Minute(conv(m[:minutes])) +
-        Second(conv(m[:seconds])),
+    return sum(
+        Second,
+        (
+            Day(conv(m[:days])),
+            Hour(conv(m[:hours])),
+            Minute(conv(m[:minutes])),
+            Second(conv(m[:seconds])),
+        ),
     )
 end
 
