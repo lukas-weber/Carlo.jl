@@ -1,10 +1,11 @@
 # Changelog
 
-## 0.3.1 - [Unreleased]
+## 0.3.1 - 2025-12-22
 
 ### Changed
 - Remove PrettyTables dependency
 - Remove ArgParse dependency
+- Improved precompilation and responsiveness of the CLI
 
 ## 0.3.0 - 2025-12-04
 
