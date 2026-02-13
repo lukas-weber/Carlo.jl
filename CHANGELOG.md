@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2 - 2026-02-13
+
+### Fixed
+
+- Fix error on calling the CLI without arguments
+
 ## 0.3.1 - 2025-12-22
 
 ### Changed

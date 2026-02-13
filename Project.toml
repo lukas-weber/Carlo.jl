@@ -1,6 +1,6 @@
 name = "Carlo"
 uuid = "780c37f4-4e5a-43de-9e79-65c261e525a4"
-version = "0.3.1"
+version = "0.3.2"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
