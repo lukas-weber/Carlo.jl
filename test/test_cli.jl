@@ -113,6 +113,10 @@ end
         )
 
         @test contains(capture_output() do
+            start(job, String[])
+        end[2], "No command given")
+
+        @test contains(capture_output() do
             start(job, ["status"])
         end[2], "Error")
         @test contains(capture_output() do

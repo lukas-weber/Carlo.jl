@@ -47,7 +47,7 @@ function start(job::JobInfo, args::AbstractVector{<:AbstractString})
     end
     if isnothing(cmd)
         println(stderr, "No command given")
-        AP.print_help(stdout, commands, general_args)
+        AP.print_help(stdout, commands, general_options)
         return nothing
     end
 
