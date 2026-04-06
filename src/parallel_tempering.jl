@@ -350,6 +350,7 @@ function Carlo.read_checkpoint!(
         end
     else
         chain_permutation = nothing
+        parallel_measures = nothing
     end
 
     mc.chain_idx = MPI.scatter(chain_permutation, comm)

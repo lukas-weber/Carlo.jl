@@ -92,5 +92,32 @@ MPI.Comm_rank(f::FakeComm) = f.rank
             end
         end
 
+        @testset "restart" begin
+            μs = [0, 1, 1.5, 1.7]
+            pt_kwargs = (;
+                mc = ParallelTemperingMC,
+                ranks_per_run = length(μs),
+                ntasks = 1,
+                binsize = 200,
+                thermalization = 1000,
+                parallel_tempering = (;
+                    mc = TestTemperedMC,
+                    parameter = :μ,
+                    values = μs,
+                    interval = 1,
+                ),
+            )
+
+            job_half = make_test_job("$tmpdir/parallel_tempering_restart", 5000; pt_kwargs...)
+            run_test_job_mpi(job_half; num_ranks = length(μs) + 1)
+
+            job_full = make_test_job("$tmpdir/parallel_tempering_restart", 10000; pt_kwargs...)
+            run_test_job_mpi(job_full; num_ranks = length(μs) + 1)
+            tasks = JT.read_progress(job_full)
+            for task in tasks
+                @test task.sweeps >= task.target_sweeps
+            end
+        end
+
     end
 end
