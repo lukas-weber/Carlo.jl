@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 - 2026-04-06
+
+### Fixed
+
+- Fix error on loading from checkpoint in ParallelTemperingMC (thanks, T. Tanaka!)
+
 ## 0.3.2 - 2026-02-13
 
 ### Fixed
