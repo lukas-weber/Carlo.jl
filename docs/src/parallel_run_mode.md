@@ -29,4 +29,18 @@ In these methods, only rank 0 receives an `HDF5.Group` and the other ranks need 
 
 Sometimes, you also want to share work during the construction of `YourMC`. For this reason, Carlo will add the hidden parameter `_comm` to the parameter dictionary received by the constructor `YourMC(params::AbstractDict)`. `params[:_comm]` is then an MPI communicator similar to the `comm` argument of the functions above.
 
+!!! warning 
+    **MPI launcher / library consistency**
+
+    When using parallel run mode with an external MPI launcher (for example a system-provided `mpiexec` or `mpirun`), make sure that the MPI implementation used by `MPI.jl` matches the external launcher.
+
+    In particular, mixing:
+    - a system MPI launcher, and
+    - a different MPI backend selected in `MPI.jl` (for example a JLL-provided MPI)
+    may lead to crashes during checkpointing, result merging, or shutdown. For example, [Issue #30](https://github.com/lukas-weber/Carlo.jl/issues/30)
+
+    If you are using a system-provided parallel HDF5 library, `HDF5.jl` should also be configured to use an HDF5 build compiled against the same MPI implementation. Inconsistent MPI/HDF5 configurations can cause hard-to-diagnose runtime errors such as memory corruption or double-free errors near the end of a run.
+    
+    The safest option is usually to launch Carlo through `mpiexecjl`, which uses the MPI backend configured for `MPI.jl`. If you need to use a system MPI installation instead, configure `MPI.jl` via `MPIPreferences.jl`, and ensure that `HDF5.jl` is configured consistently with the same MPI stack.
+
 Lastly, the `Carlo.register_evaluables` function remains the same as in the normal interface.
