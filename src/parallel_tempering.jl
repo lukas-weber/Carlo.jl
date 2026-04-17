@@ -1,5 +1,5 @@
 # MPI tags
-const PT_WEIGHT_MSG = 524287
+const PT_WEIGHT_MSG = 524286
 const PT_SWITCH_MSG = 524287 
 
 struct ParallelMeasurements
