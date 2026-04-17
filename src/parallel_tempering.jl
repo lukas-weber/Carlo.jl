@@ -1,6 +1,6 @@
 # MPI tags
-const PT_WEIGHT_MSG = 4573792
-const PT_SWITCH_MSG = 4573793
+const PT_WEIGHT_MSG = 32732
+const PT_SWITCH_MSG = 32733 
 
 struct ParallelMeasurements
     queue::Vector{Tuple{Symbol,Any}}
