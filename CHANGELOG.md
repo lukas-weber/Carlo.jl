@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4 - 2026-04-24
+
+### Fixed
+
+- Make parallel run mode work on Intel MPI (#32) Thanks @hz-xiaxz!
+
 ## 0.3.3 - 2026-04-06
 
 ### Fixed
