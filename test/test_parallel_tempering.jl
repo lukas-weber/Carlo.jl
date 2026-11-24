@@ -108,10 +108,12 @@ MPI.Comm_rank(f::FakeComm) = f.rank
                 ),
             )
 
-            job_half = make_test_job("$tmpdir/parallel_tempering_restart", 5000; pt_kwargs...)
+            job_half =
+                make_test_job("$tmpdir/parallel_tempering_restart", 5000; pt_kwargs...)
             run_test_job_mpi(job_half; num_ranks = length(μs) + 1)
 
-            job_full = make_test_job("$tmpdir/parallel_tempering_restart", 10000; pt_kwargs...)
+            job_full =
+                make_test_job("$tmpdir/parallel_tempering_restart", 10000; pt_kwargs...)
             run_test_job_mpi(job_full; num_ranks = length(μs) + 1)
             tasks = JT.read_progress(job_full)
             for task in tasks
@@ -119,5 +121,36 @@ MPI.Comm_rank(f::FakeComm) = f.rank
             end
         end
 
+        @testset "restart during thermalization" begin
+            μs = [0, 1, 1.5, 1.7]
+            thermalization = 1_000_000
+
+            # run_time = 0 makes the worker checkpoint and exit after a single sweep,
+            # so the run can never get past thermalization.
+            job = make_test_job(
+                "$tmpdir/parallel_tempering_restart_therm",
+                1000;
+                mc = ParallelTemperingMC,
+                ranks_per_run = length(μs),
+                ntasks = 1,
+                binsize = 100,
+                thermalization,
+                run_time = "00:00",
+                parallel_tempering = (;
+                    mc = TestTemperedMC,
+                    parameter = :μ,
+                    values = μs,
+                    interval = 1,
+                ),
+            )
+            taskdir = JT.task_dir(job, only(job.tasks))
+
+            run_test_job_mpi(job; num_ranks = length(μs) + 1)
+            @test JT.read_dump_progress(taskdir) == [(1, thermalization)]
+
+            # restarts from the checkpoint written during thermalization
+            run_test_job_mpi(job; num_ranks = length(μs) + 1)
+            @test JT.read_dump_progress(taskdir) == [(2, thermalization)]
+        end
     end
 end

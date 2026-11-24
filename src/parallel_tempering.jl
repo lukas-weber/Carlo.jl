@@ -81,6 +81,10 @@ function write_checkpoint(parallel_measure::ParallelMeasurements, out::HDF5.Grou
 end
 
 function read_checkpoint(::Type{ParallelMeasurements}, in::HDF5.Group)
+    if !haskey(in, "names")
+        return ParallelMeasurements()
+    end
+
     saved_values = read(in, "names")
 
     queue = Vector{Tuple{Symbol,Any}}(
