@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5 - 2026-11-24
+
+### Fixed
+
+- Fix loading from checkpoint before thermalization is complete (#33)
+
 ## 0.3.4 - 2026-04-24
 
 ### Fixed
